@@ -168,6 +168,43 @@ export function TournamentDashboard() {
     ));
   };
 
+  const handleBulkCreatePlayers = (playersData: Omit<Player, "id">[]) => {
+    if (!selectedTournament) {
+      toast({
+        title: "No Tournament Selected",
+        description: "Please select a tournament before adding players.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const currentTournament = tournaments.find(t => t.id === selectedTournament);
+    if (!currentTournament) return;
+
+    const availableSlots = currentTournament.maxPlayers - currentTournament.players.length;
+    const playersToAdd = playersData.slice(0, availableSlots);
+
+    if (playersToAdd.length < playersData.length) {
+      toast({
+        title: "Tournament Capacity",
+        description: `Only ${playersToAdd.length} players could be added due to tournament capacity limit.`,
+        variant: "default"
+      });
+    }
+
+    const newPlayers: Player[] = playersToAdd.map((playerData, index) => ({
+      ...playerData,
+      id: (Date.now() + index).toString()
+    }));
+
+    setPlayers(prev => [...prev, ...newPlayers]);
+    setTournaments(prev => prev.map(t => 
+      t.id === selectedTournament 
+        ? { ...t, players: [...t.players, ...newPlayers.map(p => p.id)] }
+        : t
+    ));
+  };
+
   const activePlayers = tournamentPlayers.filter(p => p.status === "active");
 
   // Show tournament selector if no tournament is selected or no tournaments exist
@@ -281,7 +318,10 @@ export function TournamentDashboard() {
             </TabsList>
             
             <div className="flex gap-2">
-              <CreatePlayerDialog onPlayerCreate={handleCreatePlayer} />
+              <CreatePlayerDialog 
+                onPlayerCreate={handleCreatePlayer} 
+                onBulkPlayerCreate={handleBulkCreatePlayers}
+              />
               <CreateTournamentDialog onTournamentCreate={handleCreateTournament} />
               <Button variant="fairway">
                 <Calendar className="h-4 w-4 mr-2" />
@@ -352,6 +392,7 @@ export function TournamentDashboard() {
                   <p className="text-muted-foreground mb-4">Add players to start the tournament</p>
                   <CreatePlayerDialog 
                     onPlayerCreate={handleCreatePlayer}
+                    onBulkPlayerCreate={handleBulkCreatePlayers}
                     trigger={
                       <Button variant="premium">
                         <Plus className="h-4 w-4 mr-2" />

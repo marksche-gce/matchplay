@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Plus, User, Target, Award } from "lucide-react";
+import { useState, useRef } from "react";
+import { Plus, User, Target, Award, Upload, FileSpreadsheet } from "lucide-react";
+import * as XLSX from 'xlsx';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -21,16 +22,18 @@ interface Player {
 
 interface CreatePlayerDialogProps {
   onPlayerCreate: (player: Omit<Player, "id">) => void;
+  onBulkPlayerCreate?: (players: Omit<Player, "id">[]) => void;
   trigger?: React.ReactNode;
 }
 
-export function CreatePlayerDialog({ onPlayerCreate, trigger }: CreatePlayerDialogProps) {
+export function CreatePlayerDialog({ onPlayerCreate, onBulkPlayerCreate, trigger }: CreatePlayerDialogProps) {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     handicap: "10"
   });
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -81,6 +84,79 @@ export function CreatePlayerDialog({ onPlayerCreate, trigger }: CreatePlayerDial
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleExcelImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = new Uint8Array(event.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+        const players: Omit<Player, "id">[] = [];
+        
+        jsonData.forEach((row: any, index) => {
+          const name = row.Name || row.name || row.Player || row.player;
+          const email = row.Email || row.email;
+          const handicap = row.Handicap || row.handicap || row.HCAP || row.hcap;
+          
+          if (name) {
+            const handicapValue = parseInt(handicap) || 10;
+            if (handicapValue >= 0 && handicapValue <= 36) {
+              players.push({
+                name: String(name),
+                email: email ? String(email) : undefined,
+                handicap: handicapValue,
+                wins: 0,
+                losses: 0,
+                status: "active"
+              });
+            }
+          }
+        });
+
+        if (players.length > 0) {
+          if (onBulkPlayerCreate) {
+            onBulkPlayerCreate(players);
+          } else {
+            // If no bulk handler, add one by one
+            players.forEach(player => onPlayerCreate(player));
+          }
+          
+          toast({
+            title: "Players Imported!",
+            description: `Successfully imported ${players.length} players from Excel file.`,
+          });
+          
+          setOpen(false);
+        } else {
+          toast({
+            title: "Import Failed",
+            description: "No valid players found in the Excel file. Make sure it has 'Name' and 'Handicap' columns.",
+            variant: "destructive"
+          });
+        }
+      } catch (error) {
+        toast({
+          title: "Import Error",
+          description: "Failed to read Excel file. Please check the file format.",
+          variant: "destructive"
+        });
+      }
+    };
+    
+    reader.readAsArrayBuffer(file);
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
@@ -102,6 +178,33 @@ export function CreatePlayerDialog({ onPlayerCreate, trigger }: CreatePlayerDial
             Add New Player
           </DialogTitle>
         </DialogHeader>
+
+        {/* Excel Import Section */}
+        <div className="border rounded-lg p-4 bg-muted/30">
+          <div className="flex items-center gap-2 mb-3">
+            <FileSpreadsheet className="h-4 w-4" />
+            <span className="font-medium">Import from Excel</span>
+          </div>
+          <p className="text-sm text-muted-foreground mb-3">
+            Upload an Excel file with columns: Name, Email (optional), Handicap
+          </p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx,.xls"
+            onChange={handleExcelImport}
+            className="hidden"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full gap-2"
+          >
+            <Upload className="h-4 w-4" />
+            Choose Excel File
+          </Button>
+        </div>
         
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-4">
