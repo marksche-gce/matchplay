@@ -659,10 +659,10 @@ export function TournamentDashboard() {
       }
 
       // Set winner_id based on winner name
-      if (updates.winner) {
+      if (updates.winner && updates.winner !== "no-winner") {
         const winnerPlayer = players.find(p => p.name === updates.winner);
         matchUpdates.winner_id = winnerPlayer?.id || null;
-      } else if (updates.winner === "") {
+      } else {
         matchUpdates.winner_id = null;
       }
 

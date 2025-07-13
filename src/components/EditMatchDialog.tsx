@@ -82,7 +82,7 @@ export function EditMatchDialog({ match, onMatchUpdate, trigger, availablePlayer
       tee: formData.tee || undefined,
       round: formData.round,
       status: formData.status as Match["status"],
-      winner: formData.winner || undefined
+      winner: formData.winner === "no-winner" ? undefined : formData.winner
     };
 
     if (match.type === "singles") {
@@ -283,7 +283,7 @@ export function EditMatchDialog({ match, onMatchUpdate, trigger, availablePlayer
                           <SelectValue placeholder="Select winner" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">(No winner yet)</SelectItem>
+                          <SelectItem value="no-winner">(No winner yet)</SelectItem>
                           {formData.player1Name && <SelectItem value={formData.player1Name}>{formData.player1Name}</SelectItem>}
                           {formData.player2Name && <SelectItem value={formData.player2Name}>{formData.player2Name}</SelectItem>}
                         </SelectContent>
