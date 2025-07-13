@@ -91,33 +91,44 @@ export function CreatePlayerDialog({ onPlayerCreate, onBulkPlayerCreate, trigger
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
+        console.log("Starting Excel import...");
         const data = new Uint8Array(event.target?.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: 'array' });
         const sheetName = workbook.SheetNames[0];
+        console.log("Sheet name:", sheetName);
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        console.log("Raw Excel data:", jsonData);
 
         const players: Omit<Player, "id">[] = [];
         
         jsonData.forEach((row: any, index) => {
+          console.log(`Processing row ${index}:`, row);
           const name = row.Name || row.name || row.Player || row.player;
           const email = row.Email || row.email;
           const handicap = row.Handicap || row.handicap || row.HCAP || row.hcap;
           
+          console.log(`Row ${index} - Name: ${name}, Email: ${email}, Handicap: ${handicap}`);
+          
           if (name) {
             const handicapValue = parseFloat(handicap) || 10;
+            console.log(`Row ${index} - Parsed handicap: ${handicapValue}`);
             if (handicapValue >= 0 && handicapValue <= 36) {
-              players.push({
+              const player = {
                 name: String(name),
                 email: email ? String(email) : undefined,
                 handicap: handicapValue,
                 wins: 0,
                 losses: 0,
-                status: "active"
-              });
+                status: "active" as const
+              };
+              console.log(`Row ${index} - Adding player:`, player);
+              players.push(player);
             }
           }
         });
+
+        console.log("Final players array:", players);
 
         if (players.length > 0) {
           if (onBulkPlayerCreate) {
