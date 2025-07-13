@@ -9,7 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { validateEmail, validatePhone, validateHandicap, sanitizeInput } from "@/lib/validation";
 
 interface Tournament {
   id: string;
@@ -58,6 +60,7 @@ export function TournamentRegistrationDialog({
   const [loading, setLoading] = useState(false);
   const [existingPlayer, setExistingPlayer] = useState<any>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     if (open && tournamentId) {
@@ -93,14 +96,13 @@ export function TournamentRegistrationDialog({
 
   const checkExistingPlayer = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
       const { data, error } = await supabase
         .from('players')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (data) {
         setExistingPlayer(data);
@@ -122,18 +124,18 @@ export function TournamentRegistrationDialog({
     setLoading(true);
     
     try {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast({
           title: "Authentication Required",
           description: "Please sign in to register for tournaments.",
           variant: "destructive"
         });
+        setLoading(false);
         return;
       }
 
       // Validation
-      if (!playerData.name.trim() || !playerData.email.trim() || playerData.handicap < 0) {
+      if (!playerData.name.trim() || !playerData.email.trim()) {
         toast({
           title: "Missing Information",
           description: "Please fill in all required fields.",
@@ -143,6 +145,46 @@ export function TournamentRegistrationDialog({
         return;
       }
 
+      if (!validateEmail(playerData.email)) {
+        toast({
+          title: "Invalid Email",
+          description: "Please enter a valid email address.",
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
+
+      if (!validatePhone(playerData.phone)) {
+        toast({
+          title: "Invalid Phone Number",
+          description: "Please enter a valid phone number.",
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
+
+      if (!validateHandicap(playerData.handicap)) {
+        toast({
+          title: "Invalid Handicap",
+          description: "Handicap must be between 0 and 36.",
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Sanitize inputs
+      const sanitizedData = {
+        name: sanitizeInput(playerData.name),
+        email: sanitizeInput(playerData.email),
+        phone: sanitizeInput(playerData.phone),
+        emergency_contact: sanitizeInput(playerData.emergency_contact),
+        notes: sanitizeInput(playerData.notes),
+        handicap: playerData.handicap
+      };
+
       let playerId = existingPlayer?.id;
 
       // Create or update player profile
@@ -150,11 +192,11 @@ export function TournamentRegistrationDialog({
         const { error: updateError } = await supabase
           .from('players')
           .update({
-            name: playerData.name,
-            email: playerData.email,
-            handicap: playerData.handicap,
-            phone: playerData.phone,
-            emergency_contact: playerData.emergency_contact
+            name: sanitizedData.name,
+            email: sanitizedData.email,
+            handicap: sanitizedData.handicap,
+            phone: sanitizedData.phone,
+            emergency_contact: sanitizedData.emergency_contact
           })
           .eq('id', existingPlayer.id);
 
@@ -164,11 +206,11 @@ export function TournamentRegistrationDialog({
           .from('players')
           .insert({
             user_id: user.id,
-            name: playerData.name,
-            email: playerData.email,
-            handicap: playerData.handicap,
-            phone: playerData.phone,
-            emergency_contact: playerData.emergency_contact
+            name: sanitizedData.name,
+            email: sanitizedData.email,
+            handicap: sanitizedData.handicap,
+            phone: sanitizedData.phone,
+            emergency_contact: sanitizedData.emergency_contact
           })
           .select()
           .single();
@@ -183,7 +225,7 @@ export function TournamentRegistrationDialog({
         .insert({
           tournament_id: tournamentId,
           player_id: playerId,
-          notes: playerData.notes
+          notes: sanitizedData.notes
         });
 
       if (registrationError) {

@@ -2,17 +2,19 @@ import { TournamentDashboard } from "@/components/TournamentDashboard";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Trophy } from "lucide-react";
+import { UserMenu } from "@/components/UserMenu";
 
 const Index = () => {
   return (
     <div>
-      <div className="fixed top-4 right-4 z-50">
+      <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
         <Link to="/register">
           <Button variant="outline" className="flex items-center gap-2">
             <Trophy className="h-4 w-4" />
             Player Registration
           </Button>
         </Link>
+        <UserMenu />
       </div>
       <TournamentDashboard />
     </div>
