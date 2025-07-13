@@ -7,32 +7,80 @@ import { Badge } from "@/components/ui/badge";
 import { TournamentHeader } from "./TournamentHeader";
 import { PlayerCard } from "./PlayerCard";
 import { MatchCard } from "./MatchCard";
+import { CreateTournamentDialog } from "./CreateTournamentDialog";
+import { CreatePlayerDialog } from "./CreatePlayerDialog";
+import { TournamentSelector } from "./TournamentSelector";
+import { useToast } from "@/hooks/use-toast";
 
-// Mock data for demonstration
-const tournamentData = {
-  name: "Spring Championship 2024",
-  course: "Pebble Beach Golf Links",
-  date: "March 15-17, 2024",
-  players: 32,
-  status: "active" as const
-};
+interface Tournament {
+  id: string;
+  name: string;
+  course: string;
+  description?: string;
+  startDate: string;
+  endDate: string;
+  maxPlayers: number;
+  format: "matchplay" | "strokeplay" | "scramble";
+  status: "upcoming" | "active" | "completed";
+  players: string[];
+}
 
-const players = [
-  { id: "1", name: "Tiger Woods", handicap: 0, wins: 15, losses: 2, status: "active" as const },
-  { id: "2", name: "Rory McIlroy", handicap: 2, wins: 12, losses: 3, status: "active" as const },
-  { id: "3", name: "Jordan Spieth", handicap: 1, wins: 10, losses: 5, status: "active" as const },
-  { id: "4", name: "Justin Thomas", handicap: 1, wins: 8, losses: 4, status: "eliminated" as const },
-  { id: "5", name: "Brooks Koepka", handicap: 0, wins: 11, losses: 3, status: "active" as const },
-  { id: "6", name: "Dustin Johnson", handicap: 1, wins: 9, losses: 6, status: "active" as const },
-];
+interface Player {
+  id: string;
+  name: string;
+  email?: string;
+  handicap: number;
+  wins: number;
+  losses: number;
+  status: "active" | "eliminated" | "champion";
+}
 
-const matches = [
+interface Match {
+  id: string;
+  tournamentId: string;
+  player1: { name: string; handicap: number; score?: number };
+  player2: { name: string; handicap: number; score?: number };
+  round: string;
+  status: "scheduled" | "in-progress" | "completed";
+  date: string;
+  time: string;
+  tee?: string;
+  winner?: string;
+}
+
+// Initial mock data
+const initialTournaments: Tournament[] = [
   {
     id: "1",
+    name: "Spring Championship 2024",
+    course: "Pebble Beach Golf Links",
+    description: "Annual spring tournament featuring professional players",
+    startDate: "2024-03-15",
+    endDate: "2024-03-17",
+    maxPlayers: 32,
+    format: "matchplay",
+    status: "active",
+    players: ["1", "2", "3", "4", "5", "6"]
+  }
+];
+
+const initialPlayers: Player[] = [
+  { id: "1", name: "Tiger Woods", handicap: 0, wins: 15, losses: 2, status: "active" },
+  { id: "2", name: "Rory McIlroy", handicap: 2, wins: 12, losses: 3, status: "active" },
+  { id: "3", name: "Jordan Spieth", handicap: 1, wins: 10, losses: 5, status: "active" },
+  { id: "4", name: "Justin Thomas", handicap: 1, wins: 8, losses: 4, status: "eliminated" },
+  { id: "5", name: "Brooks Koepka", handicap: 0, wins: 11, losses: 3, status: "active" },
+  { id: "6", name: "Dustin Johnson", handicap: 1, wins: 9, losses: 6, status: "active" },
+];
+
+const initialMatches: Match[] = [
+  {
+    id: "1",
+    tournamentId: "1",
     player1: { name: "Tiger Woods", handicap: 0, score: 3 },
     player2: { name: "Rory McIlroy", handicap: 2, score: 1 },
     round: "Quarterfinal 1",
-    status: "completed" as const,
+    status: "completed",
     date: "Mar 16",
     time: "9:00 AM",
     tee: "Tee 1",
@@ -40,20 +88,22 @@ const matches = [
   },
   {
     id: "2",
+    tournamentId: "1",
     player1: { name: "Jordan Spieth", handicap: 1 },
     player2: { name: "Brooks Koepka", handicap: 0 },
     round: "Quarterfinal 2",
-    status: "in-progress" as const,
+    status: "in-progress",
     date: "Mar 16",
     time: "9:15 AM",
     tee: "Tee 10"
   },
   {
     id: "3",
+    tournamentId: "1",
     player1: { name: "Dustin Johnson", handicap: 1 },
     player2: { name: "Justin Thomas", handicap: 1 },
     round: "Quarterfinal 3",
-    status: "scheduled" as const,
+    status: "scheduled",
     date: "Mar 16",
     time: "2:00 PM",
     tee: "Tee 1"
@@ -61,16 +111,105 @@ const matches = [
 ];
 
 export function TournamentDashboard() {
+  const [tournaments, setTournaments] = useState<Tournament[]>(initialTournaments);
+  const [players, setPlayers] = useState<Player[]>(initialPlayers);
+  const [matches, setMatches] = useState<Match[]>(initialMatches);
+  const [selectedTournament, setSelectedTournament] = useState<string | null>(initialTournaments[0]?.id || null);
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
+  const { toast } = useToast();
 
-  const activePlayers = players.filter(p => p.status === "active");
-  const eliminatedPlayers = players.filter(p => p.status === "eliminated");
+  const currentTournament = tournaments.find(t => t.id === selectedTournament);
+  const tournamentPlayers = currentTournament ? players.filter(p => currentTournament.players.includes(p.id)) : [];
+  const tournamentMatches = matches.filter(m => m.tournamentId === selectedTournament);
+
+  const handleCreateTournament = (tournamentData: Omit<Tournament, "id" | "players">) => {
+    const newTournament: Tournament = {
+      ...tournamentData,
+      id: Date.now().toString(),
+      players: []
+    };
+    setTournaments(prev => [...prev, newTournament]);
+    setSelectedTournament(newTournament.id);
+  };
+
+  const handleCreatePlayer = (playerData: Omit<Player, "id">) => {
+    if (!selectedTournament) {
+      toast({
+        title: "No Tournament Selected",
+        description: "Please select a tournament before adding players.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const currentTournament = tournaments.find(t => t.id === selectedTournament);
+    if (!currentTournament) return;
+
+    if (currentTournament.players.length >= currentTournament.maxPlayers) {
+      toast({
+        title: "Tournament Full",
+        description: `This tournament is limited to ${currentTournament.maxPlayers} players.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const newPlayer: Player = {
+      ...playerData,
+      id: Date.now().toString()
+    };
+
+    setPlayers(prev => [...prev, newPlayer]);
+    setTournaments(prev => prev.map(t => 
+      t.id === selectedTournament 
+        ? { ...t, players: [...t.players, newPlayer.id] }
+        : t
+    ));
+  };
+
+  const activePlayers = tournamentPlayers.filter(p => p.status === "active");
+
+  // Show tournament selector if no tournament is selected or no tournaments exist
+  if (!selectedTournament || !currentTournament) {
+    return (
+      <div className="min-h-screen bg-gradient-course">
+        <div className="container mx-auto px-4 py-6">
+          <TournamentSelector
+            tournaments={tournaments}
+            selectedTournament={selectedTournament}
+            onTournamentSelect={setSelectedTournament}
+            onCreateNew={() => {}} // This will be handled by the CreateTournamentDialog
+          />
+          <div className="mt-6 text-center">
+            <CreateTournamentDialog onTournamentCreate={handleCreateTournament} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const tournamentHeaderData = {
+    name: currentTournament.name,
+    course: currentTournament.course,
+    date: `${new Date(currentTournament.startDate).toLocaleDateString()}${currentTournament.endDate ? ` - ${new Date(currentTournament.endDate).toLocaleDateString()}` : ''}`,
+    players: currentTournament.players.length,
+    status: currentTournament.status
+  };
 
   return (
     <div className="min-h-screen bg-gradient-course">
       <div className="container mx-auto px-4 py-6 space-y-6">
-        <TournamentHeader tournament={tournamentData} />
+        <div className="flex items-center justify-between">
+          <TournamentSelector
+            tournaments={tournaments}
+            selectedTournament={selectedTournament}
+            onTournamentSelect={setSelectedTournament}
+            onCreateNew={() => {}} // CreateTournamentDialog handles this
+          />
+        </div>
+        
+        <TournamentHeader tournament={tournamentHeaderData} />
         
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -95,7 +234,7 @@ export function TournamentDashboard() {
                   <Trophy className="h-5 w-5 text-success" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{matches.filter(m => m.status === "completed").length}</p>
+                  <p className="text-2xl font-bold">{tournamentMatches.filter(m => m.status === "completed").length}</p>
                   <p className="text-sm text-muted-foreground">Completed</p>
                 </div>
               </div>
@@ -109,7 +248,7 @@ export function TournamentDashboard() {
                   <Calendar className="h-5 w-5 text-warning" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{matches.filter(m => m.status === "in-progress").length}</p>
+                  <p className="text-2xl font-bold">{tournamentMatches.filter(m => m.status === "in-progress").length}</p>
                   <p className="text-sm text-muted-foreground">In Progress</p>
                 </div>
               </div>
@@ -123,7 +262,7 @@ export function TournamentDashboard() {
                   <Filter className="h-5 w-5 text-accent-foreground" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{matches.filter(m => m.status === "scheduled").length}</p>
+                  <p className="text-2xl font-bold">{tournamentMatches.filter(m => m.status === "scheduled").length}</p>
                   <p className="text-sm text-muted-foreground">Scheduled</p>
                 </div>
               </div>
@@ -142,11 +281,9 @@ export function TournamentDashboard() {
             </TabsList>
             
             <div className="flex gap-2">
-              <Button variant="outline">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Player
-              </Button>
-              <Button variant="premium">
+              <CreatePlayerDialog onPlayerCreate={handleCreatePlayer} />
+              <CreateTournamentDialog onTournamentCreate={handleCreateTournament} />
+              <Button variant="fairway">
                 <Calendar className="h-4 w-4 mr-2" />
                 Schedule Match
               </Button>
@@ -160,14 +297,21 @@ export function TournamentDashboard() {
                   <CardTitle>Recent Matches</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {matches.slice(0, 3).map(match => (
-                    <MatchCard 
-                      key={match.id} 
-                      match={match}
-                      onScoreUpdate={() => console.log("Update score for", match.id)}
-                      onViewDetails={() => console.log("View details for", match.id)}
-                    />
-                  ))}
+                  {tournamentMatches.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                      <p className="text-muted-foreground">No matches scheduled yet</p>
+                    </div>
+                  ) : (
+                    tournamentMatches.slice(0, 3).map(match => (
+                      <MatchCard 
+                        key={match.id} 
+                        match={match}
+                        onScoreUpdate={() => console.log("Update score for", match.id)}
+                        onViewDetails={() => console.log("View details for", match.id)}
+                      />
+                    ))
+                  )}
                 </CardContent>
               </Card>
               
@@ -176,18 +320,24 @@ export function TournamentDashboard() {
                   <CardTitle>Top Players</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {players
-                    .sort((a, b) => (b.wins / (b.wins + b.losses || 1)) - (a.wins / (a.wins + a.losses || 1)))
-                    .slice(0, 4)
-                    .map(player => (
-                      <PlayerCard 
-                        key={player.id} 
-                        player={player}
-                        onSelect={() => setSelectedPlayer(player.id)}
-                        selected={selectedPlayer === player.id}
-                      />
-                    ))
-                  }
+                  {tournamentPlayers.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Users className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                      <p className="text-muted-foreground">No players added yet</p>
+                    </div>
+                  ) : (
+                    tournamentPlayers
+                      .sort((a, b) => (b.wins / (b.wins + b.losses || 1)) - (a.wins / (a.wins + a.losses || 1)))
+                      .slice(0, 4)
+                      .map(player => (
+                        <PlayerCard 
+                          key={player.id} 
+                          player={player}
+                          onSelect={() => setSelectedPlayer(player.id)}
+                          selected={selectedPlayer === player.id}
+                        />
+                      ))
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -195,27 +345,56 @@ export function TournamentDashboard() {
 
           <TabsContent value="players" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {players.map(player => (
-                <PlayerCard 
-                  key={player.id} 
-                  player={player}
-                  onSelect={() => setSelectedPlayer(player.id)}
-                  selected={selectedPlayer === player.id}
-                />
-              ))}
+              {tournamentPlayers.length === 0 ? (
+                <div className="col-span-full text-center py-8">
+                  <Users className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">No Players Yet</h3>
+                  <p className="text-muted-foreground mb-4">Add players to start the tournament</p>
+                  <CreatePlayerDialog 
+                    onPlayerCreate={handleCreatePlayer}
+                    trigger={
+                      <Button variant="premium">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add First Player
+                      </Button>
+                    }
+                  />
+                </div>
+              ) : (
+                tournamentPlayers.map(player => (
+                  <PlayerCard 
+                    key={player.id} 
+                    player={player}
+                    onSelect={() => setSelectedPlayer(player.id)}
+                    selected={selectedPlayer === player.id}
+                  />
+                ))
+              )}
             </div>
           </TabsContent>
 
           <TabsContent value="matches" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {matches.map(match => (
-                <MatchCard 
-                  key={match.id} 
-                  match={match}
-                  onScoreUpdate={() => console.log("Update score for", match.id)}
-                  onViewDetails={() => console.log("View details for", match.id)}
-                />
-              ))}
+              {tournamentMatches.length === 0 ? (
+                <div className="col-span-full text-center py-8">
+                  <Trophy className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">No Matches Scheduled</h3>
+                  <p className="text-muted-foreground mb-4">Schedule matches to start the tournament</p>
+                  <Button variant="fairway">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Schedule First Match
+                  </Button>
+                </div>
+              ) : (
+                tournamentMatches.map(match => (
+                  <MatchCard 
+                    key={match.id} 
+                    match={match}
+                    onScoreUpdate={() => console.log("Update score for", match.id)}
+                    onViewDetails={() => console.log("View details for", match.id)}
+                  />
+                ))
+              )}
             </div>
           </TabsContent>
 
