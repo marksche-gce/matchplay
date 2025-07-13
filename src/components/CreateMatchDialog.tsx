@@ -53,13 +53,17 @@ interface CreateMatchDialogProps {
   availablePlayers: Player[];
   onMatchCreate: (match: Omit<Match, "id">) => void;
   trigger?: React.ReactNode;
+  tournamentStartDate?: string;
+  tournamentEndDate?: string;
 }
 
 export function CreateMatchDialog({ 
   tournamentId, 
   availablePlayers, 
   onMatchCreate, 
-  trigger 
+  trigger,
+  tournamentStartDate,
+  tournamentEndDate
 }: CreateMatchDialogProps) {
   const [open, setOpen] = useState(false);
   const [matchType, setMatchType] = useState<"singles" | "foursome">("singles");
@@ -167,7 +171,7 @@ export function CreateMatchDialog({
       type: matchType,
       round: formData.round,
       status: "scheduled",
-      date: formData.date || new Date().toISOString().split('T')[0],
+      date: formData.date || tournamentStartDate || new Date().toISOString().split('T')[0],
       time: formData.time || "TBD",
       tee: formData.tee || undefined
     };

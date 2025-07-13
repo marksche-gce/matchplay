@@ -521,7 +521,7 @@ export function TournamentDashboard() {
           type: matchData.type,
           round: matchData.round,
           status: matchData.status,
-          match_date: new Date().toISOString().split('T')[0],
+          match_date: matchData.date || currentTournament?.start_date || new Date().toISOString().split('T')[0],
           match_time: matchData.time,
           tee: matchData.tee ? parseInt(matchData.tee.replace('Tee ', '')) : null
         })
@@ -846,6 +846,8 @@ export function TournamentDashboard() {
                         match={match}
                         onMatchUpdate={handleEditMatch}
                         availablePlayers={players}
+                        tournamentStartDate={currentTournament?.start_date}
+                        tournamentEndDate={currentTournament?.end_date}
                         trigger={
                           <div className="cursor-pointer">
                             <MatchCard 
@@ -932,6 +934,8 @@ export function TournamentDashboard() {
                       tournamentId={selectedTournament}
                       availablePlayers={tournamentPlayers}
                       onMatchCreate={handleCreateMatch}
+                      tournamentStartDate={currentTournament?.start_date}
+                      tournamentEndDate={currentTournament?.end_date}
                       trigger={
                         <Button variant="fairway">
                           <Calendar className="h-4 w-4 mr-2" />
@@ -948,6 +952,8 @@ export function TournamentDashboard() {
                     match={match}
                     onMatchUpdate={handleEditMatch}
                     availablePlayers={players}
+                    tournamentStartDate={currentTournament?.start_date}
+                    tournamentEndDate={currentTournament?.end_date}
                     trigger={
                       <div className="cursor-pointer">
                         <MatchCard 

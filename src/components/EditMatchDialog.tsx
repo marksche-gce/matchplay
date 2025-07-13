@@ -43,11 +43,23 @@ interface EditMatchDialogProps {
   onMatchUpdate: (matchId: string, updates: Partial<Match>) => void;
   trigger?: React.ReactNode;
   availablePlayers?: Player[];
+  tournamentStartDate?: string;
+  tournamentEndDate?: string;
 }
 
-export function EditMatchDialog({ match, onMatchUpdate, trigger, availablePlayers = [] }: EditMatchDialogProps) {
+export function EditMatchDialog({ match, onMatchUpdate, trigger, availablePlayers = [], tournamentStartDate, tournamentEndDate }: EditMatchDialogProps) {
   const [open, setOpen] = useState(false);
-  const [date, setDate] = useState<Date>(new Date(match.date + " " + new Date().getFullYear()));
+  const [date, setDate] = useState<Date>(() => {
+    // Try to parse match date, fallback to tournament start date or today
+    if (match.date && match.date !== "TBD") {
+      const matchDate = new Date(match.date + " " + new Date().getFullYear());
+      if (!isNaN(matchDate.getTime())) return matchDate;
+    }
+    if (tournamentStartDate) {
+      return new Date(tournamentStartDate);
+    }
+    return new Date();
+  });
   const [formData, setFormData] = useState({
     time: match.time,
     tee: match.tee || "",
