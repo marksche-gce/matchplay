@@ -637,26 +637,8 @@ export function TournamentDashboard() {
       // First, update the match details
       const matchUpdates: any = {
         round: updates.round,
-        status: updates.status,
-        match_time: updates.time && updates.time !== "TBD" ? updates.time : null,
-        tee: updates.tee ? parseInt(updates.tee.replace('Tee ', '')) : null
+        status: updates.status
       };
-
-      // Handle date conversion
-      if (updates.date) {
-        try {
-          // Convert "MMM d" format to full date using current tournament year
-          const currentYear = currentTournament?.start_date ? new Date(currentTournament.start_date).getFullYear() : new Date().getFullYear();
-          const fullDateString = `${updates.date} ${currentYear}`;
-          const parsedDate = new Date(fullDateString);
-          
-          if (!isNaN(parsedDate.getTime())) {
-            matchUpdates.match_date = parsedDate.toISOString().split('T')[0];
-          }
-        } catch (error) {
-          console.log('Date parsing failed, keeping existing date');
-        }
-      }
 
       // Set winner_id based on winner name
       if (updates.winner && updates.winner !== "no-winner") {

@@ -1,14 +1,10 @@
 import { useState } from "react";
-import { Edit3, Calendar } from "lucide-react";
+import { Edit3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 interface Player {
@@ -49,20 +45,7 @@ interface EditMatchDialogProps {
 
 export function EditMatchDialog({ match, onMatchUpdate, trigger, availablePlayers = [], tournamentStartDate, tournamentEndDate }: EditMatchDialogProps) {
   const [open, setOpen] = useState(false);
-  const [date, setDate] = useState<Date>(() => {
-    // Try to parse match date, fallback to tournament start date or today
-    if (match.date && match.date !== "TBD") {
-      const matchDate = new Date(match.date + " " + new Date().getFullYear());
-      if (!isNaN(matchDate.getTime())) return matchDate;
-    }
-    if (tournamentStartDate) {
-      return new Date(tournamentStartDate);
-    }
-    return new Date();
-  });
   const [formData, setFormData] = useState({
-    time: match.time,
-    tee: match.tee || "",
     round: match.round,
     status: match.status,
     player1Score: match.player1?.score?.toString() || "",
@@ -77,9 +60,6 @@ export function EditMatchDialog({ match, onMatchUpdate, trigger, availablePlayer
     e.preventDefault();
     
     const updates: Partial<Match> = {
-      date: format(date, "MMM d"),
-      time: formData.time,
-      tee: formData.tee || undefined,
       round: formData.round,
       status: formData.status as Match["status"],
       winner: formData.winner === "no-winner" ? undefined : formData.winner
@@ -155,55 +135,6 @@ export function EditMatchDialog({ match, onMatchUpdate, trigger, availablePlayer
                   <SelectItem value="completed">Completed</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !date && "text-muted-foreground"
-                      )}
-                    >
-                      <Calendar className="mr-2 h-4 w-4" />
-                      {date ? format(date, "MMM d") : <span>Pick date</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <CalendarComponent
-                      mode="single"
-                      selected={date}
-                      onSelect={(date) => date && setDate(date)}
-                      initialFocus
-                      className={cn("p-3 pointer-events-auto")}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="time">Time</Label>
-                <Input
-                  id="time"
-                  type="time"
-                  value={formData.time.replace(" AM", "").replace(" PM", "")}
-                  onChange={(e) => handleInputChange("time", e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="tee">Tee (Optional)</Label>
-              <Input
-                id="tee"
-                placeholder="Tee 1"
-                value={formData.tee}
-                onChange={(e) => handleInputChange("tee", e.target.value)}
-              />
             </div>
 
             {match.type === "singles" && (
