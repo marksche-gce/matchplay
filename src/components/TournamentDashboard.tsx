@@ -880,17 +880,14 @@ export function TournamentDashboard() {
                 onPlayerCreate={handleCreatePlayer} 
                 onBulkPlayerCreate={handleBulkCreatePlayers}
               />
-              <CreateMatchDialog
-                tournamentId={selectedTournament}
-                availablePlayers={tournamentPlayers}
-                onMatchCreate={handleCreateMatch}
-                trigger={
-                  <Button variant="fairway">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Schedule Matches Manually
-                  </Button>
-                }
-              />
+              <Button 
+                variant="fairway"
+                onClick={() => setShowManagement(true)}
+                className="flex items-center gap-2"
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                Schedule Matches Manually
+              </Button>
               <Button 
                 variant="premium" 
                 onClick={handleAutoScheduleMatches}
