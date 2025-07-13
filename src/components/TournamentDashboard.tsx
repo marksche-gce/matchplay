@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Trophy, Users, Calendar, Filter, Settings, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,17 +13,21 @@ import { CreatePlayerDialog } from "./CreatePlayerDialog";
 import { TournamentSelector } from "./TournamentSelector";
 import { TournamentManagement } from "./TournamentManagement";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Tournament {
   id: string;
   name: string;
   course: string;
   description?: string;
-  startDate: string;
-  endDate: string;
-  maxPlayers: number;
+  start_date: string;
+  end_date: string;
+  max_players: number;
   format: "matchplay" | "strokeplay" | "scramble";
   status: "upcoming" | "active" | "completed";
+  registration_open: boolean;
+  entry_fee?: number;
   players: string[];
 }
 
@@ -67,211 +71,565 @@ interface Match {
   winner?: string;
 }
 
-// Initial mock data
-const initialTournaments: Tournament[] = [
-  {
-    id: "1",
-    name: "Spring Championship 2024",
-    course: "Pebble Beach Golf Links",
-    description: "Annual spring tournament featuring professional players",
-    startDate: "2024-03-15",
-    endDate: "2024-03-17",
-    maxPlayers: 32,
-    format: "matchplay",
-    status: "active",
-    players: ["1", "2", "3", "4", "5", "6"]
-  }
-];
-
-const initialPlayers: Player[] = [
-  { id: "1", name: "Tiger Woods", handicap: 0, wins: 15, losses: 2, status: "active" },
-  { id: "2", name: "Rory McIlroy", handicap: 2, wins: 12, losses: 3, status: "active" },
-  { id: "3", name: "Jordan Spieth", handicap: 1, wins: 10, losses: 5, status: "active" },
-  { id: "4", name: "Justin Thomas", handicap: 1, wins: 8, losses: 4, status: "eliminated" },
-  { id: "5", name: "Brooks Koepka", handicap: 0, wins: 11, losses: 3, status: "active" },
-  { id: "6", name: "Dustin Johnson", handicap: 1, wins: 9, losses: 6, status: "active" },
-];
-
-const initialMatches: Match[] = [
-  {
-    id: "1",
-    tournamentId: "1",
-    type: "singles",
-    player1: { name: "Tiger Woods", handicap: 0, score: 3 },
-    player2: { name: "Rory McIlroy", handicap: 2, score: 1 },
-    round: "Quarterfinal 1",
-    status: "completed",
-    date: "Mar 16",
-    time: "9:00 AM",
-    tee: "Tee 1",
-    winner: "Tiger Woods"
-  },
-  {
-    id: "2",
-    tournamentId: "1",
-    type: "foursome",
-    team1: {
-      player1: { name: "Jordan Spieth", handicap: 1 },
-      player2: { name: "Justin Thomas", handicap: 1 },
-      teamScore: 2
-    },
-    team2: {
-      player1: { name: "Brooks Koepka", handicap: 0 },
-      player2: { name: "Dustin Johnson", handicap: 1 },
-      teamScore: 1
-    },
-    round: "Foursome Match 1",
-    status: "in-progress",
-    date: "Mar 16",
-    time: "9:15 AM",
-    tee: "Tee 10"
-  },
-  {
-    id: "3",
-    tournamentId: "1",
-    type: "singles",
-    player1: { name: "Dustin Johnson", handicap: 1 },
-    player2: { name: "Justin Thomas", handicap: 1 },
-    round: "Quarterfinal 3",
-    status: "scheduled",
-    date: "Mar 16",
-    time: "2:00 PM",
-    tee: "Tee 1"
-  }
-];
-
 export function TournamentDashboard() {
-  const [tournaments, setTournaments] = useState<Tournament[]>(initialTournaments);
-  const [players, setPlayers] = useState<Player[]>(initialPlayers);
-  const [matches, setMatches] = useState<Match[]>(initialMatches);
-  const [selectedTournament, setSelectedTournament] = useState<string | null>(initialTournaments[0]?.id || null);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [selectedTournament, setSelectedTournament] = useState<string | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [showManagement, setShowManagement] = useState(false);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  // Fetch tournaments, players, and matches from database
+  useEffect(() => {
+    fetchTournaments();
+  }, []);
+
+  useEffect(() => {
+    if (selectedTournament) {
+      fetchPlayers();
+      fetchMatches();
+    }
+  }, [selectedTournament]);
+
+  const fetchTournaments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tournaments')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedTournaments: Tournament[] = (data || []).map(t => ({
+        id: t.id,
+        name: t.name,
+        course: t.course,
+        description: t.description,
+        start_date: t.start_date,
+        end_date: t.end_date,
+        max_players: t.max_players,
+        format: t.format as "matchplay" | "strokeplay" | "scramble",
+        status: t.status as "upcoming" | "active" | "completed",
+        registration_open: t.registration_open,
+        entry_fee: t.entry_fee,
+        players: [] // Will be populated when needed
+      }));
+
+      setTournaments(formattedTournaments);
+      
+      if (formattedTournaments.length > 0 && !selectedTournament) {
+        setSelectedTournament(formattedTournaments[0].id);
+      }
+    } catch (error) {
+      console.error('Error fetching tournaments:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load tournaments.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchPlayers = async () => {
+    if (!selectedTournament) return;
+
+    try {
+      // Get players registered for this tournament
+      const { data, error } = await supabase
+        .from('tournament_registrations')
+        .select(`
+          player_id,
+          players (
+            id,
+            name,
+            email,
+            handicap
+          )
+        `)
+        .eq('tournament_id', selectedTournament);
+
+      if (error) throw error;
+
+      const tournamentPlayers: Player[] = (data || []).map((reg: any) => ({
+        id: reg.players.id,
+        name: reg.players.name,
+        email: reg.players.email,
+        handicap: reg.players.handicap,
+        wins: 0, // These would need to be calculated from match results
+        losses: 0,
+        status: "active" as const
+      }));
+
+      setPlayers(tournamentPlayers);
+    } catch (error) {
+      console.error('Error fetching players:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load players.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const fetchMatches = async () => {
+    if (!selectedTournament) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('matches')
+        .select(`
+          *,
+          match_participants (
+            position,
+            score,
+            team_number,
+            players (
+              name,
+              handicap
+            )
+          )
+        `)
+        .eq('tournament_id', selectedTournament)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      // Transform database matches to frontend format
+      const formattedMatches: Match[] = (data || []).map((match: any) => {
+        const participants = match.match_participants || [];
+        
+        if (match.type === 'singles') {
+          const player1 = participants.find((p: any) => p.position === 1);
+          const player2 = participants.find((p: any) => p.position === 2);
+          
+          return {
+            id: match.id,
+            tournamentId: match.tournament_id,
+            type: "singles",
+            player1: player1 ? {
+              name: player1.players.name,
+              handicap: player1.players.handicap,
+              score: player1.score
+            } : undefined,
+            player2: player2 ? {
+              name: player2.players.name,
+              handicap: player2.players.handicap,
+              score: player2.score
+            } : undefined,
+            round: match.round,
+            status: match.status as "scheduled" | "in-progress" | "completed",
+            date: new Date(match.match_date || new Date()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            time: match.match_time || "TBD",
+            tee: match.tee ? `Tee ${match.tee}` : undefined,
+            winner: match.winner_id ? participants.find((p: any) => p.players.id === match.winner_id)?.players.name : undefined
+          };
+        } else {
+          // Handle foursome matches
+          const team1Players = participants.filter((p: any) => p.team_number === 1);
+          const team2Players = participants.filter((p: any) => p.team_number === 2);
+          
+          return {
+            id: match.id,
+            tournamentId: match.tournament_id,
+            type: "foursome",
+            team1: team1Players.length >= 2 ? {
+              player1: {
+                name: team1Players[0].players.name,
+                handicap: team1Players[0].players.handicap
+              },
+              player2: {
+                name: team1Players[1].players.name,
+                handicap: team1Players[1].players.handicap
+              },
+              teamScore: team1Players[0].score
+            } : undefined,
+            team2: team2Players.length >= 2 ? {
+              player1: {
+                name: team2Players[0].players.name,
+                handicap: team2Players[0].players.handicap
+              },
+              player2: {
+                name: team2Players[1].players.name,
+                handicap: team2Players[1].players.handicap
+              },
+              teamScore: team2Players[0].score
+            } : undefined,
+            round: match.round,
+            status: match.status as "scheduled" | "in-progress" | "completed",
+            date: new Date(match.match_date || new Date()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            time: match.match_time || "TBD",
+            tee: match.tee ? `Tee ${match.tee}` : undefined
+          };
+        }
+      });
+
+      setMatches(formattedMatches);
+    } catch (error) {
+      console.error('Error fetching matches:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load matches.",
+        variant: "destructive"
+      });
+    }
+  };
 
   const currentTournament = tournaments.find(t => t.id === selectedTournament);
-  const tournamentPlayers = currentTournament ? players.filter(p => currentTournament.players.includes(p.id)) : [];
+  const tournamentPlayers = players; // Use all fetched players since they're already filtered by tournament
   const tournamentMatches = matches.filter(m => m.tournamentId === selectedTournament);
 
-  const handleCreateTournament = (tournamentData: Omit<Tournament, "id" | "players">) => {
-    const newTournament: Tournament = {
-      ...tournamentData,
-      id: Date.now().toString(),
-      players: []
-    };
-    setTournaments(prev => [...prev, newTournament]);
-    setSelectedTournament(newTournament.id);
+  const handleCreateTournament = async (tournamentData: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('tournaments')
+        .insert({
+          name: tournamentData.name,
+          course: tournamentData.course,
+          description: tournamentData.description,
+          start_date: tournamentData.startDate,
+          end_date: tournamentData.endDate,
+          max_players: tournamentData.maxPlayers,
+          format: tournamentData.format,
+          status: "upcoming",
+          registration_open: true,
+          entry_fee: tournamentData.entry_fee || 0
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: "Tournament Created!",
+        description: `${tournamentData.name} has been successfully created.`,
+      });
+
+      // Refresh tournaments list
+      await fetchTournaments();
+      setSelectedTournament(data.id);
+    } catch (error) {
+      console.error('Error creating tournament:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create tournament.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleCreatePlayer = (playerData: Omit<Player, "id">) => {
-    if (!selectedTournament) {
+  const handleCreatePlayer = async (playerData: Omit<Player, "id">) => {
+    if (!selectedTournament || !user) {
       toast({
-        title: "No Tournament Selected",
-        description: "Please select a tournament before adding players.",
+        title: "Cannot Add Player",
+        description: "Please select a tournament and ensure you're logged in.",
         variant: "destructive"
       });
       return;
     }
 
-    const currentTournament = tournaments.find(t => t.id === selectedTournament);
-    if (!currentTournament) return;
+    try {
+      // First create or find the player
+      let playerId: string;
+      
+      // Check if player already exists
+      const { data: existingPlayer } = await supabase
+        .from('players')
+        .select('id')
+        .eq('name', playerData.name)
+        .eq('email', playerData.email)
+        .maybeSingle();
 
-    if (currentTournament.players.length >= currentTournament.maxPlayers) {
+      if (existingPlayer) {
+        playerId = existingPlayer.id;
+      } else {
+        // Create new player
+        const { data: newPlayer, error: playerError } = await supabase
+          .from('players')
+          .insert({
+            name: playerData.name,
+            email: playerData.email,
+            handicap: playerData.handicap,
+            user_id: user.id
+          })
+          .select()
+          .single();
+
+        if (playerError) throw playerError;
+        playerId = newPlayer.id;
+      }
+
+      // Register player for tournament
+      const { error: registrationError } = await supabase
+        .from('tournament_registrations')
+        .insert({
+          tournament_id: selectedTournament,
+          player_id: playerId,
+          status: 'registered'
+        });
+
+      if (registrationError) throw registrationError;
+
       toast({
-        title: "Tournament Full",
-        description: `This tournament is limited to ${currentTournament.maxPlayers} players.`,
+        title: "Player Added!",
+        description: `${playerData.name} has been added to the tournament.`,
+      });
+
+      // Refresh players list
+      await fetchPlayers();
+    } catch (error) {
+      console.error('Error adding player:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add player to tournament.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleBulkCreatePlayers = async (playersData: Omit<Player, "id">[]) => {
+    if (!selectedTournament || !user) {
+      toast({
+        title: "Cannot Add Players",
+        description: "Please select a tournament and ensure you're logged in.",
         variant: "destructive"
       });
       return;
     }
 
-    const newPlayer: Player = {
-      ...playerData,
-      id: Date.now().toString()
-    };
+    try {
+      let successCount = 0;
+      
+      for (const playerData of playersData) {
+        try {
+          // Create player
+          const { data: newPlayer, error: playerError } = await supabase
+            .from('players')
+            .insert({
+              name: playerData.name,
+              email: playerData.email,
+              handicap: playerData.handicap,
+              user_id: user.id
+            })
+            .select()
+            .single();
 
-    setPlayers(prev => [...prev, newPlayer]);
-    setTournaments(prev => prev.map(t => 
-      t.id === selectedTournament 
-        ? { ...t, players: [...t.players, newPlayer.id] }
-        : t
-    ));
-  };
+          if (playerError) throw playerError;
 
-  const handleBulkCreatePlayers = (playersData: Omit<Player, "id">[]) => {
-    if (!selectedTournament) {
+          // Register player for tournament
+          const { error: registrationError } = await supabase
+            .from('tournament_registrations')
+            .insert({
+              tournament_id: selectedTournament,
+              player_id: newPlayer.id,
+              status: 'registered'
+            });
+
+          if (registrationError) throw registrationError;
+          successCount++;
+        } catch (error) {
+          console.error(`Error adding player ${playerData.name}:`, error);
+        }
+      }
+
       toast({
-        title: "No Tournament Selected",
-        description: "Please select a tournament before adding players.",
+        title: "Players Added!",
+        description: `${successCount} players have been added to the tournament.`,
+      });
+
+      // Refresh players list
+      await fetchPlayers();
+    } catch (error) {
+      console.error('Error adding players:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add players to tournament.",
         variant: "destructive"
       });
-      return;
     }
+  };
 
-    const currentTournament = tournaments.find(t => t.id === selectedTournament);
-    if (!currentTournament) return;
+  const handleDeleteTournament = async (tournamentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('tournaments')
+        .delete()
+        .eq('id', tournamentId);
 
-    const availableSlots = currentTournament.maxPlayers - currentTournament.players.length;
-    const playersToAdd = playersData.slice(0, availableSlots);
+      if (error) throw error;
 
-    if (playersToAdd.length < playersData.length) {
       toast({
-        title: "Tournament Capacity",
-        description: `Only ${playersToAdd.length} players could be added due to tournament capacity limit.`,
-        variant: "default"
+        title: "Tournament Deleted",
+        description: "Tournament and all associated data have been removed.",
+      });
+
+      // Refresh tournaments list
+      await fetchTournaments();
+      
+      if (selectedTournament === tournamentId) {
+        setSelectedTournament(null);
+      }
+    } catch (error) {
+      console.error('Error deleting tournament:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete tournament.",
+        variant: "destructive"
       });
     }
-
-    const newPlayers: Player[] = playersToAdd.map((playerData, index) => ({
-      ...playerData,
-      id: (Date.now() + index).toString()
-    }));
-
-    setPlayers(prev => [...prev, ...newPlayers]);
-    setTournaments(prev => prev.map(t => 
-      t.id === selectedTournament 
-        ? { ...t, players: [...t.players, ...newPlayers.map(p => p.id)] }
-        : t
-    ));
   };
 
-  const handleDeleteTournament = (tournamentId: string) => {
-    setTournaments(prev => prev.filter(t => t.id !== tournamentId));
-    setMatches(prev => prev.filter(m => m.tournamentId !== tournamentId));
-    
-    if (selectedTournament === tournamentId) {
-      setSelectedTournament(null);
+  const handleActivateTournament = async (tournamentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('tournaments')
+        .update({ status: 'active' })
+        .eq('id', tournamentId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Tournament Activated",
+        description: "Tournament is now active and ready for matches.",
+      });
+
+      // Refresh tournaments list
+      await fetchTournaments();
+    } catch (error) {
+      console.error('Error activating tournament:', error);
+      toast({
+        title: "Error",
+        description: "Failed to activate tournament.",
+        variant: "destructive"
+      });
     }
-    
-    toast({
-      title: "Tournament Deleted",
-      description: "Tournament and all associated data have been removed.",
-    });
   };
 
-  const handleActivateTournament = (tournamentId: string) => {
-    setTournaments(prev => prev.map(t => 
-      t.id === tournamentId 
-        ? { ...t, status: "active" as const }
-        : t
-    ));
-    
-    toast({
-      title: "Tournament Activated",
-      description: "Tournament is now active and ready for matches.",
-    });
+  const handleCreateMatch = async (matchData: Omit<Match, "id">) => {
+    try {
+      // Create match in database
+      const { data: newMatch, error: matchError } = await supabase
+        .from('matches')
+        .insert({
+          tournament_id: matchData.tournamentId,
+          type: matchData.type,
+          round: matchData.round,
+          status: matchData.status,
+          match_date: new Date().toISOString().split('T')[0],
+          match_time: matchData.time,
+          tee: matchData.tee ? parseInt(matchData.tee.replace('Tee ', '')) : null
+        })
+        .select()
+        .single();
+
+      if (matchError) throw matchError;
+
+      // Add match participants
+      const participants = [];
+      
+      if (matchData.type === "singles") {
+        if (matchData.player1) {
+          // Find player ID by name
+          const player1 = players.find(p => p.name === matchData.player1?.name);
+          if (player1) {
+            participants.push({
+              match_id: newMatch.id,
+              player_id: player1.id,
+              position: 1
+            });
+          }
+        }
+        
+        if (matchData.player2) {
+          const player2 = players.find(p => p.name === matchData.player2?.name);
+          if (player2) {
+            participants.push({
+              match_id: newMatch.id,
+              player_id: player2.id,
+              position: 2
+            });
+          }
+        }
+      } else if (matchData.type === "foursome") {
+        // Handle foursome participants
+        if (matchData.team1) {
+          const team1Player1 = players.find(p => p.name === matchData.team1?.player1.name);
+          const team1Player2 = players.find(p => p.name === matchData.team1?.player2.name);
+          
+          if (team1Player1) {
+            participants.push({
+              match_id: newMatch.id,
+              player_id: team1Player1.id,
+              team_number: 1,
+              position: 1
+            });
+          }
+          
+          if (team1Player2) {
+            participants.push({
+              match_id: newMatch.id,
+              player_id: team1Player2.id,
+              team_number: 1,
+              position: 2
+            });
+          }
+        }
+        
+        if (matchData.team2) {
+          const team2Player1 = players.find(p => p.name === matchData.team2?.player1.name);
+          const team2Player2 = players.find(p => p.name === matchData.team2?.player2.name);
+          
+          if (team2Player1) {
+            participants.push({
+              match_id: newMatch.id,
+              player_id: team2Player1.id,
+              team_number: 2,
+              position: 1
+            });
+          }
+          
+          if (team2Player2) {
+            participants.push({
+              match_id: newMatch.id,
+              player_id: team2Player2.id,
+              team_number: 2,
+              position: 2
+            });
+          }
+        }
+      }
+
+      if (participants.length > 0) {
+        const { error: participantsError } = await supabase
+          .from('match_participants')
+          .insert(participants);
+
+        if (participantsError) throw participantsError;
+      }
+
+      toast({
+        title: "Match Created!",
+        description: `${matchData.type === "singles" ? "Singles" : "Foursome"} match has been scheduled.`,
+      });
+
+      // Refresh matches list
+      await fetchMatches();
+    } catch (error) {
+      console.error('Error creating match:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create match.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleCreateMatch = (matchData: Omit<Match, "id">) => {
-    const newMatch: Match = {
-      ...matchData,
-      id: Date.now().toString()
-    };
-    setMatches(prev => [...prev, newMatch]);
-  };
-
-  const handleAutoScheduleMatches = () => {
+  const handleAutoScheduleMatches = async () => {
     if (!selectedTournament) {
       toast({
         title: "No Tournament Selected",
@@ -330,6 +688,8 @@ export function TournamentDashboard() {
         tee: `Tee ${(i % 2) === 0 ? '1' : '10'}`
       };
       
+      // Create each match using the existing handleCreateMatch function
+      await handleCreateMatch(match);
       newMatches.push(match);
     }
     
@@ -342,8 +702,6 @@ export function TournamentDashboard() {
       return;
     }
     
-    setMatches(prev => [...prev, ...newMatches]);
-    
     const oddPlayerCount = activePlayers.length % 2;
     const message = oddPlayerCount === 1 
       ? `${newMatches.length} matches scheduled! Note: ${sortedPlayers[Math.floor(sortedPlayers.length / 2)].name} has a bye.`
@@ -354,20 +712,18 @@ export function TournamentDashboard() {
       description: message,
     });
   };
-  
+
   const activePlayers = tournamentPlayers.filter(p => p.status === "active");
 
   // Show tournament management if requested
   if (showManagement && currentTournament) {
     return (
       <TournamentManagement
-        tournament={currentTournament}
+        tournament={currentTournament as any}
         players={players}
         matches={matches}
-        onTournamentUpdate={(updatedTournament) => {
-          setTournaments(prev => prev.map(t => 
-            t.id === updatedTournament.id ? updatedTournament : t
-          ));
+        onTournamentUpdate={async (updatedTournament) => {
+          await fetchTournaments();
         }}
         onPlayerUpdate={setPlayers}
         onMatchUpdate={setMatches}
@@ -382,7 +738,7 @@ export function TournamentDashboard() {
       <div className="min-h-screen bg-gradient-course">
         <div className="container mx-auto px-4 py-6">
           <TournamentSelector
-            tournaments={tournaments}
+            tournaments={tournaments as any}
             selectedTournament={selectedTournament}
             onTournamentSelect={setSelectedTournament}
             onCreateNew={() => setSelectedTournament(null)}
@@ -400,8 +756,8 @@ export function TournamentDashboard() {
   const tournamentHeaderData = {
     name: currentTournament.name,
     course: currentTournament.course,
-    date: `${new Date(currentTournament.startDate).toLocaleDateString()}${currentTournament.endDate ? ` - ${new Date(currentTournament.endDate).toLocaleDateString()}` : ''}`,
-    players: currentTournament.players.length,
+    date: `${new Date(currentTournament.start_date).toLocaleDateString()}${currentTournament.end_date ? ` - ${new Date(currentTournament.end_date).toLocaleDateString()}` : ''}`,
+    players: tournamentPlayers.length,
     status: currentTournament.status
   };
 
@@ -411,7 +767,7 @@ export function TournamentDashboard() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <TournamentSelector
-              tournaments={tournaments}
+              tournaments={tournaments as any}
               selectedTournament={selectedTournament}
               onTournamentSelect={setSelectedTournament}
               onCreateNew={() => setSelectedTournament(null)}
