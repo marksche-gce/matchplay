@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 
 export default function Auth() {
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -47,7 +48,7 @@ export default function Auth() {
       }
 
       const { error } = await supabase.auth.signInWithPassword({
-        email,
+        email: username + '@golf-tournament.local', // Convert username to email format
         password,
       });
 
@@ -80,12 +81,13 @@ export default function Auth() {
       const redirectUrl = `${window.location.origin}/`;
       
       const { error } = await supabase.auth.signUp({
-        email,
+        email: username + '@golf-tournament.local', // Convert username to email format
         password,
         options: {
           emailRedirectTo: redirectUrl,
           data: {
-            display_name: displayName
+            display_name: displayName,
+            username: username
           }
         }
       });
@@ -98,6 +100,7 @@ export default function Auth() {
       });
 
       // Reset form
+      setUsername('');
       setEmail('');
       setPassword('');
       setDisplayName('');
@@ -133,13 +136,13 @@ export default function Auth() {
             <TabsContent value="signin">
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="signin-email">Email</Label>
+                  <Label htmlFor="signin-username">Username</Label>
                   <Input
-                    id="signin-email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    id="signin-username"
+                    type="text"
+                    placeholder="Enter your username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
                     required
                   />
                 </div>
@@ -174,14 +177,24 @@ export default function Auth() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
+                  <Label htmlFor="signup-username">Username</Label>
+                  <Input
+                    id="signup-username"
+                    type="text"
+                    placeholder="Choose a username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email">Email (Optional)</Label>
                   <Input
                     id="signup-email"
                     type="email"
-                    placeholder="Enter your email"
+                    placeholder="Enter your email (optional)"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    required
                   />
                 </div>
                 <div className="space-y-2">
