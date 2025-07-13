@@ -121,16 +121,18 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch }: 
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-semibold">{match.player1.name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold">{match.player1.name}</p>
+                      {match.winner === match.player1.name && (
+                        <Award className="h-5 w-5 text-warning" />
+                      )}
+                    </div>
                     <p className="text-sm text-muted-foreground">Handicap: {match.player1.handicap}</p>
                   </div>
                 </div>
                 {match.status === "completed" && match.player1.score !== undefined && (
-                  <div className="text-right flex items-center gap-2">
+                  <div className="text-right">
                     <p className="text-2xl font-bold">{match.player1.score}</p>
-                    {match.winner === match.player1.name && (
-                      <Award className="h-6 w-6 text-warning" />
-                    )}
                   </div>
                 )}
               </div>
@@ -151,16 +153,18 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch }: 
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-semibold">{match.player2.name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold">{match.player2.name}</p>
+                      {match.winner === match.player2.name && (
+                        <Award className="h-5 w-5 text-warning" />
+                      )}
+                    </div>
                     <p className="text-sm text-muted-foreground">Handicap: {match.player2.handicap}</p>
                   </div>
                 </div>
                 {match.status === "completed" && match.player2.score !== undefined && (
-                  <div className="text-right flex items-center gap-2">
+                  <div className="text-right">
                     <p className="text-2xl font-bold">{match.player2.score}</p>
-                    {match.winner === match.player2.name && (
-                      <Award className="h-6 w-6 text-warning" />
-                    )}
                   </div>
                 )}
               </div>
