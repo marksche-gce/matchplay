@@ -124,7 +124,7 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch }: 
                     <div className="flex items-center gap-2">
                       <p className="font-semibold">{match.player1.name}</p>
                       {match.winner === match.player1.name && (
-                        <Award className="h-5 w-5 text-warning" />
+                        <Award className="h-6 w-6 text-yellow-500 drop-shadow-sm" />
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground">Handicap: {match.player1.handicap}</p>
@@ -156,7 +156,7 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch }: 
                     <div className="flex items-center gap-2">
                       <p className="font-semibold">{match.player2.name}</p>
                       {match.winner === match.player2.name && (
-                        <Award className="h-5 w-5 text-warning" />
+                        <Award className="h-6 w-6 text-yellow-500 drop-shadow-sm" />
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground">Handicap: {match.player2.handicap}</p>
