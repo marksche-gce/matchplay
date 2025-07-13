@@ -653,6 +653,115 @@ export function TournamentDashboard() {
     });
   };
 
+  const handleGenerateFirstRoundMatches = async () => {
+    if (!selectedTournament || !currentTournament) {
+      toast({
+        title: "Error",
+        description: "Please select a tournament first.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Check if first round matches already exist
+      const existingFirstRoundMatches = matches.filter(m => m.round === "Round 1");
+      if (existingFirstRoundMatches.length > 0) {
+        toast({
+          title: "First Round Already Exists",
+          description: "First round matches have already been generated.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Get active players
+      const activePlayers = players.filter(p => p.status === "active");
+      
+      if (activePlayers.length < 2) {
+        toast({
+          title: "Not Enough Players",
+          description: "At least 2 players are needed to generate matches.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Shuffle players for random pairing
+      const shuffledPlayers = [...activePlayers].sort(() => Math.random() - 0.5);
+      
+      // Create matches for pairs
+      const matchPromises = [];
+      for (let i = 0; i < shuffledPlayers.length - 1; i += 2) {
+        const player1 = shuffledPlayers[i];
+        const player2 = shuffledPlayers[i + 1];
+        
+        // Create match in database
+        const matchData = {
+          tournament_id: selectedTournament,
+          type: "singles",
+          round: "Round 1",
+          status: "scheduled",
+          match_date: currentTournament.start_date,
+          match_time: null,
+          tee: null
+        };
+
+        matchPromises.push(
+          supabase
+            .from('matches')
+            .insert(matchData)
+            .select()
+            .single()
+            .then(async ({ data: newMatch, error: matchError }) => {
+              if (matchError) throw matchError;
+
+              // Add match participants
+              const participants = [
+                {
+                  match_id: newMatch.id,
+                  player_id: player1.id,
+                  position: 1
+                },
+                {
+                  match_id: newMatch.id,
+                  player_id: player2.id,
+                  position: 2
+                }
+              ];
+
+              const { error: participantsError } = await supabase
+                .from('match_participants')
+                .insert(participants);
+
+              if (participantsError) throw participantsError;
+              
+              return newMatch;
+            })
+        );
+      }
+
+      // Wait for all matches to be created
+      await Promise.all(matchPromises);
+
+      const numMatches = Math.floor(shuffledPlayers.length / 2);
+      toast({
+        title: "First Round Generated!",
+        description: `${numMatches} first round matches have been created successfully.`,
+      });
+
+      // Refresh matches list
+      await fetchMatches();
+    } catch (error) {
+      console.error('Error generating first round matches:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate first round matches.",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Helper function to get round names
   const getRoundName = (playersRemaining: number): string => {
     if (playersRemaining <= 2) return "Final";
@@ -831,7 +940,7 @@ export function TournamentDashboard() {
               />
               <Button 
                 variant="fairway"
-                onClick={() => setShowManagement(true)}
+                onClick={handleGenerateFirstRoundMatches}
                 className="flex items-center gap-2"
               >
                 <Calendar className="h-4 w-4 mr-2" />
