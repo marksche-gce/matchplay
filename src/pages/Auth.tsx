@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
+import { validateUsername } from '@/lib/validation';
 
 export default function Auth() {
   const [username, setUsername] = useState('');
@@ -40,6 +41,16 @@ export default function Auth() {
 
     try {
       cleanupAuthState();
+      
+      if (!validateUsername(username)) {
+        toast({
+          title: "Invalid Username",
+          description: "Username must be 3-20 characters, letters, numbers, and underscores only.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
       
       try {
         await supabase.auth.signOut({ scope: 'global' });
@@ -77,6 +88,16 @@ export default function Auth() {
 
     try {
       cleanupAuthState();
+      
+      if (!validateUsername(username)) {
+        toast({
+          title: "Invalid Username",
+          description: "Username must be 3-20 characters, letters, numbers, and underscores only.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
       
       const redirectUrl = `${window.location.origin}/`;
       

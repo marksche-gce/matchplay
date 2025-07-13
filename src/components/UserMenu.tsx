@@ -1,4 +1,5 @@
 import { useAuth } from '@/hooks/useAuth';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -10,15 +11,40 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { LogOut, User } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 export function UserMenu() {
   const { user, signOut } = useAuth();
+  const [profile, setProfile] = useState<any>(null);
+
+  useEffect(() => {
+    if (user) {
+      fetchProfile();
+    }
+  }, [user]);
+
+  const fetchProfile = async () => {
+    if (!user) return;
+    
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('username, display_name')
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      setProfile(data);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
+  };
 
   if (!user) {
     return null;
   }
 
-  const displayName = user.user_metadata?.display_name || user.email?.split('@')[0] || 'User';
+  const username = profile?.username || user.user_metadata?.username || 'user';
+  const displayName = profile?.display_name || user.user_metadata?.display_name || username;
   const initials = displayName
     .split(' ')
     .map((n: string) => n[0])
@@ -42,7 +68,7 @@ export function UserMenu() {
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">{displayName}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              {user.email}
+              @{username}
             </p>
           </div>
         </DropdownMenuLabel>
