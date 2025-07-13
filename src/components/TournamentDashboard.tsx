@@ -868,7 +868,7 @@ export function TournamentDashboard() {
                 trigger={
                   <Button variant="fairway">
                     <Calendar className="h-4 w-4 mr-2" />
-                    Schedule Match
+                    Schedule Matches Manually
                   </Button>
                 }
               />
