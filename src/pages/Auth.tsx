@@ -9,10 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
-import { validateUsername } from '@/lib/validation';
 
 export default function Auth() {
-  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -42,16 +40,6 @@ export default function Auth() {
     try {
       cleanupAuthState();
       
-      if (!validateUsername(username)) {
-        toast({
-          title: "Invalid Username",
-          description: "Username must be 3-20 characters, letters, numbers, and underscores only.",
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
-      
       try {
         await supabase.auth.signOut({ scope: 'global' });
       } catch (err) {
@@ -59,7 +47,7 @@ export default function Auth() {
       }
 
       const { error } = await supabase.auth.signInWithPassword({
-        email: username + '@golf-tournament.local', // Convert username to email format
+        email,
         password,
       });
 
@@ -89,26 +77,15 @@ export default function Auth() {
     try {
       cleanupAuthState();
       
-      if (!validateUsername(username)) {
-        toast({
-          title: "Invalid Username",
-          description: "Username must be 3-20 characters, letters, numbers, and underscores only.",
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
-      
       const redirectUrl = `${window.location.origin}/`;
       
       const { error } = await supabase.auth.signUp({
-        email: username + '@golf-tournament.local', // Convert username to email format
+        email,
         password,
         options: {
           emailRedirectTo: redirectUrl,
           data: {
-            display_name: displayName,
-            username: username
+            display_name: displayName
           }
         }
       });
@@ -121,7 +98,6 @@ export default function Auth() {
       });
 
       // Reset form
-      setUsername('');
       setEmail('');
       setPassword('');
       setDisplayName('');
@@ -157,13 +133,13 @@ export default function Auth() {
             <TabsContent value="signin">
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="signin-username">Username</Label>
+                  <Label htmlFor="signin-email">Email</Label>
                   <Input
-                    id="signin-username"
-                    type="text"
-                    placeholder="Enter your username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    id="signin-email"
+                    type="email"
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
                   />
                 </div>
@@ -198,24 +174,14 @@ export default function Auth() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-username">Username</Label>
-                  <Input
-                    id="signup-username"
-                    type="text"
-                    placeholder="Choose a username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email (Optional)</Label>
+                  <Label htmlFor="signup-email">Email</Label>
                   <Input
                     id="signup-email"
                     type="email"
-                    placeholder="Enter your email (optional)"
+                    placeholder="Enter your email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    required
                   />
                 </div>
                 <div className="space-y-2">
