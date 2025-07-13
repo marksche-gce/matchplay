@@ -233,6 +233,20 @@ export function TournamentDashboard() {
     ));
   };
 
+  const handleDeleteTournament = (tournamentId: string) => {
+    setTournaments(prev => prev.filter(t => t.id !== tournamentId));
+    setMatches(prev => prev.filter(m => m.tournamentId !== tournamentId));
+    
+    if (selectedTournament === tournamentId) {
+      setSelectedTournament(null);
+    }
+    
+    toast({
+      title: "Tournament Deleted",
+      description: "Tournament and all associated data have been removed.",
+    });
+  };
+
   const activePlayers = tournamentPlayers.filter(p => p.status === "active");
 
   // Show tournament selector if no tournament is selected or no tournaments exist
@@ -244,7 +258,8 @@ export function TournamentDashboard() {
             tournaments={tournaments}
             selectedTournament={selectedTournament}
             onTournamentSelect={setSelectedTournament}
-            onCreateNew={() => {}} // This will be handled by the CreateTournamentDialog
+            onCreateNew={() => {}}
+            onDeleteTournament={handleDeleteTournament}
           />
           <div className="mt-6 text-center">
             <CreateTournamentDialog onTournamentCreate={handleCreateTournament} />
@@ -270,7 +285,8 @@ export function TournamentDashboard() {
             tournaments={tournaments}
             selectedTournament={selectedTournament}
             onTournamentSelect={setSelectedTournament}
-            onCreateNew={() => {}} // CreateTournamentDialog handles this
+            onCreateNew={() => {}}
+            onDeleteTournament={handleDeleteTournament}
           />
         </div>
         

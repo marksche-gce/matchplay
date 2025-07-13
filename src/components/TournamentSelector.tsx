@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Trophy, Calendar, Users, ChevronDown } from "lucide-react";
+import { Trophy, Calendar, Users, ChevronDown, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface Tournament {
   id: string;
@@ -23,13 +24,15 @@ interface TournamentSelectorProps {
   selectedTournament: string | null;
   onTournamentSelect: (tournamentId: string) => void;
   onCreateNew: () => void;
+  onDeleteTournament: (tournamentId: string) => void;
 }
 
 export function TournamentSelector({ 
   tournaments, 
   selectedTournament, 
   onTournamentSelect, 
-  onCreateNew 
+  onCreateNew,
+  onDeleteTournament 
 }: TournamentSelectorProps) {
   const activeTournament = tournaments.find(t => t.id === selectedTournament);
 
@@ -133,6 +136,34 @@ export function TournamentSelector({
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-muted-foreground">Format: {getFormatDisplay(activeTournament.format)}</span>
                   <span className="text-muted-foreground">{activeTournament.course}</span>
+                </div>
+                
+                <div className="flex justify-end pt-2 border-t">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="sm">
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete Tournament
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Tournament</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete "{activeTournament.name}"? This action cannot be undone and will remove all associated players and matches.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                          onClick={() => onDeleteTournament(activeTournament.id)}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
             </CardContent>
