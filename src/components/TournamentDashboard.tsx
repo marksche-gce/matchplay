@@ -904,7 +904,20 @@ export function TournamentDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="shadow-card">
                 <CardHeader>
-                  <CardTitle>Recent Matches</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Recent Matches</CardTitle>
+                    {tournamentMatches.length > 0 && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setShowManagement(true)}
+                        className="flex items-center gap-2"
+                      >
+                        <Settings className="h-4 w-4" />
+                        Edit Matches
+                      </Button>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {tournamentMatches.length === 0 ? (
