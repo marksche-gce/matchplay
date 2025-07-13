@@ -654,14 +654,10 @@ export function TournamentDashboard() {
       // Sort players by handicap (best to worst)
       const sortedPlayers = [...activePlayers].sort((a, b) => a.handicap - b.handicap);
       
-      // Calculate tournament structure
-      const totalPlayers = sortedPlayers.length;
-      const powerOfTwo = Math.pow(2, Math.ceil(Math.log2(totalPlayers)));
-      
       let currentTime = 9; // Start at 9 AM
       let totalMatches = 0;
       
-      // Create first round with actual players (best vs worst pairing)
+      // Create first round matches only (best vs worst pairing)
       const firstRoundMatches = Math.floor(sortedPlayers.length / 2);
       
       for (let i = 0; i < firstRoundMatches; i++) {
@@ -671,7 +667,7 @@ export function TournamentDashboard() {
         const matchData = {
           tournament_id: selectedTournament,
           type: "singles" as const,
-          round: getRoundName(powerOfTwo),
+          round: "Round 1",
           status: "scheduled" as const,
           match_date: new Date().toISOString().split('T')[0],
           match_time: `${currentTime}:00:00`,
@@ -714,59 +710,21 @@ export function TournamentDashboard() {
         }
       }
 
-      // Create all subsequent rounds with TBD placeholders
-      let currentRoundSize = powerOfTwo / 2; // Size of the next round
-      let roundNumber = 2;
-      
-      while (currentRoundSize >= 1) {
-        const matchesInRound = Math.floor(currentRoundSize / 2);
-        
-        for (let i = 0; i < matchesInRound; i++) {
-          const matchData = {
-            tournament_id: selectedTournament,
-            type: "singles" as const,
-            round: getRoundName(currentRoundSize),
-            status: "scheduled" as const,
-            match_date: new Date().toISOString().split('T')[0],
-            match_time: `${currentTime}:00:00`,
-            tee: (i % 2) === 0 ? 1 : 10
-          };
-
-          // Create match in database (without participants for now - they'll be added when previous round completes)
-          const { data: matchResult, error: matchError } = await supabase
-            .from('matches')
-            .insert(matchData)
-            .select()
-            .single();
-
-          if (matchError) throw matchError;
-
-          totalMatches++;
-          currentTime++;
-          if (currentTime > 17) {
-            currentTime = 9;
-          }
-        }
-        
-        currentRoundSize = currentRoundSize / 2;
-        roundNumber++;
-      }
-
       await fetchMatches(); // Refresh matches list
 
       const hasOddPlayer = sortedPlayers.length % 2 === 1;
-      const byeMessage = hasOddPlayer ? ` Note: ${sortedPlayers[sortedPlayers.length - 1].name} has a bye to the next round.` : "";
+      const byeMessage = hasOddPlayer ? ` ${sortedPlayers[sortedPlayers.length - 1].name} has a bye.` : "";
 
       toast({
-        title: "Full Tournament Bracket Created!",
-        description: `Successfully scheduled ${totalMatches} matches across all tournament rounds.${byeMessage}`,
+        title: "First Round Scheduled!",
+        description: `Successfully scheduled ${totalMatches} first round matches.${byeMessage}`,
       });
 
     } catch (error) {
       console.error('Error auto-scheduling matches:', error);
       toast({
         title: "Error",
-        description: "Failed to auto-schedule tournament matches.",
+        description: "Failed to auto-schedule first round matches.",
         variant: "destructive"
       });
     }
