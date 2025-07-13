@@ -106,22 +106,6 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch }: 
             {match.status.replace('-', ' ').charAt(0).toUpperCase() + match.status.slice(1).replace('-', ' ')}
           </Badge>
         </div>
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <Calendar className="h-4 w-4" />
-            {match.date}
-          </div>
-          <div className="flex items-center gap-1">
-            <Clock className="h-4 w-4" />
-            {match.time}
-          </div>
-          {match.tee && (
-            <div className="flex items-center gap-1">
-              <MapPin className="h-4 w-4" />
-              {match.tee}
-            </div>
-          )}
-        </div>
       </CardHeader>
       
       <CardContent className="space-y-4">
