@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trophy, Users, Calendar, Filter } from "lucide-react";
+import { Plus, Trophy, Users, Calendar, Filter, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,6 +10,7 @@ import { MatchCard } from "./MatchCard";
 import { CreateTournamentDialog } from "./CreateTournamentDialog";
 import { CreatePlayerDialog } from "./CreatePlayerDialog";
 import { TournamentSelector } from "./TournamentSelector";
+import { TournamentManagement } from "./TournamentManagement";
 import { useToast } from "@/hooks/use-toast";
 
 interface Tournament {
@@ -145,6 +146,7 @@ export function TournamentDashboard() {
   const [selectedTournament, setSelectedTournament] = useState<string | null>(initialTournaments[0]?.id || null);
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
+  const [showManagement, setShowManagement] = useState(false);
   const { toast } = useToast();
 
   const currentTournament = tournaments.find(t => t.id === selectedTournament);
@@ -262,6 +264,25 @@ export function TournamentDashboard() {
   
   const activePlayers = tournamentPlayers.filter(p => p.status === "active");
 
+  // Show tournament management if requested
+  if (showManagement && currentTournament) {
+    return (
+      <TournamentManagement
+        tournament={currentTournament}
+        players={players}
+        matches={matches}
+        onTournamentUpdate={(updatedTournament) => {
+          setTournaments(prev => prev.map(t => 
+            t.id === updatedTournament.id ? updatedTournament : t
+          ));
+        }}
+        onPlayerUpdate={setPlayers}
+        onMatchUpdate={setMatches}
+        onBack={() => setShowManagement(false)}
+      />
+    );
+  }
+
   // Show tournament selector if no tournament is selected or no tournaments exist
   if (!selectedTournament || !currentTournament) {
     return (
@@ -295,14 +316,24 @@ export function TournamentDashboard() {
     <div className="min-h-screen bg-gradient-course">
       <div className="container mx-auto px-4 py-6 space-y-6">
         <div className="flex items-center justify-between">
-          <TournamentSelector
-            tournaments={tournaments}
-            selectedTournament={selectedTournament}
-            onTournamentSelect={setSelectedTournament}
-            onCreateNew={() => {}}
-            onDeleteTournament={handleDeleteTournament}
-            onActivateTournament={handleActivateTournament}
-          />
+          <div className="flex items-center gap-4">
+            <TournamentSelector
+              tournaments={tournaments}
+              selectedTournament={selectedTournament}
+              onTournamentSelect={setSelectedTournament}
+              onCreateNew={() => {}}
+              onDeleteTournament={handleDeleteTournament}
+              onActivateTournament={handleActivateTournament}
+            />
+            <Button 
+              variant="outline" 
+              onClick={() => setShowManagement(true)}
+              className="flex items-center gap-2"
+            >
+              <Settings className="h-4 w-4" />
+              Manage Tournament
+            </Button>
+          </div>
         </div>
         
         <TournamentHeader tournament={tournamentHeaderData} />
