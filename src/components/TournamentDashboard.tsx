@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { TournamentHeader } from "./TournamentHeader";
 import { PlayerCard } from "./PlayerCard";
 import { MatchCard } from "./MatchCard";
@@ -81,6 +82,8 @@ export function TournamentDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const [showManagement, setShowManagement] = useState(false);
   const [showCreateTournament, setShowCreateTournament] = useState(false);
+  const [showEditSchedule, setShowEditSchedule] = useState(false);
+  const [editableSchedule, setEditableSchedule] = useState<{[key: string]: string}>({});
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -908,6 +911,12 @@ export function TournamentDashboard() {
         scheduleDate.setDate(startDate.getDate() + dayIndex);
       }
       
+      // Check if we have custom date for this round
+      const customDate = editableSchedule[round.name];
+      if (customDate) {
+        scheduleDate = new Date(customDate);
+      }
+      
       // Assign times based on round and day
       let timeSlot = "TBD";
       if (daysDiff === 1) {
@@ -934,11 +943,72 @@ export function TournamentDashboard() {
           year: 'numeric'
         }),
         time: timeSlot,
-        dateObj: scheduleDate
+        dateObj: scheduleDate,
+        dateInput: scheduleDate.toISOString().split('T')[0] // For date input
       };
     });
 
     return schedule;
+  };
+
+  // Handle schedule editing
+  const handleScheduleDateChange = (roundName: string, newDate: string) => {
+    setEditableSchedule(prev => ({
+      ...prev,
+      [roundName]: newDate
+    }));
+  };
+
+  // Save schedule changes
+  const handleSaveSchedule = async () => {
+    if (!selectedTournament) return;
+
+    try {
+      const schedule = generateTournamentSchedule();
+      const updatePromises = [];
+
+      // Update matches for each round with custom dates
+      for (const round of schedule) {
+        if (editableSchedule[round.name]) {
+          const roundMatches = matches.filter(m => m.round === round.name);
+          
+          for (const match of roundMatches) {
+            updatePromises.push(
+              supabase
+                .from('matches')
+                .update({ match_date: editableSchedule[round.name] })
+                .eq('id', match.id)
+            );
+          }
+        }
+      }
+
+      // Execute all updates
+      if (updatePromises.length > 0) {
+        const results = await Promise.all(updatePromises);
+        const errors = results.filter(result => result.error);
+        
+        if (errors.length > 0) {
+          throw new Error('Failed to update some matches');
+        }
+      }
+
+      toast({
+        title: "Schedule Updated!",
+        description: "Tournament schedule has been successfully saved.",
+      });
+
+      setShowEditSchedule(false);
+      // Refresh matches to get updated dates
+      await fetchMatches();
+    } catch (error) {
+      console.error('Error saving schedule:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save schedule changes.",
+        variant: "destructive"
+      });
+    }
   };
 
   const activePlayers = tournamentPlayers.filter(p => p.status === "active");
@@ -1281,10 +1351,38 @@ export function TournamentDashboard() {
           <TabsContent value="schedule" className="space-y-6">
             <Card className="shadow-card">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  Tournament Schedule
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    Tournament Schedule
+                  </CardTitle>
+                  {tournamentPlayers.length > 0 && (
+                    <div className="flex gap-2">
+                      {showEditSchedule && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setShowEditSchedule(false);
+                            setEditableSchedule({});
+                          }}
+                          className="flex items-center gap-2"
+                        >
+                          Cancel
+                        </Button>
+                      )}
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={showEditSchedule ? handleSaveSchedule : () => setShowEditSchedule(true)}
+                        className="flex items-center gap-2"
+                      >
+                        <Settings className="h-4 w-4" />
+                        {showEditSchedule ? "Save Schedule" : "Edit Schedule"}
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 {tournamentPlayers.length === 0 ? (
@@ -1309,11 +1407,28 @@ export function TournamentDashboard() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium">{round.date}</p>
-                          <p className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            {round.time}
-                          </p>
+                          {showEditSchedule ? (
+                            <div className="min-w-0">
+                              <Input
+                                type="date"
+                                value={editableSchedule[round.name] || round.dateInput}
+                                onChange={(e) => handleScheduleDateChange(round.name, e.target.value)}
+                                className="w-40 mb-1"
+                              />
+                              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {round.time}
+                              </p>
+                            </div>
+                          ) : (
+                            <>
+                              <p className="font-medium">{round.date}</p>
+                              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {round.time}
+                              </p>
+                            </>
+                          )}
                         </div>
                       </div>
                     ))}
