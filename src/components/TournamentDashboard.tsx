@@ -765,14 +765,16 @@ export function TournamentDashboard() {
         return;
       }
 
-      // Shuffle players for random pairing
-      const shuffledPlayers = [...activePlayers].sort(() => Math.random() - 0.5);
+      // Sort players by handicap (lowest to highest)
+      const sortedPlayers = [...activePlayers].sort((a, b) => a.handicap - b.handicap);
       
-      // Create matches for pairs
+      // Create strategic pairings: lowest vs highest handicap
       const matchPromises = [];
-      for (let i = 0; i < shuffledPlayers.length - 1; i += 2) {
-        const player1 = shuffledPlayers[i];
-        const player2 = shuffledPlayers[i + 1];
+      const numMatches = Math.floor(sortedPlayers.length / 2);
+      
+      for (let i = 0; i < numMatches; i++) {
+        const player1 = sortedPlayers[i]; // Lower handicap player
+        const player2 = sortedPlayers[sortedPlayers.length - 1 - i]; // Higher handicap player
         
         // Create match in database
         const matchData = {
@@ -822,10 +824,9 @@ export function TournamentDashboard() {
       // Wait for all matches to be created
       await Promise.all(matchPromises);
 
-      const numMatches = Math.floor(shuffledPlayers.length / 2);
       toast({
         title: "First Round Generated!",
-        description: `${numMatches} first round matches have been created successfully.`,
+        description: `${numMatches} strategically paired first round matches have been created.`,
       });
 
       // Refresh matches list
