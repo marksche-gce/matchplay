@@ -65,8 +65,8 @@ export function CreateMatchDialog({
   const [matchType, setMatchType] = useState<"singles" | "foursome">("singles");
   const [formData, setFormData] = useState({
     round: "",
-    date: new Date().toISOString().split('T')[0],
-    time: "09:00",
+    date: "",
+    time: "",
     tee: "",
     // Singles
     player1Id: "",
@@ -167,8 +167,8 @@ export function CreateMatchDialog({
       type: matchType,
       round: formData.round,
       status: "scheduled",
-      date: formData.date,
-      time: formData.time,
+      date: formData.date || new Date().toISOString().split('T')[0],
+      time: formData.time || "TBD",
       tee: formData.tee || undefined
     };
 
@@ -205,8 +205,8 @@ export function CreateMatchDialog({
     // Reset form
     setFormData({
       round: "",
-      date: new Date().toISOString().split('T')[0],
-      time: "09:00",
+      date: "",
+      time: "",
       tee: "",
       player1Id: "",
       player2Id: "",
@@ -227,8 +227,8 @@ export function CreateMatchDialog({
   const resetForm = () => {
     setFormData({
       round: "",
-      date: new Date().toISOString().split('T')[0],
-      time: "09:00",
+      date: "",
+      time: "",
       tee: "",
       player1Id: "",
       player2Id: "",
@@ -446,7 +446,7 @@ export function CreateMatchDialog({
 
           {/* Match Details */}
           <div className="space-y-4">
-            <Label className="text-base font-semibold">Match Details</Label>
+            <Label className="text-base font-semibold">Match Details (Optional)</Label>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -472,26 +472,28 @@ export function CreateMatchDialog({
               <div>
                 <Label htmlFor="date" className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
-                  Date
+                  Date (Optional)
                 </Label>
                 <Input
                   id="date"
                   type="date"
                   value={formData.date}
                   onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                  placeholder="Leave empty for TBD"
                 />
               </div>
               
               <div>
                 <Label htmlFor="time" className="flex items-center gap-2">
                   <Clock className="h-4 w-4" />
-                  Time
+                  Time (Optional)
                 </Label>
                 <Input
                   id="time"
                   type="time"
                   value={formData.time}
                   onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
+                  placeholder="Leave empty for TBD"
                 />
               </div>
             </div>
