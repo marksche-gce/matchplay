@@ -292,7 +292,7 @@ export function TournamentDashboard() {
             tournaments={tournaments}
             selectedTournament={selectedTournament}
             onTournamentSelect={setSelectedTournament}
-            onCreateNew={() => {}}
+            onCreateNew={() => setSelectedTournament(null)}
             onDeleteTournament={handleDeleteTournament}
             onActivateTournament={handleActivateTournament}
           />
@@ -321,7 +321,7 @@ export function TournamentDashboard() {
               tournaments={tournaments}
               selectedTournament={selectedTournament}
               onTournamentSelect={setSelectedTournament}
-              onCreateNew={() => {}}
+              onCreateNew={() => setSelectedTournament(null)}
               onDeleteTournament={handleDeleteTournament}
               onActivateTournament={handleActivateTournament}
             />
