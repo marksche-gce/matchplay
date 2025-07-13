@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Calendar, MapPin, Users, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -24,10 +24,12 @@ interface Tournament {
 
 interface CreateTournamentDialogProps {
   onTournamentCreate: (tournament: Omit<Tournament, "id" | "players">) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function CreateTournamentDialog({ onTournamentCreate }: CreateTournamentDialogProps) {
-  const [open, setOpen] = useState(false);
+export function CreateTournamentDialog({ onTournamentCreate, open: externalOpen, onOpenChange: externalOnOpenChange }: CreateTournamentDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     course: "",
@@ -38,6 +40,25 @@ export function CreateTournamentDialog({ onTournamentCreate }: CreateTournamentD
     format: "matchplay" as const
   });
   const { toast } = useToast();
+
+  // Use external state if provided, otherwise use internal state
+  const isOpen = externalOpen !== undefined ? externalOpen : internalOpen;
+  const setIsOpen = externalOnOpenChange !== undefined ? externalOnOpenChange : setInternalOpen;
+
+  // Reset form when dialog is closed externally
+  useEffect(() => {
+    if (externalOpen !== undefined && !externalOpen) {
+      setFormData({
+        name: "",
+        course: "",
+        description: "",
+        startDate: "",
+        endDate: "",
+        maxPlayers: "32",
+        format: "matchplay"
+      });
+    }
+  }, [externalOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,7 +92,7 @@ export function CreateTournamentDialog({ onTournamentCreate }: CreateTournamentD
       maxPlayers: "32",
       format: "matchplay"
     });
-    setOpen(false);
+    setIsOpen(false);
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -79,7 +100,7 @@ export function CreateTournamentDialog({ onTournamentCreate }: CreateTournamentD
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button variant="premium" className="gap-2">
           <Plus className="h-4 w-4" />
@@ -197,7 +218,7 @@ export function CreateTournamentDialog({ onTournamentCreate }: CreateTournamentD
           </Card>
 
           <div className="flex gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1">
+            <Button type="button" variant="outline" onClick={() => setIsOpen(false)} className="flex-1">
               Cancel
             </Button>
             <Button type="submit" variant="premium" className="flex-1">

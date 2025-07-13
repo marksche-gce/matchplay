@@ -80,6 +80,7 @@ export function TournamentDashboard() {
   const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [showManagement, setShowManagement] = useState(false);
+  const [showCreateTournament, setShowCreateTournament] = useState(false);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -800,12 +801,16 @@ export function TournamentDashboard() {
             tournaments={tournaments as any}
             selectedTournament={selectedTournament}
             onTournamentSelect={setSelectedTournament}
-            onCreateNew={() => setSelectedTournament(null)}
+            onCreateNew={() => setShowCreateTournament(true)}
             onDeleteTournament={handleDeleteTournament}
             onActivateTournament={handleActivateTournament}
           />
           <div className="mt-6 text-center">
-            <CreateTournamentDialog onTournamentCreate={handleCreateTournament} />
+            <CreateTournamentDialog 
+              onTournamentCreate={handleCreateTournament}
+              open={showCreateTournament}
+              onOpenChange={setShowCreateTournament}
+            />
           </div>
         </div>
       </div>
