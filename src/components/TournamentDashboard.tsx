@@ -835,7 +835,7 @@ export function TournamentDashboard() {
                 className="flex items-center gap-2"
               >
                 <Calendar className="h-4 w-4 mr-2" />
-                Schedule Matches Manually
+                Set the First Round Matches
               </Button>
             </div>
           </div>
