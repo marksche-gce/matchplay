@@ -1,4 +1,4 @@
-import { Clock, Calendar, MapPin, Trophy, Users } from "lucide-react";
+import { Clock, Calendar, MapPin, Trophy, Users, Edit3 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,9 +37,10 @@ interface MatchCardProps {
   match: Match;
   onScoreUpdate?: () => void;
   onViewDetails?: () => void;
+  onEditMatch?: (matchId: string) => void;
 }
 
-export function MatchCard({ match, onScoreUpdate, onViewDetails }: MatchCardProps) {
+export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch }: MatchCardProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "scheduled": return "bg-warning text-warning-foreground";
@@ -211,6 +212,12 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails }: MatchCardProp
         </div>
         
         <div className="flex gap-2">
+          {onEditMatch && (
+            <Button variant="outline" size="sm" onClick={() => onEditMatch(match.id)} className="gap-1">
+              <Edit3 className="h-3 w-3" />
+              Edit
+            </Button>
+          )}
           {match.status !== "completed" && onScoreUpdate && (
             <Button variant="outline" className="flex-1" onClick={onScoreUpdate}>
               {match.status === "scheduled" ? "Start Match" : "Update Score"}

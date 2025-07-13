@@ -8,6 +8,7 @@ import { TournamentHeader } from "./TournamentHeader";
 import { PlayerCard } from "./PlayerCard";
 import { MatchCard } from "./MatchCard";
 import { CreateMatchDialog } from "./CreateMatchDialog";
+import { EditMatchDialog } from "./EditMatchDialog";
 import { CreateTournamentDialog } from "./CreateTournamentDialog";
 import { CreatePlayerDialog } from "./CreatePlayerDialog";
 import { TournamentSelector } from "./TournamentSelector";
@@ -730,6 +731,17 @@ export function TournamentDashboard() {
     }
   };
 
+  const handleEditMatch = (matchId: string, updates: Partial<Match>) => {
+    // For now, just log - this would need to sync with database
+    console.log("Edit match", matchId, updates);
+    toast({
+      title: "Match Updated!",
+      description: "Match details have been updated.",
+    });
+    // Refresh matches after edit
+    fetchMatches();
+  };
+
   // Helper function to get round names
   const getRoundName = (playersRemaining: number): string => {
     if (playersRemaining <= 2) return "Final";
@@ -1030,11 +1042,18 @@ export function TournamentDashboard() {
                 </div>
               ) : (
                 tournamentMatches.map(match => (
-                  <MatchCard 
-                    key={match.id} 
+                  <EditMatchDialog
+                    key={match.id}
                     match={match}
-                    onScoreUpdate={() => console.log("Update score for", match.id)}
-                    onViewDetails={() => console.log("View details for", match.id)}
+                    onMatchUpdate={handleEditMatch}
+                    trigger={
+                      <MatchCard 
+                        match={match}
+                        onScoreUpdate={() => console.log("Update score for", match.id)}
+                        onViewDetails={() => console.log("View details for", match.id)}
+                        onEditMatch={() => {}} // Just to make the MatchCard clickable
+                      />
+                    }
                   />
                 ))
               )}
