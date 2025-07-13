@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Trophy, Users, Calendar, Filter, Settings, Zap } from "lucide-react";
+import { Plus, Trophy, Users, Calendar, Filter, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -630,106 +630,6 @@ export function TournamentDashboard() {
     }
   };
 
-  const handleAutoScheduleMatches = async () => {
-    if (!selectedTournament) {
-      toast({
-        title: "No Tournament Selected",
-        description: "Please select a tournament before auto-scheduling matches.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const activePlayers = tournamentPlayers.filter(p => p.status === "active");
-    
-    if (activePlayers.length < 2) {
-      toast({
-        title: "Not Enough Players",
-        description: "At least 2 active players are required to schedule matches.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      // Sort players by handicap (best to worst)
-      const sortedPlayers = [...activePlayers].sort((a, b) => a.handicap - b.handicap);
-      
-      let currentTime = 9; // Start at 9 AM
-      let totalMatches = 0;
-      
-      // Create first round matches only (best vs worst pairing)
-      const firstRoundMatches = Math.floor(sortedPlayers.length / 2);
-      
-      for (let i = 0; i < firstRoundMatches; i++) {
-        const bestPlayer = sortedPlayers[i];
-        const worstPlayer = sortedPlayers[sortedPlayers.length - 1 - i];
-        
-        const matchData = {
-          tournament_id: selectedTournament,
-          type: "singles" as const,
-          round: "Round 1",
-          status: "scheduled" as const,
-          match_date: new Date().toISOString().split('T')[0],
-          match_time: `${currentTime}:00:00`,
-          tee: (i % 2) === 0 ? 1 : 10
-        };
-
-        // Create match in database
-        const { data: matchResult, error: matchError } = await supabase
-          .from('matches')
-          .insert(matchData)
-          .select()
-          .single();
-
-        if (matchError) throw matchError;
-
-        // Create match participants
-        const participants = [
-          {
-            match_id: matchResult.id,
-            player_id: bestPlayer.id,
-            position: 1
-          },
-          {
-            match_id: matchResult.id,
-            player_id: worstPlayer.id,
-            position: 2
-          }
-        ];
-
-        const { error: participantsError } = await supabase
-          .from('match_participants')
-          .insert(participants);
-
-        if (participantsError) throw participantsError;
-
-        totalMatches++;
-        currentTime++;
-        if (currentTime > 17) { // Reset to next day if after 5 PM
-          currentTime = 9;
-        }
-      }
-
-      await fetchMatches(); // Refresh matches list
-
-      const hasOddPlayer = sortedPlayers.length % 2 === 1;
-      const byeMessage = hasOddPlayer ? ` ${sortedPlayers[sortedPlayers.length - 1].name} has a bye.` : "";
-
-      toast({
-        title: "First Round Scheduled!",
-        description: `Successfully scheduled ${totalMatches} first round matches.${byeMessage}`,
-      });
-
-    } catch (error) {
-      console.error('Error auto-scheduling matches:', error);
-      toast({
-        title: "Error",
-        description: "Failed to auto-schedule first round matches.",
-        variant: "destructive"
-      });
-    }
-  };
 
   const handleEditMatch = (matchId: string, updates: Partial<Match>) => {
     // For now, just log - this would need to sync with database
@@ -911,15 +811,6 @@ export function TournamentDashboard() {
                 <Calendar className="h-4 w-4 mr-2" />
                 Schedule Matches Manually
               </Button>
-              <Button 
-                variant="premium" 
-                onClick={handleAutoScheduleMatches}
-                disabled={activePlayers.length < 2}
-                className="flex items-center gap-2"
-              >
-                <Zap className="h-4 w-4" />
-                Auto-Schedule
-              </Button>
             </div>
           </div>
 
@@ -1048,16 +939,6 @@ export function TournamentDashboard() {
                         </Button>
                       }
                     />
-                    {activePlayers.length >= 2 && (
-                      <Button 
-                        variant="premium" 
-                        onClick={handleAutoScheduleMatches}
-                        className="flex items-center gap-2"
-                      >
-                        <Zap className="h-4 w-4" />
-                        Auto-Schedule Round
-                      </Button>
-                    )}
                   </div>
                 </div>
               ) : (
