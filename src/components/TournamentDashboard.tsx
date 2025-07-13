@@ -247,6 +247,19 @@ export function TournamentDashboard() {
     });
   };
 
+  const handleActivateTournament = (tournamentId: string) => {
+    setTournaments(prev => prev.map(t => 
+      t.id === tournamentId 
+        ? { ...t, status: "active" as const }
+        : t
+    ));
+    
+    toast({
+      title: "Tournament Activated",
+      description: "Tournament is now active and ready for matches.",
+    });
+  };
+  
   const activePlayers = tournamentPlayers.filter(p => p.status === "active");
 
   // Show tournament selector if no tournament is selected or no tournaments exist
@@ -260,6 +273,7 @@ export function TournamentDashboard() {
             onTournamentSelect={setSelectedTournament}
             onCreateNew={() => {}}
             onDeleteTournament={handleDeleteTournament}
+            onActivateTournament={handleActivateTournament}
           />
           <div className="mt-6 text-center">
             <CreateTournamentDialog onTournamentCreate={handleCreateTournament} />
@@ -287,6 +301,7 @@ export function TournamentDashboard() {
             onTournamentSelect={setSelectedTournament}
             onCreateNew={() => {}}
             onDeleteTournament={handleDeleteTournament}
+            onActivateTournament={handleActivateTournament}
           />
         </div>
         

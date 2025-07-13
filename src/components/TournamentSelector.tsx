@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Trophy, Calendar, Users, ChevronDown, Trash2 } from "lucide-react";
+import { Trophy, Calendar, Users, ChevronDown, Trash2, Play } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ interface TournamentSelectorProps {
   onTournamentSelect: (tournamentId: string) => void;
   onCreateNew: () => void;
   onDeleteTournament: (tournamentId: string) => void;
+  onActivateTournament: (tournamentId: string) => void;
 }
 
 export function TournamentSelector({ 
@@ -32,7 +33,8 @@ export function TournamentSelector({
   selectedTournament, 
   onTournamentSelect, 
   onCreateNew,
-  onDeleteTournament 
+  onDeleteTournament,
+  onActivateTournament 
 }: TournamentSelectorProps) {
   const activeTournament = tournaments.find(t => t.id === selectedTournament);
 
@@ -138,10 +140,21 @@ export function TournamentSelector({
                   <span className="text-muted-foreground">{activeTournament.course}</span>
                 </div>
                 
-                <div className="flex justify-end pt-2 border-t">
+                <div className="flex justify-between gap-2 pt-2 border-t">
+                  {activeTournament.status === "upcoming" && (
+                    <Button 
+                      variant="default" 
+                      size="sm"
+                      onClick={() => onActivateTournament(activeTournament.id)}
+                    >
+                      <Play className="h-4 w-4 mr-2" />
+                      Activate Tournament
+                    </Button>
+                  )}
+                  
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="destructive" size="sm">
+                      <Button variant="destructive" size="sm" className="ml-auto">
                         <Trash2 className="h-4 w-4 mr-2" />
                         Delete Tournament
                       </Button>
