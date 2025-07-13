@@ -46,7 +46,7 @@ interface EditMatchDialogProps {
 
 export function EditMatchDialog({ match, onMatchUpdate, trigger }: EditMatchDialogProps) {
   const [open, setOpen] = useState(false);
-  const [date, setDate] = useState<Date>(new Date());
+  const [date, setDate] = useState<Date>(new Date(match.date + " " + new Date().getFullYear()));
   const [formData, setFormData] = useState({
     time: match.time,
     tee: match.tee || "",

@@ -954,14 +954,15 @@ export function TournamentDashboard() {
                         key={match.id}
                         match={match}
                         onMatchUpdate={handleEditMatch}
-                        trigger={
-                          <MatchCard 
-                            match={match}
-                            onScoreUpdate={() => handleStartMatch(match.id)}
-                            onViewDetails={() => console.log("View details for", match.id)}
-                            onEditMatch={() => {}} // This will be handled by EditMatchDialog
-                          />
-                        }
+                         trigger={
+                           <div className="cursor-pointer">
+                             <MatchCard 
+                               match={match}
+                               onScoreUpdate={() => handleStartMatch(match.id)}
+                               onViewDetails={() => console.log("View details for", match.id)}
+                             />
+                           </div>
+                         }
                       />
                     ))
                   )}
@@ -1064,14 +1065,15 @@ export function TournamentDashboard() {
                     key={match.id}
                     match={match}
                     onMatchUpdate={handleEditMatch}
-                    trigger={
-                      <MatchCard 
-                        match={match}
-                        onScoreUpdate={() => handleStartMatch(match.id)}
-                        onViewDetails={() => console.log("View details for", match.id)}
-                        onEditMatch={() => {}} // This will be handled by EditMatchDialog
-                      />
-                    }
+                     trigger={
+                       <div className="cursor-pointer">
+                         <MatchCard 
+                           match={match}
+                           onScoreUpdate={() => handleStartMatch(match.id)}
+                           onViewDetails={() => console.log("View details for", match.id)}
+                         />
+                       </div>
+                     }
                   />
                 ))
               )}
