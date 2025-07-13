@@ -650,67 +650,141 @@ export function TournamentDashboard() {
       return;
     }
 
-    // Sort players by handicap (best to worst)
-    const sortedPlayers = [...activePlayers].sort((a, b) => a.handicap - b.handicap);
-    
-    // Create matches pairing best vs worst handicap
-    const newMatches: Match[] = [];
-    const usedPlayers = new Set<string>();
-    
-    for (let i = 0; i < Math.floor(sortedPlayers.length / 2); i++) {
-      const bestPlayer = sortedPlayers[i];
-      const worstPlayer = sortedPlayers[sortedPlayers.length - 1 - i];
+    try {
+      // Sort players by handicap (best to worst)
+      const sortedPlayers = [...activePlayers].sort((a, b) => a.handicap - b.handicap);
       
-      // Skip if either player is already used (shouldn't happen with this algorithm, but safety check)
-      if (usedPlayers.has(bestPlayer.id) || usedPlayers.has(worstPlayer.id)) {
-        continue;
+      // Calculate tournament structure
+      const totalPlayers = sortedPlayers.length;
+      const powerOfTwo = Math.pow(2, Math.ceil(Math.log2(totalPlayers)));
+      const firstRoundPlayers = powerOfTwo;
+      
+      // Create all tournament rounds
+      let currentRoundPlayers = [...sortedPlayers];
+      let roundNumber = 1;
+      let totalMatches = 0;
+      let currentTime = 9; // Start at 9 AM
+      
+      // Add bye players if needed to make it a power of 2
+      while (currentRoundPlayers.length < firstRoundPlayers) {
+        currentRoundPlayers.push({
+          id: `bye-${currentRoundPlayers.length}`,
+          name: "BYE",
+          handicap: 99,
+          wins: 0,
+          losses: 0,
+          status: "active" as const,
+          email: undefined
+        });
       }
-      
-      usedPlayers.add(bestPlayer.id);
-      usedPlayers.add(worstPlayer.id);
-      
-      const match: Match = {
-        id: (Date.now() + i).toString(),
-        tournamentId: selectedTournament,
-        type: "singles",
-        player1: {
-          name: bestPlayer.name,
-          handicap: bestPlayer.handicap
-        },
-        player2: {
-          name: worstPlayer.name,
-          handicap: worstPlayer.handicap
-        },
-        round: `Round ${Math.floor(tournamentMatches.length / (activePlayers.length / 2)) + 1}`,
-        status: "scheduled",
-        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        time: `${9 + i}:00 AM`,
-        tee: `Tee ${(i % 2) === 0 ? '1' : '10'}`
-      };
-      
-      // Create each match using the existing handleCreateMatch function
-      await handleCreateMatch(match);
-      newMatches.push(match);
-    }
-    
-    if (newMatches.length === 0) {
+
+      // Schedule all rounds until we have a winner
+      while (currentRoundPlayers.length > 1) {
+        const roundName = getRoundName(currentRoundPlayers.length);
+        const matchesInRound = Math.floor(currentRoundPlayers.length / 2);
+        
+        // Create matches for this round
+        for (let i = 0; i < matchesInRound; i++) {
+          const player1 = currentRoundPlayers[i * 2];
+          const player2 = currentRoundPlayers[i * 2 + 1];
+          
+          // Skip matches with BYE players
+          if (player1.name === "BYE" || player2.name === "BYE") {
+            continue;
+          }
+          
+          const matchData = {
+            tournament_id: selectedTournament,
+            type: "singles" as const,
+            round: roundName,
+            status: "scheduled" as const,
+            match_date: new Date().toISOString().split('T')[0],
+            match_time: `${currentTime}:00:00`,
+            tee: (i % 2) === 0 ? 1 : 10
+          };
+
+          // Create match in database
+          const { data: matchResult, error: matchError } = await supabase
+            .from('matches')
+            .insert(matchData)
+            .select()
+            .single();
+
+          if (matchError) throw matchError;
+
+          // Create match participants
+          const participants = [
+            {
+              match_id: matchResult.id,
+              player_id: player1.id,
+              position: 1
+            },
+            {
+              match_id: matchResult.id,
+              player_id: player2.id,
+              position: 2
+            }
+          ];
+
+          const { error: participantsError } = await supabase
+            .from('match_participants')
+            .insert(participants);
+
+          if (participantsError) throw participantsError;
+
+          totalMatches++;
+          currentTime++;
+          if (currentTime > 17) { // Reset to next day if after 5 PM
+            currentTime = 9;
+          }
+        }
+        
+        // Advance to next round (simulate winners for bracket structure)
+        const nextRoundPlayers = [];
+        for (let i = 0; i < currentRoundPlayers.length; i += 2) {
+          const player1 = currentRoundPlayers[i];
+          const player2 = currentRoundPlayers[i + 1];
+          
+          // For BYE players, advance the non-BYE player
+          if (player1.name === "BYE") {
+            nextRoundPlayers.push(player2);
+          } else if (player2.name === "BYE") {
+            nextRoundPlayers.push(player1);
+          } else {
+            // For auto-scheduling purposes, advance the better handicap player
+            nextRoundPlayers.push(player1.handicap <= player2.handicap ? player1 : player2);
+          }
+        }
+        
+        currentRoundPlayers = nextRoundPlayers;
+        roundNumber++;
+      }
+
+      await fetchMatches(); // Refresh matches list
+
       toast({
-        title: "No Matches Created",
-        description: "Unable to create any matches with current player selection.",
+        title: "Full Tournament Scheduled!",
+        description: `Successfully scheduled ${totalMatches} matches across all tournament rounds.`,
+      });
+
+    } catch (error) {
+      console.error('Error auto-scheduling matches:', error);
+      toast({
+        title: "Error",
+        description: "Failed to auto-schedule tournament matches.",
         variant: "destructive"
       });
-      return;
     }
-    
-    const oddPlayerCount = activePlayers.length % 2;
-    const message = oddPlayerCount === 1 
-      ? `${newMatches.length} matches scheduled! Note: ${sortedPlayers[Math.floor(sortedPlayers.length / 2)].name} has a bye.`
-      : `${newMatches.length} matches scheduled successfully!`;
-    
-    toast({
-      title: "Auto-Schedule Complete",
-      description: message,
-    });
+  };
+
+  // Helper function to get round names
+  const getRoundName = (playersRemaining: number): string => {
+    if (playersRemaining <= 2) return "Final";
+    if (playersRemaining <= 4) return "Semi-Final";
+    if (playersRemaining <= 8) return "Quarter-Final";
+    if (playersRemaining <= 16) return "Round of 16";
+    if (playersRemaining <= 32) return "Round of 32";
+    return `Round ${Math.ceil(Math.log2(playersRemaining))}`;
   };
 
   const activePlayers = tournamentPlayers.filter(p => p.status === "active");
