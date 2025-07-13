@@ -706,7 +706,33 @@ export function TournamentDashboard() {
   const tournamentHeaderData = {
     name: currentTournament.name,
     course: currentTournament.course,
-    date: `${new Date(currentTournament.start_date).toLocaleDateString()}${currentTournament.end_date ? ` - ${new Date(currentTournament.end_date).toLocaleDateString()}` : ''}`,
+    date: (() => {
+      try {
+        const startDate = new Date(currentTournament.start_date);
+        const endDate = new Date(currentTournament.end_date);
+        
+        // Check if dates are valid
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+          return `${currentTournament.start_date} - ${currentTournament.end_date}`;
+        }
+        
+        const startFormatted = startDate.toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric', 
+          year: 'numeric' 
+        });
+        
+        const endFormatted = endDate.toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric', 
+          year: 'numeric' 
+        });
+        
+        return startFormatted === endFormatted ? startFormatted : `${startFormatted} - ${endFormatted}`;
+      } catch (error) {
+        return `${currentTournament.start_date} - ${currentTournament.end_date}`;
+      }
+    })(),
     players: tournamentPlayers.length,
     status: currentTournament.status
   };
