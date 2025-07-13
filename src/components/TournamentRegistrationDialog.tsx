@@ -155,7 +155,8 @@ export function TournamentRegistrationDialog({
         return;
       }
 
-      if (!validatePhone(playerData.phone)) {
+      // Only validate phone if it's provided (it's optional)
+      if (playerData.phone && !validatePhone(playerData.phone)) {
         toast({
           title: "Invalid Phone Number",
           description: "Please enter a valid phone number.",
