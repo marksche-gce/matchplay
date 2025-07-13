@@ -1,4 +1,4 @@
-import { Clock, Calendar, MapPin, Trophy, Users, Edit3 } from "lucide-react";
+import { Clock, Calendar, MapPin, Award, Users, Edit3 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,7 +54,7 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch }: 
     switch (status) {
       case "scheduled": return <Clock className="h-3 w-3" />;
       case "in-progress": return <Users className="h-3 w-3" />;
-      case "completed": return <Trophy className="h-3 w-3" />;
+      case "completed": return <Award className="h-3 w-3" />;
       default: return <Clock className="h-3 w-3" />;
     }
   };
@@ -73,7 +73,7 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch }: 
       {showScore && player.score !== undefined && (
         <div className="text-right">
           <p className="text-lg font-bold">{player.score}</p>
-          {isWinner && <Trophy className="h-3 w-3 text-warning inline" />}
+          {isWinner && <Award className="h-5 w-5 text-warning inline ml-1" />}
         </div>
       )}
     </div>
@@ -89,7 +89,7 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch }: 
         {showScore && team.teamScore !== undefined && (
           <div className="text-right ml-2">
             <p className="text-2xl font-bold">{team.teamScore}</p>
-            {isWinner && <Trophy className="h-4 w-4 text-warning inline" />}
+            {isWinner && <Award className="h-6 w-6 text-warning inline ml-1" />}
           </div>
         )}
       </div>
@@ -126,10 +126,10 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch }: 
                   </div>
                 </div>
                 {match.status === "completed" && match.player1.score !== undefined && (
-                  <div className="text-right">
+                  <div className="text-right flex items-center gap-2">
                     <p className="text-2xl font-bold">{match.player1.score}</p>
                     {match.winner === match.player1.name && (
-                      <Trophy className="h-4 w-4 text-warning inline" />
+                      <Award className="h-6 w-6 text-warning" />
                     )}
                   </div>
                 )}
@@ -156,10 +156,10 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch }: 
                   </div>
                 </div>
                 {match.status === "completed" && match.player2.score !== undefined && (
-                  <div className="text-right">
+                  <div className="text-right flex items-center gap-2">
                     <p className="text-2xl font-bold">{match.player2.score}</p>
                     {match.winner === match.player2.name && (
-                      <Trophy className="h-4 w-4 text-warning inline" />
+                      <Award className="h-6 w-6 text-warning" />
                     )}
                   </div>
                 )}
