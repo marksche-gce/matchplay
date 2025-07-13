@@ -632,15 +632,110 @@ export function TournamentDashboard() {
   };
 
 
-  const handleEditMatch = (matchId: string, updates: Partial<Match>) => {
-    // For now, just log - this would need to sync with database
-    console.log("Edit match", matchId, updates);
-    toast({
-      title: "Match Updated!",
-      description: "Match details have been updated.",
-    });
-    // Refresh matches after edit
-    fetchMatches();
+  const handleEditMatch = async (matchId: string, updates: Partial<Match>) => {
+    try {
+      // First, update the match details
+      const matchUpdates: any = {
+        round: updates.round,
+        status: updates.status,
+        match_time: updates.time && updates.time !== "TBD" ? updates.time : null,
+        tee: updates.tee ? parseInt(updates.tee.replace('Tee ', '')) : null
+      };
+
+      // Handle date conversion
+      if (updates.date) {
+        try {
+          // Convert "MMM d" format to full date using current tournament year
+          const currentYear = currentTournament?.start_date ? new Date(currentTournament.start_date).getFullYear() : new Date().getFullYear();
+          const fullDateString = `${updates.date} ${currentYear}`;
+          const parsedDate = new Date(fullDateString);
+          
+          if (!isNaN(parsedDate.getTime())) {
+            matchUpdates.match_date = parsedDate.toISOString().split('T')[0];
+          }
+        } catch (error) {
+          console.log('Date parsing failed, keeping existing date');
+        }
+      }
+
+      // Set winner_id based on winner name
+      if (updates.winner) {
+        const winnerPlayer = players.find(p => p.name === updates.winner);
+        matchUpdates.winner_id = winnerPlayer?.id || null;
+      } else if (updates.winner === "") {
+        matchUpdates.winner_id = null;
+      }
+
+      // Update match in database
+      const { error: matchError } = await supabase
+        .from('matches')
+        .update(matchUpdates)
+        .eq('id', matchId);
+
+      if (matchError) throw matchError;
+
+      // Update match participants if it's a singles match with score updates
+      if (updates.player1?.score !== undefined || updates.player2?.score !== undefined) {
+        // Get current match participants
+        const { data: participants, error: participantsError } = await supabase
+          .from('match_participants')
+          .select('*')
+          .eq('match_id', matchId);
+
+        if (participantsError) throw participantsError;
+
+        // Update scores for each participant
+        const updatePromises = [];
+        
+        if (updates.player1?.score !== undefined) {
+          const player1Participant = participants.find(p => p.position === 1);
+          if (player1Participant) {
+            updatePromises.push(
+              supabase
+                .from('match_participants')
+                .update({ score: updates.player1.score })
+                .eq('id', player1Participant.id)
+            );
+          }
+        }
+
+        if (updates.player2?.score !== undefined) {
+          const player2Participant = participants.find(p => p.position === 2);
+          if (player2Participant) {
+            updatePromises.push(
+              supabase
+                .from('match_participants')
+                .update({ score: updates.player2.score })
+                .eq('id', player2Participant.id)
+            );
+          }
+        }
+
+        // Execute all score updates
+        if (updatePromises.length > 0) {
+          const results = await Promise.all(updatePromises);
+          const scoreErrors = results.filter(result => result.error);
+          if (scoreErrors.length > 0) {
+            throw new Error('Failed to update some scores');
+          }
+        }
+      }
+
+      toast({
+        title: "Match Updated!",
+        description: "Match details have been successfully updated.",
+      });
+
+      // Refresh matches after edit
+      await fetchMatches();
+    } catch (error) {
+      console.error('Error updating match:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update match details.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleStartMatch = (matchId: string) => {
