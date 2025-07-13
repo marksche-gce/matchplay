@@ -121,7 +121,7 @@ export default {
 				'golf-bounce': 'golf-bounce 1s ease-in-out'
 			},
 			backgroundImage: {
-				'gradient-golf': 'var(--gradient-primary)',
+				'gradient-golf': 'var(--gradient-golf)',
 				'gradient-fairway': 'var(--gradient-fairway)',
 				'gradient-course': 'var(--gradient-course)'
 			},
