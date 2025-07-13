@@ -742,6 +742,17 @@ export function TournamentDashboard() {
     fetchMatches();
   };
 
+  const handleStartMatch = (matchId: string) => {
+    setMatches(prev => prev.map(match => 
+      match.id === matchId ? { ...match, status: "in-progress" as const } : match
+    ));
+    
+    toast({
+      title: "Match Started!",
+      description: "The match status has been updated to in-progress.",
+    });
+  };
+
   // Helper function to get round names
   const getRoundName = (playersRemaining: number): string => {
     if (playersRemaining <= 2) return "Final";
@@ -938,12 +949,19 @@ export function TournamentDashboard() {
                       <p className="text-muted-foreground">No matches scheduled yet</p>
                     </div>
                   ) : (
-                    tournamentMatches.slice(0, 3).map(match => (
-                      <MatchCard 
-                        key={match.id} 
+                  tournamentMatches.slice(0, 3).map(match => (
+                      <EditMatchDialog
+                        key={match.id}
                         match={match}
-                        onScoreUpdate={() => console.log("Update score for", match.id)}
-                        onViewDetails={() => console.log("View details for", match.id)}
+                        onMatchUpdate={handleEditMatch}
+                        trigger={
+                          <MatchCard 
+                            match={match}
+                            onScoreUpdate={() => handleStartMatch(match.id)}
+                            onViewDetails={() => console.log("View details for", match.id)}
+                            onEditMatch={() => {}} // This will be handled by EditMatchDialog
+                          />
+                        }
                       />
                     ))
                   )}
@@ -1042,16 +1060,16 @@ export function TournamentDashboard() {
                 </div>
               ) : (
                 tournamentMatches.map(match => (
-                  <EditMatchDialog
+                <EditMatchDialog
                     key={match.id}
                     match={match}
                     onMatchUpdate={handleEditMatch}
                     trigger={
                       <MatchCard 
                         match={match}
-                        onScoreUpdate={() => console.log("Update score for", match.id)}
+                        onScoreUpdate={() => handleStartMatch(match.id)}
                         onViewDetails={() => console.log("View details for", match.id)}
-                        onEditMatch={() => {}} // Just to make the MatchCard clickable
+                        onEditMatch={() => {}} // This will be handled by EditMatchDialog
                       />
                     }
                   />
