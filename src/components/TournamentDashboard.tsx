@@ -954,15 +954,16 @@ export function TournamentDashboard() {
                         key={match.id}
                         match={match}
                         onMatchUpdate={handleEditMatch}
-                         trigger={
-                           <div className="cursor-pointer">
-                             <MatchCard 
-                               match={match}
-                               onScoreUpdate={() => handleStartMatch(match.id)}
-                               onViewDetails={() => console.log("View details for", match.id)}
-                             />
-                           </div>
-                         }
+                        availablePlayers={players}
+                        trigger={
+                          <div className="cursor-pointer">
+                            <MatchCard 
+                              match={match}
+                              onScoreUpdate={() => handleStartMatch(match.id)}
+                              onViewDetails={() => console.log("View details for", match.id)}
+                            />
+                          </div>
+                        }
                       />
                     ))
                   )}
@@ -1065,15 +1066,16 @@ export function TournamentDashboard() {
                     key={match.id}
                     match={match}
                     onMatchUpdate={handleEditMatch}
-                     trigger={
-                       <div className="cursor-pointer">
-                         <MatchCard 
-                           match={match}
-                           onScoreUpdate={() => handleStartMatch(match.id)}
-                           onViewDetails={() => console.log("View details for", match.id)}
-                         />
-                       </div>
-                     }
+                    availablePlayers={players}
+                    trigger={
+                      <div className="cursor-pointer">
+                        <MatchCard 
+                          match={match}
+                          onScoreUpdate={() => handleStartMatch(match.id)}
+                          onViewDetails={() => console.log("View details for", match.id)}
+                        />
+                      </div>
+                    }
                   />
                 ))
               )}

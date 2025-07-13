@@ -42,9 +42,10 @@ interface EditMatchDialogProps {
   match: Match;
   onMatchUpdate: (matchId: string, updates: Partial<Match>) => void;
   trigger?: React.ReactNode;
+  availablePlayers?: Player[];
 }
 
-export function EditMatchDialog({ match, onMatchUpdate, trigger }: EditMatchDialogProps) {
+export function EditMatchDialog({ match, onMatchUpdate, trigger, availablePlayers = [] }: EditMatchDialogProps) {
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState<Date>(new Date(match.date + " " + new Date().getFullYear()));
   const [formData, setFormData] = useState({
@@ -54,7 +55,9 @@ export function EditMatchDialog({ match, onMatchUpdate, trigger }: EditMatchDial
     status: match.status,
     player1Score: match.player1?.score?.toString() || "",
     player2Score: match.player2?.score?.toString() || "",
-    winner: match.winner || ""
+    winner: match.winner || "",
+    player1Name: match.player1?.name || "",
+    player2Name: match.player2?.name || ""
   });
   const { toast } = useToast();
 
@@ -70,15 +73,19 @@ export function EditMatchDialog({ match, onMatchUpdate, trigger }: EditMatchDial
       winner: formData.winner || undefined
     };
 
-    if (match.type === "singles" && match.player1 && match.player2) {
-      updates.player1 = {
-        ...match.player1,
+    if (match.type === "singles") {
+      const selectedPlayer1 = availablePlayers.find(p => p.name === formData.player1Name);
+      const selectedPlayer2 = availablePlayers.find(p => p.name === formData.player2Name);
+      
+      updates.player1 = selectedPlayer1 ? {
+        ...selectedPlayer1,
         score: formData.player1Score ? parseInt(formData.player1Score) : undefined
-      };
-      updates.player2 = {
-        ...match.player2,
+      } : match.player1;
+      
+      updates.player2 = selectedPlayer2 ? {
+        ...selectedPlayer2,
         score: formData.player2Score ? parseInt(formData.player2Score) : undefined
-      };
+      } : match.player2;
     }
 
     onMatchUpdate(match.id, updates);
@@ -187,15 +194,56 @@ export function EditMatchDialog({ match, onMatchUpdate, trigger }: EditMatchDial
               />
             </div>
 
+            {match.type === "singles" && (
+              <div className="space-y-4 border-t pt-4">
+                <Label className="text-base font-semibold">Players</Label>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="player1">Player 1</Label>
+                    <Select value={formData.player1Name} onValueChange={(value) => handleInputChange("player1Name", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select player 1" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availablePlayers.map(player => (
+                          <SelectItem key={player.name} value={player.name}>
+                            {player.name} (HC: {player.handicap})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="player2">Player 2</Label>
+                    <Select value={formData.player2Name} onValueChange={(value) => handleInputChange("player2Name", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select player 2" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availablePlayers.map(player => (
+                          <SelectItem key={player.name} value={player.name}>
+                            {player.name} (HC: {player.handicap})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+
             {formData.status === "completed" && (
               <div className="space-y-4 border-t pt-4">
                 <Label className="text-base font-semibold">Match Results</Label>
                 
-                {match.type === "singles" && match.player1 && match.player2 && (
+                {match.type === "singles" && (
                   <>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-2">
-                        <Label htmlFor="player1Score">{match.player1.name} Score</Label>
+                        <Label htmlFor="player1Score">{formData.player1Name || "Player 1"} Score</Label>
                         <Input
                           id="player1Score"
                           type="number"
@@ -205,7 +253,7 @@ export function EditMatchDialog({ match, onMatchUpdate, trigger }: EditMatchDial
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="player2Score">{match.player2.name} Score</Label>
+                        <Label htmlFor="player2Score">{formData.player2Name || "Player 2"} Score</Label>
                         <Input
                           id="player2Score"
                           type="number"
@@ -224,8 +272,8 @@ export function EditMatchDialog({ match, onMatchUpdate, trigger }: EditMatchDial
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="">(No winner yet)</SelectItem>
-                          <SelectItem value={match.player1.name}>{match.player1.name}</SelectItem>
-                          <SelectItem value={match.player2.name}>{match.player2.name}</SelectItem>
+                          {formData.player1Name && <SelectItem value={formData.player1Name}>{formData.player1Name}</SelectItem>}
+                          {formData.player2Name && <SelectItem value={formData.player2Name}>{formData.player2Name}</SelectItem>}
                         </SelectContent>
                       </Select>
                     </div>
