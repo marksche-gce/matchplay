@@ -868,6 +868,96 @@ export function TournamentDashboard() {
     return `Round ${Math.ceil(Math.log2(playersRemaining))}`;
   };
 
+  // Generate tournament schedule based on player count and tournament dates
+  const generateTournamentSchedule = () => {
+    if (!currentTournament || !tournamentPlayers.length) return [];
+
+    const totalPlayers = tournamentPlayers.length;
+    const startDate = new Date(currentTournament.start_date);
+    const endDate = new Date(currentTournament.end_date);
+    
+    // Calculate tournament days
+    const daysDiff = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+    
+    // Determine rounds needed
+    const rounds = [];
+    let playersRemaining = totalPlayers;
+    
+    // First round with all players
+    if (totalPlayers > 1) {
+      rounds.push({
+        name: "Round 1",
+        matches: Math.floor(totalPlayers / 2),
+        playersAdvancing: Math.floor(totalPlayers / 2) + (totalPlayers % 2)
+      });
+      playersRemaining = Math.floor(totalPlayers / 2) + (totalPlayers % 2);
+    }
+    
+    // Generate elimination rounds
+    while (playersRemaining > 1) {
+      const roundName = getRoundName(playersRemaining);
+      const matches = Math.floor(playersRemaining / 2);
+      const advancing = Math.floor(playersRemaining / 2) + (playersRemaining % 2);
+      
+      rounds.push({
+        name: roundName,
+        matches,
+        playersAdvancing: advancing
+      });
+      
+      playersRemaining = advancing;
+    }
+
+    // Distribute rounds across tournament days
+    const schedule = rounds.map((round, index) => {
+      let scheduleDate: Date;
+      
+      if (rounds.length === 1) {
+        // Single round tournament
+        scheduleDate = startDate;
+      } else if (daysDiff === 1) {
+        // Single day tournament - distribute by time
+        scheduleDate = startDate;
+      } else {
+        // Multi-day tournament - distribute evenly
+        const dayIndex = Math.floor((index / rounds.length) * daysDiff);
+        scheduleDate = new Date(startDate);
+        scheduleDate.setDate(startDate.getDate() + dayIndex);
+      }
+      
+      // Assign times based on round and day
+      let timeSlot = "TBD";
+      if (daysDiff === 1) {
+        // Single day - different times
+        const hour = 8 + (index * 2); // Start at 8 AM, 2 hours apart
+        timeSlot = `${hour}:00 AM`;
+      } else if (index === rounds.length - 1) {
+        // Final round gets afternoon slot
+        timeSlot = "2:00 PM";
+      } else if (index === 0) {
+        // First round gets morning slot
+        timeSlot = "8:00 AM";
+      } else {
+        // Other rounds get mid-day slots
+        timeSlot = "12:00 PM";
+      }
+
+      return {
+        ...round,
+        date: scheduleDate.toLocaleDateString('en-US', { 
+          weekday: 'long',
+          month: 'long', 
+          day: 'numeric',
+          year: 'numeric'
+        }),
+        time: timeSlot,
+        dateObj: scheduleDate
+      };
+    });
+
+    return schedule;
+  };
+
   const activePlayers = tournamentPlayers.filter(p => p.status === "active");
 
   // Show tournament management if requested
@@ -1030,6 +1120,7 @@ export function TournamentDashboard() {
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="players">Players</TabsTrigger>
               <TabsTrigger value="matches">Matches</TabsTrigger>
+              <TabsTrigger value="schedule">Schedule</TabsTrigger>
               <TabsTrigger value="bracket">Bracket</TabsTrigger>
             </TabsList>
             
@@ -1202,6 +1293,74 @@ export function TournamentDashboard() {
                 ))
               )}
             </div>
+          </TabsContent>
+
+          <TabsContent value="schedule" className="space-y-6">
+            <Card className="shadow-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Tournament Schedule
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {tournamentPlayers.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Calendar className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold mb-2">No Schedule Available</h3>
+                    <p className="text-muted-foreground">Add players to generate the tournament schedule</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {generateTournamentSchedule().map((round, index) => (
+                      <div key={index} className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center font-bold">
+                            {index + 1}
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-lg">{round.name}</h4>
+                            <p className="text-sm text-muted-foreground">
+                              {round.matches} match{round.matches !== 1 ? 'es' : ''} • {round.playersAdvancing} player{round.playersAdvancing !== 1 ? 's' : ''} advance
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium">{round.date}</p>
+                          <p className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {round.time}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {generateTournamentSchedule().length > 0 && (
+                      <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/10">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Trophy className="h-5 w-5 text-primary" />
+                          <h4 className="font-semibold text-primary">Tournament Summary</h4>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <p className="text-muted-foreground">Total Players</p>
+                            <p className="font-medium">{tournamentPlayers.length}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Total Rounds</p>
+                            <p className="font-medium">{generateTournamentSchedule().length}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Total Matches</p>
+                            <p className="font-medium">{generateTournamentSchedule().reduce((sum, round) => sum + round.matches, 0)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="bracket" className="space-y-6">
