@@ -657,53 +657,82 @@ export function TournamentDashboard() {
       // Calculate tournament structure
       const totalPlayers = sortedPlayers.length;
       const powerOfTwo = Math.pow(2, Math.ceil(Math.log2(totalPlayers)));
-      const firstRoundPlayers = powerOfTwo;
       
-      // Create all tournament rounds
-      let currentRoundPlayers = [...sortedPlayers];
-      let roundNumber = 1;
-      let totalMatches = 0;
       let currentTime = 9; // Start at 9 AM
+      let totalMatches = 0;
       
-      // Add bye players if needed to make it a power of 2
-      while (currentRoundPlayers.length < firstRoundPlayers) {
-        currentRoundPlayers.push({
-          id: `bye-${currentRoundPlayers.length}`,
-          name: "BYE",
-          handicap: 99,
-          wins: 0,
-          losses: 0,
-          status: "active" as const,
-          email: undefined
-        });
+      // Create first round with actual players (best vs worst pairing)
+      const firstRoundMatches = Math.floor(sortedPlayers.length / 2);
+      
+      for (let i = 0; i < firstRoundMatches; i++) {
+        const bestPlayer = sortedPlayers[i];
+        const worstPlayer = sortedPlayers[sortedPlayers.length - 1 - i];
+        
+        const matchData = {
+          tournament_id: selectedTournament,
+          type: "singles" as const,
+          round: getRoundName(powerOfTwo),
+          status: "scheduled" as const,
+          match_date: new Date().toISOString().split('T')[0],
+          match_time: `${currentTime}:00:00`,
+          tee: (i % 2) === 0 ? 1 : 10
+        };
+
+        // Create match in database
+        const { data: matchResult, error: matchError } = await supabase
+          .from('matches')
+          .insert(matchData)
+          .select()
+          .single();
+
+        if (matchError) throw matchError;
+
+        // Create match participants
+        const participants = [
+          {
+            match_id: matchResult.id,
+            player_id: bestPlayer.id,
+            position: 1
+          },
+          {
+            match_id: matchResult.id,
+            player_id: worstPlayer.id,
+            position: 2
+          }
+        ];
+
+        const { error: participantsError } = await supabase
+          .from('match_participants')
+          .insert(participants);
+
+        if (participantsError) throw participantsError;
+
+        totalMatches++;
+        currentTime++;
+        if (currentTime > 17) { // Reset to next day if after 5 PM
+          currentTime = 9;
+        }
       }
 
-      // Schedule all rounds until we have a winner
-      while (currentRoundPlayers.length > 1) {
-        const roundName = getRoundName(currentRoundPlayers.length);
-        const matchesInRound = Math.floor(currentRoundPlayers.length / 2);
+      // Create all subsequent rounds with TBD placeholders
+      let currentRoundSize = powerOfTwo / 2; // Size of the next round
+      let roundNumber = 2;
+      
+      while (currentRoundSize >= 1) {
+        const matchesInRound = Math.floor(currentRoundSize / 2);
         
-        // Create matches for this round
         for (let i = 0; i < matchesInRound; i++) {
-          const player1 = currentRoundPlayers[i * 2];
-          const player2 = currentRoundPlayers[i * 2 + 1];
-          
-          // Skip matches with BYE players
-          if (player1.name === "BYE" || player2.name === "BYE") {
-            continue;
-          }
-          
           const matchData = {
             tournament_id: selectedTournament,
             type: "singles" as const,
-            round: roundName,
+            round: getRoundName(currentRoundSize),
             status: "scheduled" as const,
             match_date: new Date().toISOString().split('T')[0],
             match_time: `${currentTime}:00:00`,
             tee: (i % 2) === 0 ? 1 : 10
           };
 
-          // Create match in database
+          // Create match in database (without participants for now - they'll be added when previous round completes)
           const { data: matchResult, error: matchError } = await supabase
             .from('matches')
             .insert(matchData)
@@ -712,59 +741,25 @@ export function TournamentDashboard() {
 
           if (matchError) throw matchError;
 
-          // Create match participants
-          const participants = [
-            {
-              match_id: matchResult.id,
-              player_id: player1.id,
-              position: 1
-            },
-            {
-              match_id: matchResult.id,
-              player_id: player2.id,
-              position: 2
-            }
-          ];
-
-          const { error: participantsError } = await supabase
-            .from('match_participants')
-            .insert(participants);
-
-          if (participantsError) throw participantsError;
-
           totalMatches++;
           currentTime++;
-          if (currentTime > 17) { // Reset to next day if after 5 PM
+          if (currentTime > 17) {
             currentTime = 9;
           }
         }
         
-        // Advance to next round (simulate winners for bracket structure)
-        const nextRoundPlayers = [];
-        for (let i = 0; i < currentRoundPlayers.length; i += 2) {
-          const player1 = currentRoundPlayers[i];
-          const player2 = currentRoundPlayers[i + 1];
-          
-          // For BYE players, advance the non-BYE player
-          if (player1.name === "BYE") {
-            nextRoundPlayers.push(player2);
-          } else if (player2.name === "BYE") {
-            nextRoundPlayers.push(player1);
-          } else {
-            // For auto-scheduling purposes, advance the better handicap player
-            nextRoundPlayers.push(player1.handicap <= player2.handicap ? player1 : player2);
-          }
-        }
-        
-        currentRoundPlayers = nextRoundPlayers;
+        currentRoundSize = currentRoundSize / 2;
         roundNumber++;
       }
 
       await fetchMatches(); // Refresh matches list
 
+      const hasOddPlayer = sortedPlayers.length % 2 === 1;
+      const byeMessage = hasOddPlayer ? ` Note: ${sortedPlayers[sortedPlayers.length - 1].name} has a bye to the next round.` : "";
+
       toast({
-        title: "Full Tournament Scheduled!",
-        description: `Successfully scheduled ${totalMatches} matches across all tournament rounds.`,
+        title: "Full Tournament Bracket Created!",
+        description: `Successfully scheduled ${totalMatches} matches across all tournament rounds.${byeMessage}`,
       });
 
     } catch (error) {
