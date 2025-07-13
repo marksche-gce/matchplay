@@ -48,7 +48,7 @@ export function CreatePlayerDialog({ onPlayerCreate, onBulkPlayerCreate, trigger
       return;
     }
 
-    const handicapValue = parseInt(formData.handicap);
+    const handicapValue = parseFloat(formData.handicap);
     if (isNaN(handicapValue) || handicapValue < 0 || handicapValue > 36) {
       toast({
         title: "Invalid Handicap",
@@ -105,7 +105,7 @@ export function CreatePlayerDialog({ onPlayerCreate, onBulkPlayerCreate, trigger
           const handicap = row.Handicap || row.handicap || row.HCAP || row.hcap;
           
           if (name) {
-            const handicapValue = parseInt(handicap) || 10;
+            const handicapValue = parseFloat(handicap) || 10;
             if (handicapValue >= 0 && handicapValue <= 36) {
               players.push({
                 name: String(name),
