@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trophy, Users, Calendar, Filter, Settings } from "lucide-react";
+import { Plus, Trophy, Users, Calendar, Filter, Settings, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -270,6 +270,90 @@ export function TournamentDashboard() {
     };
     setMatches(prev => [...prev, newMatch]);
   };
+
+  const handleAutoScheduleMatches = () => {
+    if (!selectedTournament) {
+      toast({
+        title: "No Tournament Selected",
+        description: "Please select a tournament before auto-scheduling matches.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const activePlayers = tournamentPlayers.filter(p => p.status === "active");
+    
+    if (activePlayers.length < 2) {
+      toast({
+        title: "Not Enough Players",
+        description: "At least 2 active players are required to schedule matches.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Sort players by handicap (best to worst)
+    const sortedPlayers = [...activePlayers].sort((a, b) => a.handicap - b.handicap);
+    
+    // Create matches pairing best vs worst handicap
+    const newMatches: Match[] = [];
+    const usedPlayers = new Set<string>();
+    
+    for (let i = 0; i < Math.floor(sortedPlayers.length / 2); i++) {
+      const bestPlayer = sortedPlayers[i];
+      const worstPlayer = sortedPlayers[sortedPlayers.length - 1 - i];
+      
+      // Skip if either player is already used (shouldn't happen with this algorithm, but safety check)
+      if (usedPlayers.has(bestPlayer.id) || usedPlayers.has(worstPlayer.id)) {
+        continue;
+      }
+      
+      usedPlayers.add(bestPlayer.id);
+      usedPlayers.add(worstPlayer.id);
+      
+      const match: Match = {
+        id: (Date.now() + i).toString(),
+        tournamentId: selectedTournament,
+        type: "singles",
+        player1: {
+          name: bestPlayer.name,
+          handicap: bestPlayer.handicap
+        },
+        player2: {
+          name: worstPlayer.name,
+          handicap: worstPlayer.handicap
+        },
+        round: `Round ${Math.floor(tournamentMatches.length / (activePlayers.length / 2)) + 1}`,
+        status: "scheduled",
+        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        time: `${9 + i}:00 AM`,
+        tee: `Tee ${(i % 2) === 0 ? '1' : '10'}`
+      };
+      
+      newMatches.push(match);
+    }
+    
+    if (newMatches.length === 0) {
+      toast({
+        title: "No Matches Created",
+        description: "Unable to create any matches with current player selection.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setMatches(prev => [...prev, ...newMatches]);
+    
+    const oddPlayerCount = activePlayers.length % 2;
+    const message = oddPlayerCount === 1 
+      ? `${newMatches.length} matches scheduled! Note: ${sortedPlayers[Math.floor(sortedPlayers.length / 2)].name} has a bye.`
+      : `${newMatches.length} matches scheduled successfully!`;
+    
+    toast({
+      title: "Auto-Schedule Complete",
+      description: message,
+    });
+  };
   
   const activePlayers = tournamentPlayers.filter(p => p.status === "active");
 
@@ -433,6 +517,15 @@ export function TournamentDashboard() {
                   </Button>
                 }
               />
+              <Button 
+                variant="premium" 
+                onClick={handleAutoScheduleMatches}
+                disabled={activePlayers.length < 2}
+                className="flex items-center gap-2"
+              >
+                <Zap className="h-4 w-4" />
+                Auto-Schedule
+              </Button>
             </div>
           </div>
 
@@ -527,17 +620,29 @@ export function TournamentDashboard() {
                   <Trophy className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-xl font-semibold mb-2">No Matches Scheduled</h3>
                   <p className="text-muted-foreground mb-4">Schedule matches to start the tournament</p>
-                  <CreateMatchDialog
-                    tournamentId={selectedTournament}
-                    availablePlayers={tournamentPlayers}
-                    onMatchCreate={handleCreateMatch}
-                    trigger={
-                      <Button variant="fairway">
-                        <Calendar className="h-4 w-4 mr-2" />
-                        Schedule First Match
+                  <div className="flex gap-2 justify-center">
+                    <CreateMatchDialog
+                      tournamentId={selectedTournament}
+                      availablePlayers={tournamentPlayers}
+                      onMatchCreate={handleCreateMatch}
+                      trigger={
+                        <Button variant="fairway">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          Schedule First Match
+                        </Button>
+                      }
+                    />
+                    {activePlayers.length >= 2 && (
+                      <Button 
+                        variant="premium" 
+                        onClick={handleAutoScheduleMatches}
+                        className="flex items-center gap-2"
+                      >
+                        <Zap className="h-4 w-4" />
+                        Auto-Schedule Round
                       </Button>
-                    }
-                  />
+                    )}
+                  </div>
                 </div>
               ) : (
                 tournamentMatches.map(match => (
