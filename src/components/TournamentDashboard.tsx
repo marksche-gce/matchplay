@@ -861,7 +861,6 @@ export function TournamentDashboard() {
                 onPlayerCreate={handleCreatePlayer} 
                 onBulkPlayerCreate={handleBulkCreatePlayers}
               />
-              <CreateTournamentDialog onTournamentCreate={handleCreateTournament} />
               <CreateMatchDialog
                 tournamentId={selectedTournament}
                 availablePlayers={tournamentPlayers}
