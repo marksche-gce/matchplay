@@ -231,31 +231,16 @@ export function CreatePlayerDialog({ onPlayerCreate, onBulkPlayerCreate, trigger
             
             <div className="space-y-2">
               <Label htmlFor="handicap">Handicap *</Label>
-              <Select value={formData.handicap} onValueChange={(value) => handleInputChange("handicap", value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">Scratch (0)</SelectItem>
-                  <SelectItem value="1">1</SelectItem>
-                  <SelectItem value="2">2</SelectItem>
-                  <SelectItem value="3">3</SelectItem>
-                  <SelectItem value="4">4</SelectItem>
-                  <SelectItem value="5">5</SelectItem>
-                  <SelectItem value="6">6</SelectItem>
-                  <SelectItem value="7">7</SelectItem>
-                  <SelectItem value="8">8</SelectItem>
-                  <SelectItem value="9">9</SelectItem>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="12">12</SelectItem>
-                  <SelectItem value="15">15</SelectItem>
-                  <SelectItem value="18">18</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                  <SelectItem value="24">24</SelectItem>
-                  <SelectItem value="28">28</SelectItem>
-                  <SelectItem value="36">36</SelectItem>
-                </SelectContent>
-              </Select>
+              <Input
+                id="handicap"
+                type="number"
+                step="0.1"
+                min="0"
+                max="36"
+                placeholder="10.5"
+                value={formData.handicap}
+                onChange={(e) => handleInputChange("handicap", e.target.value)}
+              />
             </div>
           </div>
 
