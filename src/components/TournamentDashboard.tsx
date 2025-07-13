@@ -35,11 +35,28 @@ interface Player {
   status: "active" | "eliminated" | "champion";
 }
 
+interface MatchPlayer {
+  name: string;
+  handicap: number;
+  score?: number;
+}
+
+interface Team {
+  player1: MatchPlayer;
+  player2: MatchPlayer;
+  teamScore?: number;
+}
+
 interface Match {
   id: string;
   tournamentId: string;
-  player1: { name: string; handicap: number; score?: number };
-  player2: { name: string; handicap: number; score?: number };
+  type: "singles" | "foursome";
+  // For singles matches
+  player1?: MatchPlayer;
+  player2?: MatchPlayer;
+  // For foursome matches
+  team1?: Team;
+  team2?: Team;
   round: string;
   status: "scheduled" | "in-progress" | "completed";
   date: string;
@@ -77,6 +94,7 @@ const initialMatches: Match[] = [
   {
     id: "1",
     tournamentId: "1",
+    type: "singles",
     player1: { name: "Tiger Woods", handicap: 0, score: 3 },
     player2: { name: "Rory McIlroy", handicap: 2, score: 1 },
     round: "Quarterfinal 1",
@@ -89,9 +107,18 @@ const initialMatches: Match[] = [
   {
     id: "2",
     tournamentId: "1",
-    player1: { name: "Jordan Spieth", handicap: 1 },
-    player2: { name: "Brooks Koepka", handicap: 0 },
-    round: "Quarterfinal 2",
+    type: "foursome",
+    team1: {
+      player1: { name: "Jordan Spieth", handicap: 1 },
+      player2: { name: "Justin Thomas", handicap: 1 },
+      teamScore: 2
+    },
+    team2: {
+      player1: { name: "Brooks Koepka", handicap: 0 },
+      player2: { name: "Dustin Johnson", handicap: 1 },
+      teamScore: 1
+    },
+    round: "Foursome Match 1",
     status: "in-progress",
     date: "Mar 16",
     time: "9:15 AM",
@@ -100,6 +127,7 @@ const initialMatches: Match[] = [
   {
     id: "3",
     tournamentId: "1",
+    type: "singles",
     player1: { name: "Dustin Johnson", handicap: 1 },
     player2: { name: "Justin Thomas", handicap: 1 },
     round: "Quarterfinal 3",
