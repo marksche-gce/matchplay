@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { TournamentHeader } from "./TournamentHeader";
 import { PlayerCard } from "./PlayerCard";
 import { MatchCard } from "./MatchCard";
+import { CreateMatchDialog } from "./CreateMatchDialog";
 import { CreateTournamentDialog } from "./CreateTournamentDialog";
 import { CreatePlayerDialog } from "./CreatePlayerDialog";
 import { TournamentSelector } from "./TournamentSelector";
@@ -261,6 +262,14 @@ export function TournamentDashboard() {
       description: "Tournament is now active and ready for matches.",
     });
   };
+
+  const handleCreateMatch = (matchData: Omit<Match, "id">) => {
+    const newMatch: Match = {
+      ...matchData,
+      id: Date.now().toString()
+    };
+    setMatches(prev => [...prev, newMatch]);
+  };
   
   const activePlayers = tournamentPlayers.filter(p => p.status === "active");
 
@@ -413,10 +422,17 @@ export function TournamentDashboard() {
                 onBulkPlayerCreate={handleBulkCreatePlayers}
               />
               <CreateTournamentDialog onTournamentCreate={handleCreateTournament} />
-              <Button variant="fairway">
-                <Calendar className="h-4 w-4 mr-2" />
-                Schedule Match
-              </Button>
+              <CreateMatchDialog
+                tournamentId={selectedTournament}
+                availablePlayers={tournamentPlayers}
+                onMatchCreate={handleCreateMatch}
+                trigger={
+                  <Button variant="fairway">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Schedule Match
+                  </Button>
+                }
+              />
             </div>
           </div>
 
@@ -511,10 +527,17 @@ export function TournamentDashboard() {
                   <Trophy className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-xl font-semibold mb-2">No Matches Scheduled</h3>
                   <p className="text-muted-foreground mb-4">Schedule matches to start the tournament</p>
-                  <Button variant="fairway">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Schedule First Match
-                  </Button>
+                  <CreateMatchDialog
+                    tournamentId={selectedTournament}
+                    availablePlayers={tournamentPlayers}
+                    onMatchCreate={handleCreateMatch}
+                    trigger={
+                      <Button variant="fairway">
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Schedule First Match
+                      </Button>
+                    }
+                  />
                 </div>
               ) : (
                 tournamentMatches.map(match => (
