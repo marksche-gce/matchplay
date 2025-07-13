@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { CreateMatchDialog } from "./CreateMatchDialog";
 import { useToast } from "@/hooks/use-toast";
 
 interface Tournament {
@@ -118,6 +119,14 @@ export function TournamentManagement({
       title: "Player Removed",
       description: "Player has been removed from the tournament.",
     });
+  };
+
+  const handleCreateMatch = (match: Omit<Match, "id">) => {
+    const newMatch: Match = {
+      ...match,
+      id: (Date.now()).toString()
+    };
+    onMatchUpdate([...matches, newMatch]);
   };
 
   const getPlayerStats = (player: Player) => {
@@ -430,10 +439,11 @@ export function TournamentManagement({
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Tournament Matches</CardTitle>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Match
-                  </Button>
+                  <CreateMatchDialog
+                    tournamentId={tournament.id}
+                    availablePlayers={tournamentPlayers}
+                    onMatchCreate={handleCreateMatch}
+                  />
                 </div>
               </CardHeader>
               <CardContent>
