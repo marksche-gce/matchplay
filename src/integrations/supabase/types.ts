@@ -155,18 +155,21 @@ export type Database = {
           display_name: string | null
           id: string
           updated_at: string
+          username: string | null
         }
         Insert: {
           created_at?: string
           display_name?: string | null
           id: string
           updated_at?: string
+          username?: string | null
         }
         Update: {
           created_at?: string
           display_name?: string | null
           id?: string
           updated_at?: string
+          username?: string | null
         }
         Relationships: []
       }
@@ -297,10 +300,9 @@ export type Database = {
         Returns: Database["public"]["Enums"]["app_role"]
       }
       has_role: {
-        Args: {
-          _user_id: string
-          _role: Database["public"]["Enums"]["app_role"]
-        }
+        Args:
+          | { _user_id: string; _role: Database["public"]["Enums"]["app_role"] }
+          | { role_name: string }
         Returns: boolean
       }
     }
