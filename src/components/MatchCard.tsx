@@ -28,7 +28,7 @@ interface Match {
   round: string;
   status: "scheduled" | "completed";
   date: string;
-  time: string;
+  time: string | null;
   tee?: string;
   winner?: string;
 }

@@ -43,7 +43,7 @@ interface Match {
   round: string;
   status: "scheduled" | "completed";
   date: string;
-  time: string;
+  time: string | null;
   tee?: string;
   winner?: string;
 }
@@ -172,7 +172,7 @@ export function CreateMatchDialog({
       round: formData.round,
       status: "scheduled",
       date: formData.date || tournamentStartDate || new Date().toISOString().split('T')[0],
-      time: formData.time || "TBD",
+      time: formData.time || null,
       tee: formData.tee || undefined
     };
 
