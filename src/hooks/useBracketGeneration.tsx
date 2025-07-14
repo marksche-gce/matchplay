@@ -195,13 +195,13 @@ export function useBracketGeneration() {
       };
     }
 
-    // Calculate byes needed to fill second round
+    // Calculate byes needed to fill second round properly
     // We need exactly (maxPlayers/2) players in second round
     // Formula: byeCount + (totalPlayers - byeCount)/2 = maxPlayers/2
-    // Solving: byeCount = 2 * (maxPlayers/2) - totalPlayers = maxPlayers - totalPlayers
+    // Solving: byeCount = 2 * (maxPlayers/2) - totalPlayers
     
     const secondRoundSlots = maxPlayers / 2;
-    const byeCount = maxPlayers - sortedPlayers.length;
+    const byeCount = 2 * secondRoundSlots - sortedPlayers.length;
     
     if (byeCount > 0 && byeCount <= sortedPlayers.length) {
       // Best players get byes
