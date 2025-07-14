@@ -49,17 +49,18 @@ export function useBracketGeneration() {
     // Sort players by handicap (best handicaps first - lowest values)
     const sortedPlayers = [...players].sort((a, b) => a.handicap - b.handicap);
 
-    // Calculate tournament structure based on max players
+    // Calculate tournament structure based on max players (always fixed)
     const totalRounds = calculateTotalRounds(maxPlayers);
+    const firstRoundMatches = calculateFirstRoundMatches(maxPlayers);
     
     // Determine which players get byes and which play in first round
-    const { matchPlayers, byePlayers, actualFirstRoundMatches } = assignByes(sortedPlayers, maxPlayers);
+    const { matchPlayers, byePlayers } = assignByes(sortedPlayers, maxPlayers, firstRoundMatches);
 
     const newMatches: Match[] = [];
     let matchIdCounter = Date.now();
 
-    // Generate first round matches
-    for (let i = 0; i < actualFirstRoundMatches; i++) {
+    // Generate first round matches (always maxPlayers/2 matches)
+    for (let i = 0; i < firstRoundMatches; i++) {
       const player1Index = i * 2;
       const player2Index = i * 2 + 1;
 
@@ -114,10 +115,10 @@ export function useBracketGeneration() {
           const prevMatchIndex1 = matchIndex * 2;
           const prevMatchIndex2 = matchIndex * 2 + 1;
           
-          if (prevMatchIndex1 < actualFirstRoundMatches) {
+          if (prevMatchIndex1 < firstRoundMatches) {
             match.previousMatch1Id = newMatches[prevMatchIndex1].id;
           }
-          if (prevMatchIndex2 < actualFirstRoundMatches) {
+          if (prevMatchIndex2 < firstRoundMatches) {
             match.previousMatch2Id = newMatches[prevMatchIndex2].id;
           }
 
@@ -162,7 +163,7 @@ export function useBracketGeneration() {
 
     toast({
       title: "Bracket Generated!",
-      description: `Tournament bracket created with ${actualFirstRoundMatches} first-round matches. ${byePlayers.length} players received byes.`,
+      description: `Tournament bracket created with ${firstRoundMatches} first-round matches. ${byePlayers.length} players received byes.`,
     });
 
     return newMatches;
@@ -178,39 +179,39 @@ export function useBracketGeneration() {
 
   const assignByes = (
     sortedPlayers: Player[],
-    maxPlayers: number
-  ): { matchPlayers: Player[]; byePlayers: Player[]; actualFirstRoundMatches: number } => {
+    maxPlayers: number,
+    firstRoundMatches: number
+  ): { matchPlayers: Player[]; byePlayers: Player[] } => {
+    const secondRoundSlots = maxPlayers / 2;
+    
     if (sortedPlayers.length >= maxPlayers) {
       // No byes needed - full tournament
       return {
         matchPlayers: sortedPlayers,
-        byePlayers: [],
-        actualFirstRoundMatches: maxPlayers / 2
+        byePlayers: []
       };
     }
 
-    // Calculate how many players need byes to balance the bracket
-    // We need the tournament to ultimately have maxPlayers/2 players in the second round
-    const secondRoundSlots = maxPlayers / 2;
+    // Calculate players for first round and byes
+    // We need: firstRoundWinners + byes = secondRoundSlots
+    // Where: firstRoundWinners = matchPlayers / 2
+    // And: matchPlayers + byes = sortedPlayers.length
+    // Solving: matchPlayers = 2 * (sortedPlayers.length - secondRoundSlots)
     
-    // If we have more players than second round slots, some must play in first round
-    if (sortedPlayers.length > secondRoundSlots) {
-      const playersInFirstRound = sortedPlayers.length - secondRoundSlots;
-      const actualFirstRoundMatches = playersInFirstRound / 2;
-      
-      // Best players get byes
-      const byeCount = secondRoundSlots;
+    const matchPlayersCount = 2 * (sortedPlayers.length - secondRoundSlots);
+    const byeCount = sortedPlayers.length - matchPlayersCount;
+    
+    if (byeCount > 0) {
       const byePlayers = sortedPlayers.slice(0, byeCount);
       const matchPlayers = sortedPlayers.slice(byeCount);
       
-      return { matchPlayers, byePlayers, actualFirstRoundMatches };
+      return { matchPlayers, byePlayers };
     }
     
-    // If we have fewer or equal players than second round slots, all get byes to second round
+    // No byes needed
     return {
-      matchPlayers: [],
-      byePlayers: sortedPlayers,
-      actualFirstRoundMatches: 0
+      matchPlayers: sortedPlayers,
+      byePlayers: []
     };
   };
 
