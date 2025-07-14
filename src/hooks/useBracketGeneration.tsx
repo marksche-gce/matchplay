@@ -53,13 +53,18 @@ export function useBracketGeneration() {
     const totalRounds = calculateTotalRounds(maxPlayers);
     const firstRoundMatches = calculateFirstRoundMatches(maxPlayers);
     
+    console.log(`Tournament setup: maxPlayers=${maxPlayers}, actualPlayers=${sortedPlayers.length}, firstRoundMatches=${firstRoundMatches}`);
+    
     // Determine which players get byes and which play in first round
     const { matchPlayers, byePlayers } = assignByes(sortedPlayers, maxPlayers, firstRoundMatches);
 
+    console.log(`Assigned: ${matchPlayers.length} match players, ${byePlayers.length} bye players`);
     const newMatches: Match[] = [];
-    let matchIdCounter = Date.now();
 
+    let matchIdCounter = Date.now();
+    
     // Generate first round matches (always maxPlayers/2 matches)
+    console.log(`Creating ${firstRoundMatches} first round matches`);
     for (let i = 0; i < firstRoundMatches; i++) {
       const player1Index = i * 2;
       const player2Index = i * 2 + 1;
@@ -182,8 +187,6 @@ export function useBracketGeneration() {
     maxPlayers: number,
     firstRoundMatches: number
   ): { matchPlayers: Player[]; byePlayers: Player[] } => {
-    const secondRoundSlots = maxPlayers / 2;
-    
     if (sortedPlayers.length >= maxPlayers) {
       // No byes needed - full tournament
       return {
@@ -192,23 +195,23 @@ export function useBracketGeneration() {
       };
     }
 
-    // Calculate players for first round and byes
-    // We need: firstRoundWinners + byes = secondRoundSlots
-    // Where: firstRoundWinners = matchPlayers / 2
-    // And: matchPlayers + byes = sortedPlayers.length
-    // Solving: matchPlayers = 2 * (sortedPlayers.length - secondRoundSlots)
+    // Calculate byes needed to fill second round
+    // We need exactly (maxPlayers/2) players in second round
+    // Formula: byeCount + (totalPlayers - byeCount)/2 = maxPlayers/2
+    // Solving: byeCount = 2 * (maxPlayers/2) - totalPlayers = maxPlayers - totalPlayers
     
-    const matchPlayersCount = 2 * (sortedPlayers.length - secondRoundSlots);
-    const byeCount = sortedPlayers.length - matchPlayersCount;
+    const secondRoundSlots = maxPlayers / 2;
+    const byeCount = maxPlayers - sortedPlayers.length;
     
-    if (byeCount > 0) {
+    if (byeCount > 0 && byeCount <= sortedPlayers.length) {
+      // Best players get byes
       const byePlayers = sortedPlayers.slice(0, byeCount);
       const matchPlayers = sortedPlayers.slice(byeCount);
       
       return { matchPlayers, byePlayers };
     }
     
-    // No byes needed
+    // No byes needed - all players play in first round
     return {
       matchPlayers: sortedPlayers,
       byePlayers: []
