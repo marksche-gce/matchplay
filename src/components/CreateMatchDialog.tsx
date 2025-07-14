@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Calendar, Clock, Users, User, Plus, X } from "lucide-react";
+import { Users, User, Plus, X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,9 +69,6 @@ export function CreateMatchDialog({
   const [matchType, setMatchType] = useState<"singles" | "foursome">("singles");
   const [formData, setFormData] = useState({
     round: "",
-    date: "",
-    time: "",
-    tee: "",
     // Singles
     player1Id: "",
     player2Id: "",
@@ -171,9 +168,9 @@ export function CreateMatchDialog({
       type: matchType,
       round: formData.round,
       status: "scheduled",
-      date: formData.date || tournamentStartDate || new Date().toISOString().split('T')[0],
-      time: formData.time || null,
-      tee: formData.tee || undefined
+      date: tournamentStartDate || new Date().toISOString().split('T')[0],
+      time: null,
+      tee: undefined
     };
 
     if (matchType === "singles") {
@@ -209,9 +206,6 @@ export function CreateMatchDialog({
     // Reset form
     setFormData({
       round: "",
-      date: "",
-      time: "",
-      tee: "",
       player1Id: "",
       player2Id: "",
       team1Player1Id: "",
@@ -231,9 +225,6 @@ export function CreateMatchDialog({
   const resetForm = () => {
     setFormData({
       round: "",
-      date: "",
-      time: "",
-      tee: "",
       player1Id: "",
       player2Id: "",
       team1Player1Id: "",
@@ -450,56 +441,16 @@ export function CreateMatchDialog({
 
           {/* Match Details */}
           <div className="space-y-4">
-            <Label className="text-base font-semibold">Match Details (Optional)</Label>
+            <Label className="text-base font-semibold">Match Details</Label>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="round">Round/Stage</Label>
-                <Input
-                  id="round"
-                  placeholder="e.g., Quarterfinal 1, Round 1"
-                  value={formData.round}
-                  onChange={(e) => setFormData(prev => ({ ...prev, round: e.target.value }))}
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="tee">Tee (Optional)</Label>
-                <Input
-                  id="tee"
-                  placeholder="e.g., 1, 10"
-                  value={formData.tee}
-                  onChange={(e) => setFormData(prev => ({ ...prev, tee: e.target.value }))}
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="date" className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  Date (Optional)
-                </Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                  placeholder="Leave empty for TBD"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="time" className="flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  Time (Optional)
-                </Label>
-                <Input
-                  id="time"
-                  type="time"
-                  value={formData.time}
-                  onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
-                  placeholder="Leave empty for TBD"
-                />
-              </div>
+            <div>
+              <Label htmlFor="round">Round/Stage</Label>
+              <Input
+                id="round"
+                placeholder="e.g., Quarterfinal 1, Round 1"
+                value={formData.round}
+                onChange={(e) => setFormData(prev => ({ ...prev, round: e.target.value }))}
+              />
             </div>
           </div>
         </div>
