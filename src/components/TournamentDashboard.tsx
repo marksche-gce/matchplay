@@ -504,14 +504,17 @@ export function TournamentDashboard() {
     try {
       const { error } = await supabase
         .from('tournaments')
-        .update({ status: 'active' })
+        .update({ 
+          status: 'active',
+          registration_open: false 
+        })
         .eq('id', tournamentId);
 
       if (error) throw error;
 
       toast({
         title: "Tournament Activated",
-        description: "Tournament is now active and ready for matches.",
+        description: "Tournament is now active and registration is closed.",
       });
 
       // Refresh tournaments list
