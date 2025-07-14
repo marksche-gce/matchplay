@@ -14,6 +14,7 @@ import { CreateTournamentDialog } from "./CreateTournamentDialog";
 import { CreatePlayerDialog } from "./CreatePlayerDialog";
 import { TournamentSelector } from "./TournamentSelector";
 import { TournamentManagement } from "./TournamentManagement";
+import { HeaderImageUpload } from "./HeaderImageUpload";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -1174,6 +1175,10 @@ export function TournamentDashboard() {
               <TabsTrigger value="players">Players</TabsTrigger>
               <TabsTrigger value="matches">Matches</TabsTrigger>
               <TabsTrigger value="schedule">Schedule</TabsTrigger>
+              <TabsTrigger value="settings">
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </TabsTrigger>
               <TabsTrigger value="bracket">Bracket</TabsTrigger>
             </TabsList>
             
@@ -1473,6 +1478,37 @@ export function TournamentDashboard() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Settings Tab */}
+          <TabsContent value="settings" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <HeaderImageUpload />
+              
+              <Card className="shadow-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="h-5 w-5" />
+                    Tournament Management
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start"
+                      onClick={() => setShowManagement(true)}
+                    >
+                      <Trophy className="h-4 w-4 mr-2" />
+                      Advanced Tournament Settings
+                    </Button>
+                    <p className="text-sm text-muted-foreground">
+                      Access detailed tournament configuration, player management, and match scheduling options.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

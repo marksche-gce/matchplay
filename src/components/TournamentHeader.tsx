@@ -1,7 +1,7 @@
 import { Trophy, Users, Calendar, MapPin } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import heroImage from "@/assets/golf-hero.jpg";
+import { useHeaderImage } from "@/hooks/useHeaderImage";
 
 interface TournamentInfo {
   name: string;
@@ -16,6 +16,8 @@ interface TournamentHeaderProps {
 }
 
 export function TournamentHeader({ tournament }: TournamentHeaderProps) {
+  const { headerImageUrl } = useHeaderImage();
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "upcoming": return "bg-warning text-warning-foreground";
@@ -29,7 +31,7 @@ export function TournamentHeader({ tournament }: TournamentHeaderProps) {
     <Card className="relative overflow-hidden border-none shadow-elevated">
       <div 
         className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url(${heroImage})` }}
+        style={{ backgroundImage: `url(${headerImageUrl})` }}
       />
       <div className="absolute inset-0 bg-gradient-to-r from-primary/90 via-primary/70 to-transparent" />
       
