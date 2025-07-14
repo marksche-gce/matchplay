@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { Trophy, Award, Clock, Users, ChevronRight } from "lucide-react";
+import { Trophy, Award, Clock, Users, ChevronRight, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { MatchCard } from "./MatchCard";
 import { EditMatchDialog } from "./EditMatchDialog";
 import { useToast } from "@/hooks/use-toast";
@@ -221,6 +222,20 @@ export function TournamentBracket({
     onMatchUpdate(updatedMatches);
   };
 
+  const deleteAllMatches = () => {
+    const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
+    const remainingMatches = matches.filter(m => m.tournamentId !== tournamentId);
+    
+    onMatchUpdate(remainingMatches);
+    setBracketData([]);
+    
+    toast({
+      title: "All Matches Deleted",
+      description: `${tournamentMatches.length} matches have been deleted from the tournament.`,
+      variant: "destructive"
+    });
+  };
+
   const generateInitialBracket = () => {
     const newMatches = generateTournamentBracket(tournamentId, players, maxPlayers);
     onMatchUpdate([...matches, ...newMatches]);
@@ -271,11 +286,36 @@ export function TournamentBracket({
                 Progress: {progress.completed}/{progress.total} matches completed
               </p>
             </div>
-            {bracketData.length === 0 && (
-              <Button onClick={generateInitialBracket}>
-                Generate Bracket
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {bracketData.length === 0 ? (
+                <Button onClick={generateInitialBracket}>
+                  Generate Bracket
+                </Button>
+              ) : (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete All Matches
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete All Matches</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete all matches? This will permanently remove all match data and cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={deleteAllMatches} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        Delete All Matches
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
           </div>
         </CardHeader>
       </Card>
