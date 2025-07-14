@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { MatchCard } from "./MatchCard";
 import { EditMatchDialog } from "./EditMatchDialog";
 import { useToast } from "@/hooks/use-toast";
+import { useBracketGeneration } from "@/hooks/useBracketGeneration";
 
 interface Player {
   name: string;
@@ -53,6 +54,7 @@ interface TournamentBracketProps {
   players: { id: string; name: string; handicap: number; }[];
   onMatchUpdate: (matches: Match[]) => void;
   format: "matchplay" | "strokeplay" | "scramble";
+  maxPlayers: number;
 }
 
 export function TournamentBracket({ 
@@ -60,11 +62,13 @@ export function TournamentBracket({
   matches, 
   players, 
   onMatchUpdate,
-  format 
+  format,
+  maxPlayers 
 }: TournamentBracketProps) {
   const [bracketData, setBracketData] = useState<BracketRound[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const { toast } = useToast();
+  const { generateTournamentBracket } = useBracketGeneration();
 
   // Initialize bracket structure
   useEffect(() => {
@@ -218,74 +222,8 @@ export function TournamentBracket({
   };
 
   const generateInitialBracket = () => {
-    if (players.length < 2) {
-      toast({
-        title: "Not Enough Players",
-        description: "At least 2 players are required to generate a bracket.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Calculate bracket size (nearest power of 2)
-    const bracketSize = Math.pow(2, Math.ceil(Math.log2(players.length)));
-    const rounds = Math.log2(bracketSize);
-    
-    const newMatches: Match[] = [];
-    let matchIdCounter = Date.now();
-
-    // Generate all rounds
-    for (let round = 1; round <= rounds; round++) {
-      const matchesInRound = Math.pow(2, rounds - round);
-      const roundName = getRoundName(round, rounds);
-      
-      for (let matchIndex = 0; matchIndex < matchesInRound; matchIndex++) {
-        const match: Match = {
-          id: (matchIdCounter++).toString(),
-          tournamentId,
-          type: "singles",
-          round: roundName,
-          status: round === 1 ? "scheduled" : "scheduled",
-          date: new Date().toISOString().split('T')[0],
-          time: "09:00",
-          tee: (matchIndex + 1).toString()
-        };
-
-        // For first round, assign players
-        if (round === 1) {
-          const player1Index = matchIndex * 2;
-          const player2Index = matchIndex * 2 + 1;
-          
-          if (player1Index < players.length) {
-            match.player1 = players[player1Index];
-          }
-          if (player2Index < players.length) {
-            match.player2 = players[player2Index];
-          }
-        } else {
-          // Set up connections to previous matches
-          const prevRoundMatchIndex1 = matchIndex * 2;
-          const prevRoundMatchIndex2 = matchIndex * 2 + 1;
-          const prevRoundMatches = newMatches.filter(m => m.round === getRoundName(round - 1, rounds));
-          
-          if (prevRoundMatches[prevRoundMatchIndex1]) {
-            match.previousMatch1Id = prevRoundMatches[prevRoundMatchIndex1].id;
-          }
-          if (prevRoundMatches[prevRoundMatchIndex2]) {
-            match.previousMatch2Id = prevRoundMatches[prevRoundMatchIndex2].id;
-          }
-        }
-
-        newMatches.push(match);
-      }
-    }
-
+    const newMatches = generateTournamentBracket(tournamentId, players, maxPlayers);
     onMatchUpdate([...matches, ...newMatches]);
-    
-    toast({
-      title: "Bracket Generated!",
-      description: `Tournament bracket created with ${newMatches.length} matches across ${rounds} rounds.`,
-    });
   };
 
   const getRoundName = (round: number, totalRounds: number): string => {

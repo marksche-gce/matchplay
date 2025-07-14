@@ -1495,6 +1495,7 @@ export function TournamentDashboard() {
               players={players}
               onMatchUpdate={setMatches}
               format={currentTournament?.format || "matchplay"}
+              maxPlayers={currentTournament?.max_players || 32}
             />
           </TabsContent>
 
