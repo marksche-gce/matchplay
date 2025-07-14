@@ -6,8 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useBracketValidation } from "@/hooks/useBracketValidation";
 
 interface Player {
+  id: string;
   name: string;
   handicap: number;
   score?: number;
@@ -21,6 +23,7 @@ interface Team {
 
 interface Match {
   id: string;
+  tournamentId: string;
   type: "singles" | "foursome";
   player1?: Player;
   player2?: Player;
@@ -32,6 +35,9 @@ interface Match {
   time: string;
   tee?: string;
   winner?: string;
+  nextMatchId?: string;
+  previousMatch1Id?: string;
+  previousMatch2Id?: string;
 }
 
 interface EditMatchDialogProps {
@@ -55,6 +61,7 @@ export function EditMatchDialog({ match, onMatchUpdate, trigger, availablePlayer
     player2Name: match.player2?.name || ""
   });
   const { toast } = useToast();
+  const { validateWinner, validateMatchCompletion } = useBracketValidation();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,6 +71,9 @@ export function EditMatchDialog({ match, onMatchUpdate, trigger, availablePlayer
       status: formData.status as Match["status"],
       winner: formData.winner === "no-winner" ? undefined : formData.winner
     };
+
+    // Create updated match for validation
+    const updatedMatch = { ...match, ...updates };
 
     if (match.type === "singles") {
       const selectedPlayer1 = availablePlayers.find(p => p.name === formData.player1Name);
@@ -78,6 +88,22 @@ export function EditMatchDialog({ match, onMatchUpdate, trigger, availablePlayer
         ...selectedPlayer2,
         score: formData.player2Score ? parseInt(formData.player2Score) : undefined
       } : match.player2;
+      
+      // Update the validation match
+      updatedMatch.player1 = updates.player1;
+      updatedMatch.player2 = updates.player2;
+    }
+
+    // Validate match completion
+    if (!validateMatchCompletion(updatedMatch)) {
+      return;
+    }
+
+    // Validate winner if match is completed
+    if (updatedMatch.status === "completed" && updatedMatch.winner) {
+      if (!validateWinner(updatedMatch, updatedMatch.winner)) {
+        return;
+      }
     }
 
     onMatchUpdate(match.id, updates);

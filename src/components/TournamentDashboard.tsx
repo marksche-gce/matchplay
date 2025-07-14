@@ -15,6 +15,7 @@ import { CreatePlayerDialog } from "./CreatePlayerDialog";
 import { TournamentSelector } from "./TournamentSelector";
 import { TournamentManagement } from "./TournamentManagement";
 import { HeaderImageUpload } from "./HeaderImageUpload";
+import { TournamentBracket } from "./TournamentBracket";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
