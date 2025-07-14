@@ -9,7 +9,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useBracketValidation } from "@/hooks/useBracketValidation";
 
 interface Player {
-  id: string;
   name: string;
   handicap: number;
   score?: number;

@@ -9,7 +9,6 @@ import { EditMatchDialog } from "./EditMatchDialog";
 import { useToast } from "@/hooks/use-toast";
 
 interface Player {
-  id: string;
   name: string;
   handicap: number;
   score?: number;
@@ -51,7 +50,7 @@ interface BracketRound {
 interface TournamentBracketProps {
   tournamentId: string;
   matches: Match[];
-  players: Player[];
+  players: { id: string; name: string; handicap: number; }[];
   onMatchUpdate: (matches: Match[]) => void;
   format: "matchplay" | "strokeplay" | "scramble";
 }

@@ -1468,17 +1468,13 @@ export function TournamentDashboard() {
           </TabsContent>
 
           <TabsContent value="bracket" className="space-y-6">
-            <Card className="shadow-card">
-              <CardContent className="p-8">
-                <div className="text-center">
-                  <Trophy className="h-16 w-16 text-warning mx-auto mb-4" />
-                  <h3 className="text-2xl font-bold mb-2">Tournament Bracket</h3>
-                  <p className="text-muted-foreground">
-                    Interactive bracket view coming soon! Track the tournament progression through each round.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <TournamentBracket
+              tournamentId={currentTournament?.id || ""}
+              matches={matches}
+              players={players}
+              onMatchUpdate={setMatches}
+              format={currentTournament?.format || "matchplay"}
+            />
           </TabsContent>
 
           {/* Settings Tab */}

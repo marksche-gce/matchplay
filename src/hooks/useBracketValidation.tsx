@@ -2,7 +2,6 @@ import { useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Player {
-  id: string;
   name: string;
   handicap: number;
   score?: number;
