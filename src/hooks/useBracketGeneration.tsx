@@ -195,10 +195,10 @@ export function useBracketGeneration() {
       };
     }
 
-    // Calculate byes needed to fill second round properly
-    // We need exactly (maxPlayers/2) players in second round
-    // Formula: byeCount + (totalPlayers - byeCount)/2 = maxPlayers/2
-    // Solving: byeCount = 2 * (maxPlayers/2) - totalPlayers
+    // For a 16-player tournament with 12 actual players:
+    // - Need 8 players in second round (maxPlayers/2)
+    // - Formula: byeCount + (totalPlayers - byeCount)/2 = secondRoundSlots
+    // - Solving: byeCount = 2 * secondRoundSlots - totalPlayers
     
     const secondRoundSlots = maxPlayers / 2;
     const byeCount = 2 * secondRoundSlots - sortedPlayers.length;
@@ -211,10 +211,18 @@ export function useBracketGeneration() {
       return { matchPlayers, byePlayers };
     }
     
-    // No byes needed - all players play in first round
+    if (byeCount <= 0) {
+      // No byes needed - all players play in first round
+      return {
+        matchPlayers: sortedPlayers,
+        byePlayers: []
+      };
+    }
+    
+    // If byeCount > sortedPlayers.length, all players get byes
     return {
-      matchPlayers: sortedPlayers,
-      byePlayers: []
+      matchPlayers: [],
+      byePlayers: sortedPlayers
     };
   };
 
