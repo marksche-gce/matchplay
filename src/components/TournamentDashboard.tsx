@@ -1308,50 +1308,71 @@ export function TournamentDashboard() {
           </TabsContent>
 
           <TabsContent value="matches" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {tournamentMatches.length === 0 ? (
-                <div className="col-span-full text-center py-8">
-                  <Trophy className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">No Matches Scheduled</h3>
-                  <p className="text-muted-foreground mb-4">Schedule matches to start the tournament</p>
-                  <div className="flex gap-2 justify-center">
-                    <CreateMatchDialog
-                      tournamentId={selectedTournament}
-                      availablePlayers={tournamentPlayers}
-                      onMatchCreate={handleCreateMatch}
-                      tournamentStartDate={currentTournament?.start_date}
-                      tournamentEndDate={currentTournament?.end_date}
-                      trigger={
-                        <Button variant="fairway">
-                          <Calendar className="h-4 w-4 mr-2" />
-                          Schedule First Match
-                        </Button>
-                      }
-                    />
-                  </div>
-                </div>
-              ) : (
-                tournamentMatches.map(match => (
-                <EditMatchDialog
-                    key={match.id}
-                    match={match}
-                    onMatchUpdate={handleEditMatch}
-                    availablePlayers={players}
+            {tournamentMatches.length === 0 ? (
+              <div className="text-center py-8">
+                <Trophy className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-xl font-semibold mb-2">No Matches Scheduled</h3>
+                <p className="text-muted-foreground mb-4">Schedule matches to start the tournament</p>
+                <div className="flex gap-2 justify-center">
+                  <CreateMatchDialog
+                    tournamentId={selectedTournament}
+                    availablePlayers={tournamentPlayers}
+                    onMatchCreate={handleCreateMatch}
                     tournamentStartDate={currentTournament?.start_date}
                     tournamentEndDate={currentTournament?.end_date}
                     trigger={
-                      <div className="cursor-pointer">
-                        <MatchCard 
-                          match={match}
-                          onScoreUpdate={() => console.log("Complete match", match.id)}
-                          onViewDetails={() => console.log("View details for", match.id)}
-                        />
-                      </div>
+                      <Button variant="fairway">
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Schedule First Match
+                      </Button>
                     }
                   />
-                ))
-              )}
-            </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Add Match Button */}
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold">Tournament Matches</h3>
+                  <CreateMatchDialog
+                    tournamentId={selectedTournament}
+                    availablePlayers={tournamentPlayers}
+                    onMatchCreate={handleCreateMatch}
+                    tournamentStartDate={currentTournament?.start_date}
+                    tournamentEndDate={currentTournament?.end_date}
+                    trigger={
+                      <Button variant="outline">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Match
+                      </Button>
+                    }
+                  />
+                </div>
+                
+                {/* Matches Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {tournamentMatches.map(match => (
+                    <EditMatchDialog
+                      key={match.id}
+                      match={match}
+                      onMatchUpdate={handleEditMatch}
+                      availablePlayers={players}
+                      tournamentStartDate={currentTournament?.start_date}
+                      tournamentEndDate={currentTournament?.end_date}
+                      trigger={
+                        <div className="cursor-pointer">
+                          <MatchCard 
+                            match={match}
+                            onScoreUpdate={() => console.log("Complete match", match.id)}
+                            onViewDetails={() => console.log("View details for", match.id)}
+                          />
+                        </div>
+                      }
+                    />
+                  ))}
+                </div>
+              </>
+            )}
           </TabsContent>
 
           <TabsContent value="schedule" className="space-y-6">
