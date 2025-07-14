@@ -174,17 +174,7 @@ export function useBracketGeneration() {
   };
 
   const calculateFirstRoundMatches = (maxPlayers: number): number => {
-    switch (maxPlayers) {
-      case 16:
-        return 8; // 8 matches in first round, 8 players get byes
-      case 32:
-        return 16; // 16 matches in first round, no byes
-      case 64:
-        return 32; // 32 matches in first round, no byes
-      default:
-        // For other sizes, calculate based on power of 2
-        return Math.floor(maxPlayers / 2);
-    }
+    return maxPlayers / 2;
   };
 
   const calculateTotalRounds = (maxPlayers: number): number => {
