@@ -1,4 +1,4 @@
-import { Trophy, Users, MapPin } from "lucide-react";
+import { Trophy, Users, MapPin, Calendar } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useHeaderImage } from "@/hooks/useHeaderImage";
@@ -48,7 +48,14 @@ export function TournamentHeader({ tournament }: TournamentHeaderProps) {
             <p className="text-xl opacity-90">{tournament.course}</p>
           </div>
           
-          <div className="flex justify-end text-primary-foreground">
+          <div className="flex gap-4 justify-end text-primary-foreground">
+            <div className="flex items-center gap-2 bg-background/10 backdrop-blur-sm rounded-lg p-3">
+              <Calendar className="h-5 w-5" />
+              <div>
+                <p className="text-sm opacity-80">Next Round</p>
+                <p className="font-semibold">{tournament.date}</p>
+              </div>
+            </div>
             <div className="flex items-center gap-2 bg-background/10 backdrop-blur-sm rounded-lg p-3">
               <Users className="h-5 w-5" />
               <div>
