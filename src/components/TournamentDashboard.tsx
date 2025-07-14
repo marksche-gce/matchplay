@@ -66,7 +66,7 @@ interface Match {
   team1?: Team;
   team2?: Team;
   round: string;
-  status: "scheduled" | "in-progress" | "completed";
+  status: "scheduled" | "completed";
   date: string;
   time: string;
   tee?: string;
@@ -239,7 +239,7 @@ export function TournamentDashboard() {
               score: player2.score
             } : undefined,
             round: match.round,
-            status: match.status as "scheduled" | "in-progress" | "completed",
+            status: match.status as "scheduled" | "completed",
             date: new Date(match.match_date || new Date()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
             time: match.match_time || "TBD",
             tee: match.tee ? `Tee ${match.tee}` : undefined,
@@ -277,7 +277,7 @@ export function TournamentDashboard() {
               teamScore: team2Players[0].score
             } : undefined,
             round: match.round,
-            status: match.status as "scheduled" | "in-progress" | "completed",
+            status: match.status as "scheduled" | "completed",
             date: new Date(match.match_date || new Date()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
             time: match.match_time || "TBD",
             tee: match.tee ? `Tee ${match.tee}` : undefined
@@ -734,16 +734,6 @@ export function TournamentDashboard() {
     }
   };
 
-  const handleStartMatch = (matchId: string) => {
-    setMatches(prev => prev.map(match => 
-      match.id === matchId ? { ...match, status: "in-progress" as const } : match
-    ));
-    
-    toast({
-      title: "Match Started!",
-      description: "The match status has been updated to in-progress.",
-    });
-  };
 
   const handleGenerateFirstRoundMatches = async () => {
     if (!selectedTournament || !currentTournament) {
@@ -1154,10 +1144,6 @@ export function TournamentDashboard() {
                 <div className="p-2 bg-warning/10 rounded-lg">
                   <Calendar className="h-5 w-5 text-warning" />
                 </div>
-                <div>
-                  <p className="text-2xl font-bold">{tournamentMatches.filter(m => m.status === "in-progress").length}</p>
-                  <p className="text-sm text-muted-foreground">In Progress</p>
-                </div>
               </div>
             </CardContent>
           </Card>
@@ -1242,7 +1228,7 @@ export function TournamentDashboard() {
                           <div className="cursor-pointer">
                             <MatchCard 
                               match={match}
-                              onScoreUpdate={() => handleStartMatch(match.id)}
+                              onScoreUpdate={() => console.log("Complete match", match.id)}
                               onViewDetails={() => console.log("View details for", match.id)}
                             />
                           </div>
@@ -1348,7 +1334,7 @@ export function TournamentDashboard() {
                       <div className="cursor-pointer">
                         <MatchCard 
                           match={match}
-                          onScoreUpdate={() => handleStartMatch(match.id)}
+                          onScoreUpdate={() => console.log("Complete match", match.id)}
                           onViewDetails={() => console.log("View details for", match.id)}
                         />
                       </div>

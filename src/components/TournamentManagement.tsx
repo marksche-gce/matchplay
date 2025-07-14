@@ -67,7 +67,7 @@ interface Match {
     teamScore?: number;
   };
   round: string;
-  status: "scheduled" | "in-progress" | "completed";
+  status: "scheduled" | "completed";
   date: string;
   time: string;
   tee?: string;
@@ -156,7 +156,6 @@ export function TournamentManagement({
       case "active": return "bg-success text-success-foreground";
       case "completed": return "bg-muted text-muted-foreground";
       case "scheduled": return "bg-info text-info-foreground";
-      case "in-progress": return "bg-warning text-warning-foreground";
       case "eliminated": return "bg-destructive text-destructive-foreground";
       case "champion": return "bg-success text-success-foreground";
       default: return "bg-secondary text-secondary-foreground";
@@ -542,10 +541,6 @@ export function TournamentManagement({
                     <div className="flex justify-between">
                       <span>Completed:</span>
                       <span className="font-bold">{tournamentMatches.filter(m => m.status === "completed").length}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>In Progress:</span>
-                      <span className="font-bold">{tournamentMatches.filter(m => m.status === "in-progress").length}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Scheduled:</span>

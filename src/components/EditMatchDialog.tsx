@@ -27,7 +27,7 @@ interface Match {
   team1?: Team;
   team2?: Team;
   round: string;
-  status: "scheduled" | "in-progress" | "completed";
+  status: "scheduled" | "completed";
   date: string;
   time: string;
   tee?: string;
@@ -131,7 +131,6 @@ export function EditMatchDialog({ match, onMatchUpdate, trigger, availablePlayer
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="scheduled">Scheduled</SelectItem>
-                  <SelectItem value="in-progress">In Progress</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                 </SelectContent>
               </Select>

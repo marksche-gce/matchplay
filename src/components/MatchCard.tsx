@@ -26,7 +26,7 @@ interface Match {
   team1?: Team;
   team2?: Team;
   round: string;
-  status: "scheduled" | "in-progress" | "completed";
+  status: "scheduled" | "completed";
   date: string;
   time: string;
   tee?: string;
@@ -44,7 +44,6 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch }: 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "scheduled": return "bg-warning text-warning-foreground";
-      case "in-progress": return "bg-success text-success-foreground";
       case "completed": return "bg-muted text-muted-foreground";
       default: return "bg-secondary text-secondary-foreground";
     }
@@ -53,7 +52,6 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch }: 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "scheduled": return <Clock className="h-3 w-3" />;
-      case "in-progress": return <Users className="h-3 w-3" />;
       case "completed": return <Award className="h-3 w-3" />;
       default: return <Clock className="h-3 w-3" />;
     }
@@ -206,9 +204,9 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch }: 
               Edit
             </Button>
           )}
-          {match.status !== "completed" && onScoreUpdate && (
+          {match.status === "scheduled" && onScoreUpdate && (
             <Button variant="outline" className="flex-1" onClick={onScoreUpdate}>
-              {match.status === "scheduled" ? "Start Match" : "Update Score"}
+              Complete Match
             </Button>
           )}
           {onViewDetails && (
