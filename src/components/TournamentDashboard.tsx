@@ -109,6 +109,17 @@ export function TournamentDashboard() {
 
       if (error) throw error;
 
+      // Get player counts for each tournament
+      const { data: registrationData } = await supabase
+        .from('tournament_registrations')
+        .select('tournament_id, player_id')
+        .eq('status', 'registered');
+
+      const playerCounts = (registrationData || []).reduce((acc, reg) => {
+        acc[reg.tournament_id] = (acc[reg.tournament_id] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+
       const formattedTournaments: Tournament[] = (data || []).map(t => ({
         id: t.id,
         name: t.name,
@@ -121,7 +132,7 @@ export function TournamentDashboard() {
         status: t.status as "upcoming" | "active" | "completed",
         registration_open: t.registration_open,
         entry_fee: t.entry_fee,
-        players: [] // Will be populated when needed
+        players: Array(playerCounts[t.id] || 0).fill('') // Populate with actual player count
       }));
 
       setTournaments(formattedTournaments);

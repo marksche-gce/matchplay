@@ -11,9 +11,9 @@ interface Tournament {
   name: string;
   course: string;
   description?: string;
-  startDate: string;
-  endDate: string;
-  maxPlayers: number;
+  start_date: string;
+  end_date: string;
+  max_players: number;
   format: "matchplay" | "strokeplay" | "scramble";
   status: "upcoming" | "active" | "completed";
   players: string[];
@@ -127,11 +127,11 @@ export function TournamentSelector({
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>{new Date(activeTournament.startDate).toLocaleDateString()}</span>
+                    <span>{new Date(activeTournament.start_date).toLocaleDateString()}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-muted-foreground" />
-                    <span>{activeTournament.players.length}/{activeTournament.maxPlayers} players</span>
+                    <span>{activeTournament.players.length}/{activeTournament.max_players} players</span>
                   </div>
                 </div>
                 
