@@ -411,13 +411,18 @@ export function TournamentBracket({
   };
 
   const handleMatchUpdate = async (matchId: string, updates: Partial<Match>) => {
+    console.log("handleMatchUpdate called for match ID:", matchId, "updates:", updates);
+    
     // Check if this is a generated match (non-UUID ID) - these shouldn't be persisted to database
     const isGeneratedMatch = !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(matchId);
     
+    console.log("Is generated match:", isGeneratedMatch, "Match ID:", matchId);
+    
     if (isGeneratedMatch) {
+      console.log("BLOCKING SAVE: Cannot save generated match to database");
       toast({
-        title: "Cannot Edit Generated Matches",
-        description: "You need to click 'Create Database Matches' button first to save the bracket structure to the database before you can edit individual matches.",
+        title: "❌ Cannot Save Generated Match",
+        description: "This is a temporary match (ID: " + matchId + "). Click 'Create Database Matches' first to convert the bracket to real database matches before editing.",
         variant: "destructive"
       });
       return;
