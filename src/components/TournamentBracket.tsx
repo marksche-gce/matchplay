@@ -77,6 +77,7 @@ export function TournamentBracket({
   useEffect(() => {
     if (format === "matchplay") {
       generateBracket();
+      autoCompleteByeMatches();
       advanceAllWinners();
     }
   }, [matches, format]);
@@ -139,6 +140,60 @@ export function TournamentBracket({
     });
 
     setBracketData(rounds);
+  };
+
+  const autoCompleteByeMatches = () => {
+    const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
+    let updatedMatches = [...matches];
+    let hasChanges = false;
+
+    // Find matches with only one player (bye matches)
+    tournamentMatches.forEach(match => {
+      if (match.status === "scheduled") {
+        // Check for singles match with only one player
+        if (match.type === "singles" && match.player1 && !match.player2) {
+          // Auto-complete match with player1 as winner
+          const completedMatch = {
+            ...match,
+            status: "completed" as const,
+            winner: match.player1.name
+          };
+          
+          updatedMatches = updatedMatches.map(m => 
+            m.id === match.id ? completedMatch : m
+          );
+          hasChanges = true;
+          
+          toast({
+            title: "Bye Match Completed",
+            description: `${match.player1.name} automatically advances (bye).`,
+          });
+        }
+        // Check for foursome match with only one team
+        else if (match.type === "foursome" && match.team1 && !match.team2) {
+          // Auto-complete match with team1 as winner
+          const completedMatch = {
+            ...match,
+            status: "completed" as const,
+            winner: "team1"
+          };
+          
+          updatedMatches = updatedMatches.map(m => 
+            m.id === match.id ? completedMatch : m
+          );
+          hasChanges = true;
+          
+          toast({
+            title: "Bye Match Completed",
+            description: `Team 1 automatically advances (bye).`,
+          });
+        }
+      }
+    });
+
+    if (hasChanges) {
+      onMatchUpdate(updatedMatches);
+    }
   };
 
   const advanceAllWinners = () => {
