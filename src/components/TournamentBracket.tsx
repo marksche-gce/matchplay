@@ -416,8 +416,8 @@ export function TournamentBracket({
     
     if (isGeneratedMatch) {
       toast({
-        title: "Cannot Edit Generated Match",
-        description: "This match exists only in the bracket preview. Create matches in the database first.",
+        title: "Create Database Matches First",
+        description: "Click 'Create Database Matches' to save the bracket before editing matches.",
         variant: "destructive"
       });
       return;
