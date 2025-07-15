@@ -1221,14 +1221,6 @@ export function TournamentDashboard() {
                 onPlayerCreate={handleCreatePlayer} 
                 onBulkPlayerCreate={handleBulkCreatePlayers}
               />
-              <Button 
-                variant="fairway"
-                onClick={handleGenerateFirstRoundMatches}
-                className="flex items-center gap-2"
-              >
-                <Calendar className="h-4 w-4 mr-2" />
-                Set the First Round Matches
-              </Button>
             </div>
           </div>
 
