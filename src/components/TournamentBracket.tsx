@@ -73,10 +73,11 @@ export function TournamentBracket({
   const { toast } = useToast();
   const { generateTournamentBracket, fillFirstRoundMatches } = useBracketGeneration();
 
-  // Initialize bracket structure
+  // Initialize bracket structure and advance all winners
   useEffect(() => {
     if (format === "matchplay") {
       generateBracket();
+      advanceAllWinners();
     }
   }, [matches, format]);
 
@@ -117,6 +118,31 @@ export function TournamentBracket({
     });
 
     setBracketData(rounds);
+  };
+
+  const advanceAllWinners = () => {
+    const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
+    const completedMatches = tournamentMatches.filter(m => m.status === "completed" && m.winner);
+    
+    if (completedMatches.length === 0) return;
+
+    let updatedMatches = [...matches];
+    let hasChanges = false;
+
+    // Process all completed matches to advance winners
+    completedMatches.forEach(completedMatch => {
+      const previousMatches = updatedMatches;
+      const advancedMatches = progressWinnerImmediately(previousMatches, completedMatch);
+      
+      if (advancedMatches !== previousMatches) {
+        updatedMatches = advancedMatches;
+        hasChanges = true;
+      }
+    });
+
+    if (hasChanges) {
+      onMatchUpdate(updatedMatches);
+    }
   };
 
   const validateWinnerProgression = (match: Match, winner: string): boolean => {
