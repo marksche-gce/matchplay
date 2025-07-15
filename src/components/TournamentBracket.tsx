@@ -93,18 +93,27 @@ export function TournamentBracket({
       roundsMap.get(roundName)!.push(match);
     });
 
-    // Create bracket structure with proper ordering
+    // Create bracket structure with proper ordering - always show all rounds
     const rounds: BracketRound[] = [];
-    const roundOrder = ["Round 1", "Round 2", "Quarterfinals", "Semifinals", "Final"];
+    const totalRounds = Math.ceil(Math.log2(maxPlayers));
     
-    roundOrder.forEach((roundName, index) => {
-      if (roundsMap.has(roundName)) {
-        rounds.push({
-          name: roundName,
-          matches: roundsMap.get(roundName)!,
-          roundNumber: index + 1
-        });
-      }
+    // Generate all round names based on tournament size
+    const roundNames: string[] = [];
+    for (let i = 1; i <= totalRounds; i++) {
+      if (i === totalRounds) roundNames.push("Final");
+      else if (i === totalRounds - 1) roundNames.push("Semifinals");
+      else if (i === totalRounds - 2) roundNames.push("Quarterfinals");
+      else roundNames.push(`Round ${i}`);
+    }
+    
+    // Create all rounds, even if they have no matches
+    roundNames.forEach((roundName, index) => {
+      const roundMatches = roundsMap.get(roundName) || [];
+      rounds.push({
+        name: roundName,
+        matches: roundMatches,
+        roundNumber: index + 1
+      });
     });
 
     setBracketData(rounds);
@@ -417,24 +426,49 @@ export function TournamentBracket({
                 </div>
                 
                 <div className="space-y-6">
-                  {round.matches.map((match, matchIndex) => (
-                    <div key={match.id} className="relative">
-                      <MatchCard
-                        match={match}
-                        onEditMatch={(matchId) => {
-                          const selectedMatch = matches.find(m => m.id === matchId);
-                          setSelectedMatch(selectedMatch || null);
-                        }}
-                      />
-                      
-                      {/* Connection lines to next round */}
-                      {roundIndex < bracketData.length - 1 && (
-                        <div className="absolute top-1/2 -right-8 transform -translate-y-1/2">
-                          <ChevronRight className="h-6 w-6 text-muted-foreground" />
+                  {round.matches.length > 0 ? (
+                    round.matches.map((match, matchIndex) => (
+                      <div key={match.id} className="relative">
+                        <MatchCard
+                          match={match}
+                          onEditMatch={(matchId) => {
+                            const selectedMatch = matches.find(m => m.id === matchId);
+                            setSelectedMatch(selectedMatch || null);
+                          }}
+                        />
+                        
+                        {/* Connection lines to next round */}
+                        {roundIndex < bracketData.length - 1 && (
+                          <div className="absolute top-1/2 -right-8 transform -translate-y-1/2">
+                            <ChevronRight className="h-6 w-6 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    // Show empty placeholder for rounds with no matches
+                    <div className="space-y-4">
+                      {/* Calculate expected number of matches for this round */}
+                      {Array.from({ length: Math.max(1, Math.pow(2, Math.max(0, Math.ceil(Math.log2(maxPlayers)) - round.roundNumber))) }, (_, index) => (
+                        <div key={`empty-${index}`} className="relative">
+                          <Card className="shadow-card border-dashed border-2 opacity-50">
+                            <CardContent className="p-6 text-center">
+                              <Clock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                              <p className="text-sm text-muted-foreground">Awaiting Players</p>
+                              <p className="text-xs text-muted-foreground mt-1">Winners advance here</p>
+                            </CardContent>
+                          </Card>
+                          
+                          {/* Connection lines to next round */}
+                          {roundIndex < bracketData.length - 1 && (
+                            <div className="absolute top-1/2 -right-8 transform -translate-y-1/2">
+                              <ChevronRight className="h-6 w-6 text-muted-foreground opacity-30" />
+                            </div>
+                          )}
                         </div>
-                      )}
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             ))}
