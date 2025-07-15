@@ -31,6 +31,9 @@ interface Match {
   time: string | null;
   tee?: string;
   winner?: string;
+  // For progression tracking
+  previousMatch1Id?: string;
+  previousMatch2Id?: string;
 }
 
 interface MatchCardProps {
@@ -38,9 +41,10 @@ interface MatchCardProps {
   onScoreUpdate?: () => void;
   onViewDetails?: () => void;
   onEditMatch?: (matchId: string) => void;
+  previousMatches?: Match[]; // For showing source match information
 }
 
-export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch }: MatchCardProps) {
+export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch, previousMatches = [] }: MatchCardProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "scheduled": return "bg-warning text-warning-foreground";
@@ -93,6 +97,33 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch }: 
       </div>
     </div>
   );
+
+  // Helper function to get source match information
+  const getSourceMatchInfo = (previousMatchId?: string) => {
+    if (!previousMatchId) return null;
+    const sourceMatch = previousMatches.find(m => m.id === previousMatchId);
+    if (!sourceMatch) return `Winner of ${previousMatchId}`;
+    
+    // Build descriptive text based on match participants
+    if (sourceMatch.type === "singles") {
+      if (sourceMatch.player1 && sourceMatch.player2) {
+        return `Winner of ${sourceMatch.player1.name} vs ${sourceMatch.player2.name}`;
+      } else if (sourceMatch.player1) {
+        return `${sourceMatch.player1.name} (Bye)`;
+      } else {
+        return `Winner of ${sourceMatch.round}`;
+      }
+    } else if (sourceMatch.type === "foursome") {
+      if (sourceMatch.team1 && sourceMatch.team2) {
+        const team1Text = `${sourceMatch.team1.player1.name}/${sourceMatch.team1.player2.name}`;
+        const team2Text = `${sourceMatch.team2.player1.name}/${sourceMatch.team2.player2.name}`;
+        return `Winner of ${team1Text} vs ${team2Text}`;
+      } else {
+        return `Winner of ${sourceMatch.round}`;
+      }
+    }
+    return `Winner of ${sourceMatch.round}`;
+  };
 
   return (
     <Card className="shadow-card hover:shadow-golf transition-all duration-300">
@@ -221,16 +252,20 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch }: 
               </div>
             </>
           ) : match.type === "singles" && !match.player1 ? (
-            // Empty bracket - no players assigned yet
+            // Empty bracket - show source match information
             <div className="space-y-4">
               <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border-2 border-dashed border-muted">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 bg-muted/50 rounded-full flex items-center justify-center">
                     <Users className="h-5 w-5 text-muted-foreground" />
                   </div>
-                  <div>
-                    <p className="font-medium text-muted-foreground italic">TBD</p>
-                    <p className="text-sm text-muted-foreground">To be determined</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-muted-foreground italic">
+                      {getSourceMatchInfo(match.previousMatch1Id) || "TBD"}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {match.previousMatch1Id ? "From previous round" : "To be determined"}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -246,9 +281,13 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch }: 
                   <div className="h-10 w-10 bg-muted/50 rounded-full flex items-center justify-center">
                     <Users className="h-5 w-5 text-muted-foreground" />
                   </div>
-                  <div>
-                    <p className="font-medium text-muted-foreground italic">TBD</p>
-                    <p className="text-sm text-muted-foreground">To be determined</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-muted-foreground italic">
+                      {getSourceMatchInfo(match.previousMatch2Id) || "TBD"}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {match.previousMatch2Id ? "From previous round" : "To be determined"}
+                    </p>
                   </div>
                 </div>
               </div>

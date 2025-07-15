@@ -117,9 +117,10 @@ export function TournamentBracket({
       // Add existing matches
       allMatches.push(...existingMatches);
       
-      // Fill remaining slots with placeholder matches
+      // Fill remaining slots with placeholder matches that show source connections
       const remainingSlots = Math.max(0, expectedMatches - existingMatches.length);
       for (let i = 0; i < remainingSlots; i++) {
+        const matchIndex = existingMatches.length + i;
         const placeholderMatch: Match = {
           id: `placeholder-${roundName}-${i}`,
           tournamentId: tournamentId,
@@ -129,6 +130,28 @@ export function TournamentBracket({
           date: new Date().toISOString().split('T')[0],
           time: "TBD"
         };
+
+        // Set up connections to previous matches for non-first rounds
+        if (index > 0) {
+          const prevRoundName = roundNames[index - 1];
+          const prevRoundMatches = roundsMap.get(prevRoundName) || [];
+          const prevRoundMatchIndex1 = matchIndex * 2;
+          const prevRoundMatchIndex2 = matchIndex * 2 + 1;
+          
+          // Look for existing matches or create placeholder references
+          if (prevRoundMatchIndex1 < prevRoundMatches.length) {
+            placeholderMatch.previousMatch1Id = prevRoundMatches[prevRoundMatchIndex1].id;
+          } else {
+            placeholderMatch.previousMatch1Id = `placeholder-${prevRoundName}-${prevRoundMatchIndex1 - prevRoundMatches.length}`;
+          }
+          
+          if (prevRoundMatchIndex2 < prevRoundMatches.length) {
+            placeholderMatch.previousMatch2Id = prevRoundMatches[prevRoundMatchIndex2].id;
+          } else {
+            placeholderMatch.previousMatch2Id = `placeholder-${prevRoundName}-${prevRoundMatchIndex2 - prevRoundMatches.length}`;
+          }
+        }
+
         allMatches.push(placeholderMatch);
       }
       
@@ -602,6 +625,7 @@ export function TournamentBracket({
                     <div key={match.id} className="relative">
                       <MatchCard
                         match={match}
+                        previousMatches={matches.filter(m => m.tournamentId === tournamentId)}
                         onEditMatch={(matchId) => {
                           // Allow editing of all matches, including placeholder ones
                           const selectedMatch = matches.find(m => m.id === matchId);
