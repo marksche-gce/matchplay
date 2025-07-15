@@ -262,7 +262,69 @@ export function TournamentBracket({
     return false;
   };
 
-  const handleMatchUpdate = (matchId: string, updates: Partial<Match>) => {
+  const progressWinnerToDatabase = async (completedMatch: Match, winnerPlayer: { id: string; name: string; handicap: number }) => {
+    try {
+      // Find the next match in the database based on bracket relationships
+      const { data: nextMatches, error: nextMatchError } = await supabase
+        .from('matches')
+        .select('*')
+        .or(`previous_match_1_id.eq.${completedMatch.id},previous_match_2_id.eq.${completedMatch.id}`);
+
+      if (nextMatchError) throw nextMatchError;
+
+      if (nextMatches && nextMatches.length > 0) {
+        const nextMatch = nextMatches[0];
+        
+        // Determine which position the winner should be placed in
+        const position = nextMatch.previous_match_1_id === completedMatch.id ? 1 : 2;
+        
+        // Check if participant already exists
+        const { data: existingParticipant, error: checkError } = await supabase
+          .from('match_participants')
+          .select('*')
+          .eq('match_id', nextMatch.id)
+          .eq('position', position)
+          .single();
+
+        if (checkError && checkError.code !== 'PGRST116') { // Not found is okay
+          throw checkError;
+        }
+
+        if (existingParticipant) {
+          // Update existing participant
+          const { error: updateError } = await supabase
+            .from('match_participants')
+            .update({
+              player_id: winnerPlayer.id,
+              score: null // Reset score for new match
+            })
+            .eq('id', existingParticipant.id);
+
+          if (updateError) throw updateError;
+        } else {
+          // Create new participant
+          const { error: insertError } = await supabase
+            .from('match_participants')
+            .insert({
+              match_id: nextMatch.id,
+              player_id: winnerPlayer.id,
+              position: position,
+              team_number: null,
+              score: null
+            });
+
+          if (insertError) throw insertError;
+        }
+
+        console.log(`Winner ${winnerPlayer.name} advanced to next match in database`);
+      }
+    } catch (error) {
+      console.error('Error progressing winner to database:', error);
+      throw error;
+    }
+  };
+
+  const handleMatchUpdate = async (matchId: string, updates: Partial<Match>) => {
     // Check if this is a generated match (non-UUID ID) - these shouldn't be persisted to database
     const isGeneratedMatch = !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(matchId);
     
@@ -275,37 +337,137 @@ export function TournamentBracket({
       return;
     }
 
-    const updatedMatches = matches.map(match => {
-      if (match.id === matchId) {
-        const updatedMatch = { ...match, ...updates };
+    try {
+      const updatedMatches = matches.map(match => {
+        if (match.id === matchId) {
+          const updatedMatch = { ...match, ...updates };
+          
+          // If match is being completed, validate and progress winner
+          if (updatedMatch.status === "completed" && updatedMatch.winner) {
+            // Validate winner first
+            if (!validateWinnerProgression(updatedMatch, updatedMatch.winner)) {
+              toast({
+                title: "Invalid Winner",
+                description: "The selected winner did not participate in this match.",
+                variant: "destructive"
+              });
+              return match; // Don't update if winner is invalid
+            }
+          }
+          
+          return updatedMatch;
+        }
+        return match;
+      });
+
+      const updatedMatch = updatedMatches.find(m => m.id === matchId);
+      if (!updatedMatch) return;
+
+      // Prepare database updates
+      const dbUpdates: any = {
+        status: updates.status,
+        round: updates.round,
+        match_date: updates.date || null,
+        match_time: updates.time || null,
+        tee: updates.tee || null,
+        winner_id: null
+      };
+
+      // Update match in database
+      const { error: matchError } = await supabase
+        .from('matches')
+        .update(dbUpdates)
+        .eq('id', matchId);
+
+      if (matchError) throw matchError;
+
+      // Update match participants if players or scores changed
+      if (updates.player1 || updates.player2) {
+        // Delete existing participants
+        const { error: deleteError } = await supabase
+          .from('match_participants')
+          .delete()
+          .eq('match_id', matchId);
+
+        if (deleteError) throw deleteError;
+
+        // Insert updated participants
+        const participants = [];
         
-        // If match is being completed, validate and progress winner
-        if (updatedMatch.status === "completed" && updatedMatch.winner) {
-          // Validate winner first
-          if (!validateWinnerProgression(updatedMatch, updatedMatch.winner)) {
-            toast({
-              title: "Invalid Winner",
-              description: "The selected winner did not participate in this match.",
-              variant: "destructive"
+        if (updatedMatch.player1) {
+          const player1 = players.find(p => p.name === updatedMatch.player1?.name);
+          if (player1) {
+            participants.push({
+              match_id: matchId,
+              player_id: player1.id,
+              position: 1,
+              team_number: null,
+              score: updatedMatch.player1.score || null
             });
-            return match; // Don't update if winner is invalid
           }
         }
         
-        return updatedMatch;
+        if (updatedMatch.player2) {
+          const player2 = players.find(p => p.name === updatedMatch.player2?.name);
+          if (player2) {
+            participants.push({
+              match_id: matchId,
+              player_id: player2.id,
+              position: 2,
+              team_number: null,
+              score: updatedMatch.player2.score || null
+            });
+          }
+        }
+
+        if (participants.length > 0) {
+          const { error: participantsError } = await supabase
+            .from('match_participants')
+            .insert(participants);
+
+          if (participantsError) throw participantsError;
+        }
       }
-      return match;
-    });
 
-    // Progress winner immediately after updating matches
-    let finalMatches = updatedMatches;
-    const completedMatch = updatedMatches.find(m => m.id === matchId);
-    
-    if (completedMatch?.status === "completed" && completedMatch.winner) {
-      finalMatches = progressWinnerImmediately(updatedMatches, completedMatch);
+      // Handle winner progression
+      if (updatedMatch.status === "completed" && updatedMatch.winner) {
+        // Find winner player
+        const winnerPlayer = players.find(p => p.name === updatedMatch.winner);
+        if (winnerPlayer) {
+          // Update winner_id in database
+          const { error: winnerError } = await supabase
+            .from('matches')
+            .update({ winner_id: winnerPlayer.id })
+            .eq('id', matchId);
+
+          if (winnerError) throw winnerError;
+
+          // Progress winner to next match
+          await progressWinnerToDatabase(updatedMatch, winnerPlayer);
+        }
+      }
+
+      // Update local state
+      let finalMatches = updatedMatches;
+      if (updatedMatch.status === "completed" && updatedMatch.winner) {
+        finalMatches = progressWinnerImmediately(updatedMatches, updatedMatch);
+      }
+
+      onMatchUpdate(finalMatches);
+
+      toast({
+        title: "Match Updated!",
+        description: "Match has been successfully saved to the database.",
+      });
+
+    } catch (error) {
+      console.error('Error updating match:', error);
+      toast({
+        title: "Error Updating Match",
+        description: "Failed to save changes to database. Please try again.",
+        variant: "destructive"
+      });
     }
-
-    onMatchUpdate(finalMatches);
   };
 
   const deleteAllMatches = () => {
