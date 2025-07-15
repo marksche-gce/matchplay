@@ -194,6 +194,18 @@ export function TournamentBracket({
   };
 
   const handleMatchUpdate = (matchId: string, updates: Partial<Match>) => {
+    // Check if this is a generated match (non-UUID ID) - these shouldn't be persisted to database
+    const isGeneratedMatch = !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(matchId);
+    
+    if (isGeneratedMatch) {
+      toast({
+        title: "Cannot Edit Generated Match",
+        description: "This match exists only in the bracket preview. Create matches in the database first.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     const updatedMatches = matches.map(match => {
       if (match.id === matchId) {
         const updatedMatch = { ...match, ...updates };
