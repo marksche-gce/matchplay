@@ -75,10 +75,11 @@ export function TournamentBracket({
 
   // Only advance winners when brackets exist and matches change
   useEffect(() => {
-    if (format === "matchplay" && bracketData.length > 0) {
-      // Only process existing matches, don't generate anything automatically
-      const hasMatchChanges = matches.filter(m => m.tournamentId === tournamentId).length > 0;
-      if (hasMatchChanges) {
+    if (format === "matchplay") {
+      // Always generate bracket structure from existing matches for display
+      const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
+      if (tournamentMatches.length > 0) {
+        generateBracket(); // Show existing matches in bracket view
         advanceAllWinners();
       }
     }
