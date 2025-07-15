@@ -607,8 +607,10 @@ export function TournamentBracket({
                         previousMatches={matches.filter(m => m.tournamentId === tournamentId)}
                         showScores={false}
                         onEditMatch={(matchId) => {
+                          console.log("Edit match clicked for ID:", matchId);
                           // Allow editing of all matches, including placeholder ones
                           const selectedMatch = matches.find(m => m.id === matchId);
+                          console.log("Selected match found:", selectedMatch);
                           setSelectedMatch(selectedMatch || null);
                         }}
                       />
@@ -647,11 +649,14 @@ export function TournamentBracket({
           match={selectedMatch}
           open={!!selectedMatch}
           onOpenChange={(open) => {
+            console.log("Dialog onOpenChange called with:", open);
             if (!open) {
+              console.log("Closing dialog, clearing selectedMatch");
               setSelectedMatch(null);
             }
           }}
           onMatchUpdate={(matchId, updates) => {
+            console.log("Dialog onMatchUpdate called for match:", matchId);
             handleMatchUpdate(matchId, updates);
             setSelectedMatch(null); // Close dialog after update
           }}
