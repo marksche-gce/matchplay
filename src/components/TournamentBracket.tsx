@@ -172,28 +172,19 @@ export function TournamentBracket({
 
   const progressWinnerImmediately = (currentMatches: Match[], completedMatch: Match): Match[] => {
     if (!completedMatch.winner || completedMatch.status !== "completed") {
-      console.log("No winner or match not completed:", completedMatch);
       return currentMatches;
     }
-
-    console.log("Processing winner advancement for:", completedMatch.id, "winner:", completedMatch.winner);
 
     // Find the winner from the players array
     const winnerPlayer = players.find(p => p.name === completedMatch.winner);
-    
     if (!winnerPlayer) {
-      console.warn("Winner player not found in players array:", completedMatch.winner);
       return currentMatches;
     }
 
-    // Find the next round match where this winner should advance
-    const nextRoundNumber = parseInt(completedMatch.round.split(' ')[1]) + 1;
-    const nextRoundName = `Round ${nextRoundNumber}`;
-    
+    // Find next match using database relationships or round progression
     const nextMatch = currentMatches.find(match => 
-      match.round === nextRoundName && 
       match.tournamentId === completedMatch.tournamentId &&
-      (!match.player1 || !match.player2) // Find match with available slot
+      (match.previousMatch1Id === completedMatch.id || match.previousMatch2Id === completedMatch.id)
     );
 
     if (nextMatch) {
@@ -201,10 +192,10 @@ export function TournamentBracket({
         if (match.id === nextMatch.id) {
           const updatedMatch = { ...match };
           
-          // Add winner to the next match
-          if (!updatedMatch.player1) {
+          // Add winner to correct position based on which previous match this was
+          if (match.previousMatch1Id === completedMatch.id) {
             updatedMatch.player1 = { ...winnerPlayer, score: undefined };
-          } else if (!updatedMatch.player2) {
+          } else if (match.previousMatch2Id === completedMatch.id) {
             updatedMatch.player2 = { ...winnerPlayer, score: undefined };
           }
           
@@ -215,7 +206,7 @@ export function TournamentBracket({
       
       toast({
         title: "Winner Advanced!",
-        description: `${completedMatch.winner} has been advanced to ${nextRoundName}.`,
+        description: `${completedMatch.winner} has been advanced to the next round.`,
       });
       
       return updatedMatches;
