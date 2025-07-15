@@ -46,10 +46,23 @@ interface EditMatchDialogProps {
   availablePlayers?: Player[];
   tournamentStartDate?: string;
   tournamentEndDate?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function EditMatchDialog({ match, onMatchUpdate, trigger, availablePlayers = [], tournamentStartDate, tournamentEndDate }: EditMatchDialogProps) {
-  const [open, setOpen] = useState(false);
+export function EditMatchDialog({ 
+  match, 
+  onMatchUpdate, 
+  trigger, 
+  availablePlayers = [], 
+  tournamentStartDate, 
+  tournamentEndDate,
+  open: controlledOpen,
+  onOpenChange
+}: EditMatchDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = onOpenChange || setInternalOpen;
   const [formData, setFormData] = useState({
     round: match.round,
     status: match.status,
@@ -120,7 +133,7 @@ export function EditMatchDialog({ match, onMatchUpdate, trigger, availablePlayer
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={isOpen} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
           <Button variant="outline" size="sm" className="gap-2">

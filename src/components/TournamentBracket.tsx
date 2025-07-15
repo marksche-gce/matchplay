@@ -389,9 +389,17 @@ export function TournamentBracket({
       {selectedMatch && (
         <EditMatchDialog
           match={selectedMatch}
-          onMatchUpdate={handleMatchUpdate}
+          open={!!selectedMatch}
+          onOpenChange={(open) => {
+            if (!open) {
+              setSelectedMatch(null);
+            }
+          }}
+          onMatchUpdate={(matchId, updates) => {
+            handleMatchUpdate(matchId, updates);
+            setSelectedMatch(null); // Close dialog after update
+          }}
           availablePlayers={players}
-          trigger={<div />}
         />
       )}
     </div>
