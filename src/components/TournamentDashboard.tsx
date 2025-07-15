@@ -675,6 +675,8 @@ export function TournamentDashboard() {
 
 
   const handleBracketMatchUpdate = async (updatedMatches: Match[]) => {
+    console.log("handleBracketMatchUpdate called with:", updatedMatches.length, "matches");
+    
     // Update local state immediately for responsive UI
     setMatches(updatedMatches);
     
@@ -687,6 +689,7 @@ export function TournamentDashboard() {
       
       // Skip matches with non-UUID IDs (these are generated matches not yet in database)
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(matchId)) {
+        console.log("Skipping non-UUID match:", matchId);
         continue;
       }
       
@@ -697,17 +700,35 @@ export function TournamentDashboard() {
         currentMatch.player1?.score !== updatedMatch.player1?.score ||
         currentMatch.player2?.score !== updatedMatch.player2?.score
       )) {
+        console.log("Match updated, saving to database:", {
+          matchId,
+          oldStatus: currentMatch.status,
+          newStatus: updatedMatch.status,
+          oldWinner: currentMatch.winner,
+          newWinner: updatedMatch.winner
+        });
+        
         // Persist changes to database
         try {
           await handleEditMatch(matchId, updatedMatch);
+          console.log("Successfully saved match update for:", matchId);
         } catch (error) {
-          console.error('Error updating match:', error);
+          console.error('Error updating match:', matchId, error);
+          toast({
+            title: "Error Saving Match",
+            description: `Failed to save updates for match ${matchId}`,
+            variant: "destructive"
+          });
         }
+      } else {
+        console.log("No changes detected for match:", matchId);
       }
     }
   };
 
   const handleEditMatch = async (matchId: string, updates: Partial<Match>) => {
+    console.log("handleEditMatch called for:", matchId, "with updates:", updates);
+    
     try {
       // First, update the match details
       const matchUpdates: any = {
@@ -718,10 +739,13 @@ export function TournamentDashboard() {
       // Set winner_id based on winner name
       if (updates.winner && updates.winner !== "no-winner") {
         const winnerPlayer = players.find(p => p.name === updates.winner);
+        console.log("Looking for winner player:", updates.winner, "found:", winnerPlayer);
         matchUpdates.winner_id = winnerPlayer?.id || null;
       } else {
         matchUpdates.winner_id = null;
       }
+
+      console.log("About to update match with:", matchUpdates);
 
       // Update match in database
       const { error: matchError } = await supabase
@@ -729,7 +753,12 @@ export function TournamentDashboard() {
         .update(matchUpdates)
         .eq('id', matchId);
 
-      if (matchError) throw matchError;
+      if (matchError) {
+        console.error("Database error updating match:", matchError);
+        throw matchError;
+      }
+
+      console.log("Successfully updated match in database");
 
       // Update match participants if it's a singles match with score updates
       if (updates.player1?.score !== undefined || updates.player2?.score !== undefined) {
