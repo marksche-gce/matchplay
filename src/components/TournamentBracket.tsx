@@ -84,6 +84,7 @@ export function TournamentBracket({
 
   const generateBracket = () => {
     const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
+    console.log("All tournament matches:", tournamentMatches);
     
     // Group existing matches by round
     const roundsMap = new Map<string, Match[]>();
@@ -331,8 +332,11 @@ export function TournamentBracket({
 
   const progressWinnerImmediately = (currentMatches: Match[], completedMatch: Match): Match[] => {
     if (!completedMatch.winner || completedMatch.status !== "completed") {
+      console.log("No winner or match not completed:", completedMatch);
       return currentMatches;
     }
+
+    console.log("Processing winner advancement for:", completedMatch.id, "winner:", completedMatch.winner);
 
     // Find the next match that this winner should advance to
     const nextMatch = currentMatches.find(m => 
@@ -340,7 +344,10 @@ export function TournamentBracket({
       m.previousMatch2Id === completedMatch.id
     );
 
+    console.log("Found next match:", nextMatch?.id, "for completed match:", completedMatch.id);
+
     if (!nextMatch || nextMatch.status !== "scheduled") {
+      console.log("No next match found or next match not scheduled");
       return currentMatches;
     }
 
@@ -348,15 +355,20 @@ export function TournamentBracket({
     const updatedMatches = currentMatches.map(match => {
       if (match.id === nextMatch.id) {
         let updatedMatch = { ...match };
+        console.log("Updating next match:", match.id, "from completed match:", completedMatch.id);
 
         if (completedMatch.type === "singles" && completedMatch.winner) {
           const winnerPlayer = completedMatch.winner === completedMatch.player1?.name 
             ? completedMatch.player1 
             : completedMatch.player2;
           
+          console.log("Winner player:", winnerPlayer);
+
           if (match.previousMatch1Id === completedMatch.id) {
+            console.log("Setting player1 to:", winnerPlayer?.name);
             updatedMatch.player1 = winnerPlayer ? { ...winnerPlayer, score: undefined } : undefined;
           } else if (match.previousMatch2Id === completedMatch.id) {
+            console.log("Setting player2 to:", winnerPlayer?.name);
             updatedMatch.player2 = winnerPlayer ? { ...winnerPlayer, score: undefined } : undefined;
           }
         } else if (completedMatch.type === "foursome" && completedMatch.winner) {
@@ -381,6 +393,7 @@ export function TournamentBracket({
           }
         }
 
+        console.log("Updated match:", updatedMatch);
         return updatedMatch;
       }
       return match;
