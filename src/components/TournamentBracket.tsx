@@ -73,13 +73,16 @@ export function TournamentBracket({
   const { toast } = useToast();
   const { generateTournamentBracket, fillFirstRoundMatches } = useBracketGeneration();
 
-  // Initialize bracket structure and advance all winners only when needed
+  // Only advance winners when brackets exist and matches change
   useEffect(() => {
     if (format === "matchplay" && bracketData.length > 0) {
-      autoCompleteByeMatches();
-      advanceAllWinners();
+      // Only process existing matches, don't generate anything automatically
+      const hasMatchChanges = matches.filter(m => m.tournamentId === tournamentId).length > 0;
+      if (hasMatchChanges) {
+        advanceAllWinners();
+      }
     }
-  }, [matches, format]);
+  }, [matches]);
 
   const generateBracket = () => {
     const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
