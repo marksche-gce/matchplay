@@ -91,9 +91,24 @@ export function TournamentBracket({
     const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
     console.log("All tournament matches:", tournamentMatches);
     
+    // Separate database matches (UUIDs) from generated matches (non-UUIDs)
+    const databaseMatches = tournamentMatches.filter(m => 
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(m.id)
+    );
+    const generatedMatches = tournamentMatches.filter(m => 
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(m.id)
+    );
+    
+    console.log("Database matches found:", databaseMatches.length);
+    console.log("Generated matches found:", generatedMatches.length);
+    
+    // Use database matches if they exist, otherwise use generated matches
+    const matchesToUse = databaseMatches.length > 0 ? databaseMatches : generatedMatches;
+    console.log("Using matches:", matchesToUse.length > 0 ? "database" : "generated");
+    
     // Group existing matches by round
     const roundsMap = new Map<string, Match[]>();
-    tournamentMatches.forEach(match => {
+    matchesToUse.forEach(match => {
       const roundName = match.round;
       if (!roundsMap.has(roundName)) {
         roundsMap.set(roundName, []);
