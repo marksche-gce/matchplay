@@ -603,16 +603,7 @@ export function TournamentBracket({
                       <MatchCard
                         match={match}
                         onEditMatch={(matchId) => {
-                          // Check if this is a placeholder match
-                          if (matchId.startsWith('placeholder-')) {
-                            toast({
-                              title: "Match Not Ready",
-                              description: "This match will be available once the previous round is completed.",
-                              variant: "default"
-                            });
-                            return;
-                          }
-                          
+                          // Allow editing of all matches, including placeholder ones
                           const selectedMatch = matches.find(m => m.id === matchId);
                           setSelectedMatch(selectedMatch || null);
                         }}
