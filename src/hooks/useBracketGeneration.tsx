@@ -203,16 +203,34 @@ export function useBracketGeneration() {
       return existingMatches;
     }
 
-    // Calculate byes - best players advance automatically to second round
-    const totalFirstRoundSlots = firstRoundMatches.length * 2; // Each match can hold 2 players
-    const playersInFirstRound = Math.min(sortedPlayers.length, totalFirstRoundSlots);
-    const byeCount = Math.max(0, sortedPlayers.length - playersInFirstRound);
+    // Ensure we have enough players for all first round matches
+    if (sortedPlayers.length < firstRoundMatches.length) {
+      toast({
+        title: "Not Enough Players",
+        description: `Need at least ${firstRoundMatches.length} players to fill all first round matches. Current: ${sortedPlayers.length}`,
+        variant: "destructive"
+      });
+      return existingMatches;
+    }
+
+    // Calculate byes: best players who skip first round entirely
+    // We need enough players in first round to fill all matches (at least 1 per match)
+    const minPlayersForFirstRound = firstRoundMatches.length;
+    const maxPlayersForFirstRound = firstRoundMatches.length * 2;
     
-    // Best players get byes (skip first round)
+    // If we have more players than can fit in first round, give byes to the best
+    let byeCount = 0;
+    let firstRoundPlayerCount = sortedPlayers.length;
+    
+    if (sortedPlayers.length > maxPlayersForFirstRound) {
+      byeCount = sortedPlayers.length - maxPlayersForFirstRound;
+      firstRoundPlayerCount = maxPlayersForFirstRound;
+    }
+    
     const byePlayers = sortedPlayers.slice(0, byeCount);
-    const firstRoundPlayers = sortedPlayers.slice(byeCount);
+    const firstRoundPlayers = sortedPlayers.slice(byeCount, byeCount + firstRoundPlayerCount);
     
-    console.log(`Filling first round: ${firstRoundPlayers.length} players, ${byeCount} byes`);
+    console.log(`Filling first round: ${firstRoundPlayers.length} players, ${byeCount} byes, ${firstRoundMatches.length} matches`);
     
     // Clear existing players from first round matches
     const updatedMatches = existingMatches.map(match => {
@@ -226,20 +244,23 @@ export function useBracketGeneration() {
       return match;
     });
     
-    // Distribute players into first round matches - ensure each match gets at least 1 player
+    // Get matches to fill
     const matchesToFill = updatedMatches.filter(
       m => m.tournamentId === tournamentId && m.round === "Round 1"
     );
     
-    // First pass: give each match at least one player
-    for (let i = 0; i < Math.min(firstRoundPlayers.length, matchesToFill.length); i++) {
-      const player = firstRoundPlayers[i];
-      const matchIndex = updatedMatches.findIndex(m => m.id === matchesToFill[i].id);
-      if (matchIndex !== -1) {
-        updatedMatches[matchIndex].player1 = {
-          name: player.name,
-          handicap: player.handicap
-        };
+    // CRITICAL: Ensure EVERY match gets at least one player
+    // First pass: give each match exactly one player
+    for (let i = 0; i < matchesToFill.length; i++) {
+      if (i < firstRoundPlayers.length) {
+        const player = firstRoundPlayers[i];
+        const matchIndex = updatedMatches.findIndex(m => m.id === matchesToFill[i].id);
+        if (matchIndex !== -1) {
+          updatedMatches[matchIndex].player1 = {
+            name: player.name,
+            handicap: player.handicap
+          };
+        }
       }
     }
     
@@ -263,6 +284,22 @@ export function useBracketGeneration() {
       }
     }
 
+    // Verify all matches have at least one player
+    const emptyMatches = updatedMatches.filter(m => 
+      m.tournamentId === tournamentId && 
+      m.round === "Round 1" && 
+      !m.player1
+    );
+    
+    if (emptyMatches.length > 0) {
+      toast({
+        title: "Error",
+        description: `${emptyMatches.length} matches still empty. This should not happen.`,
+        variant: "destructive"
+      });
+      return existingMatches;
+    }
+
     // Show bye information
     if (byeCount > 0) {
       const byePlayerNames = byePlayers.map(p => p.name).join(", ");
@@ -274,7 +311,7 @@ export function useBracketGeneration() {
 
     toast({
       title: "First Round Filled!",
-      description: `${firstRoundPlayers.length} players assigned to ${matchesToFill.length} first-round matches.`,
+      description: `All ${matchesToFill.length} first-round matches now have at least one player.`,
     });
 
     return updatedMatches;
