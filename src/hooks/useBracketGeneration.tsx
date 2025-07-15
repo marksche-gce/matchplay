@@ -153,7 +153,13 @@ export function useBracketGeneration() {
     const totalMatches = firstRoundMatches.length;
     const totalPlayers = sortedPlayers.length;
     
+    // Top 6 best handicappers get automatic byes (don't play in first round)
+    const byePlayers = sortedPlayers.slice(0, 6);
+    const competingPlayers = sortedPlayers.slice(6);
+    
     console.log(`First round setup: ${totalMatches} total matches, ${totalPlayers} total players`);
+    console.log(`Bye players (top 6):`, byePlayers.map(p => `${p.name} (${p.handicap})`));
+    console.log(`Competing players:`, competingPlayers.length);
     
     // Clear existing players from first round matches
     const updatedMatches = existingMatches.map(match => {
@@ -172,56 +178,43 @@ export function useBracketGeneration() {
       m => m.tournamentId === tournamentId && m.round === "Round 1"
     );
     
-    // Ensure every bracket gets at least one player
-    // First, assign one player to each bracket
-    for (let matchIndex = 0; matchIndex < totalMatches && matchIndex < totalPlayers; matchIndex++) {
+    // Fill first round matches with competing players (excluding bye players)
+    let playerIndex = 0;
+    
+    // First, try to fill matches with pairs of players
+    for (let matchIndex = 0; matchIndex < totalMatches && playerIndex < competingPlayers.length - 1; matchIndex++) {
       const targetMatchIndex = updatedMatches.findIndex(m => m.id === matchesToFill[matchIndex].id);
       
       if (targetMatchIndex !== -1) {
+        // Assign two players to this match
         updatedMatches[targetMatchIndex].player1 = {
-          name: sortedPlayers[matchIndex].name,
-          handicap: sortedPlayers[matchIndex].handicap
+          name: competingPlayers[playerIndex].name,
+          handicap: competingPlayers[playerIndex].handicap
         };
+        
+        updatedMatches[targetMatchIndex].player2 = {
+          name: competingPlayers[playerIndex + 1].name,
+          handicap: competingPlayers[playerIndex + 1].handicap
+        };
+        
+        playerIndex += 2;
       }
     }
     
-    // Now do optimal pairing for remaining players (lowest vs highest handicap)
-    if (totalPlayers > totalMatches) {
-      const remainingPlayers = sortedPlayers.slice(totalMatches);
-      const remainingCount = remainingPlayers.length;
-      
-      // Start pairing from the end, working backwards to pair with highest handicaps
-      for (let i = 0; i < remainingCount; i++) {
-        // Find the best match: pair with a bracket that only has one player
-        // Prefer pairing with players that have different handicap levels
-        let bestMatchIndex = -1;
-        let bestHandicapDiff = -1;
+    // If there's one remaining player, assign to next available match
+    if (playerIndex < competingPlayers.length) {
+      for (let matchIndex = 0; matchIndex < totalMatches; matchIndex++) {
+        const targetMatchIndex = updatedMatches.findIndex(m => m.id === matchesToFill[matchIndex].id);
         
-        for (let matchIndex = 0; matchIndex < totalMatches; matchIndex++) {
-          const targetMatchIndex = updatedMatches.findIndex(m => m.id === matchesToFill[matchIndex].id);
+        if (targetMatchIndex !== -1 && 
+            !updatedMatches[targetMatchIndex].player1 && 
+            !updatedMatches[targetMatchIndex].player2) {
           
-          if (targetMatchIndex !== -1 && 
-              updatedMatches[targetMatchIndex].player1 && 
-              !updatedMatches[targetMatchIndex].player2) {
-            
-            const existingHandicap = updatedMatches[targetMatchIndex].player1!.handicap;
-            const newHandicap = remainingPlayers[i].handicap;
-            const handicapDiff = Math.abs(existingHandicap - newHandicap);
-            
-            // Prefer larger handicap differences for better competition
-            if (handicapDiff > bestHandicapDiff) {
-              bestHandicapDiff = handicapDiff;
-              bestMatchIndex = targetMatchIndex;
-            }
-          }
-        }
-        
-        // Assign the remaining player to the best match found
-        if (bestMatchIndex !== -1) {
-          updatedMatches[bestMatchIndex].player2 = {
-            name: remainingPlayers[i].name,
-            handicap: remainingPlayers[i].handicap
+          updatedMatches[targetMatchIndex].player1 = {
+            name: competingPlayers[playerIndex].name,
+            handicap: competingPlayers[playerIndex].handicap
           };
+          break;
         }
       }
     }
@@ -241,7 +234,7 @@ export function useBracketGeneration() {
 
     toast({
       title: "First Round Filled!",
-      description: `${matchesWithTwoPlayers} matches with 2 players, ${matchesWithOnePlayer} matches with 1 player (free pass).`,
+      description: `${matchesWithTwoPlayers} matches with 2 players, ${matchesWithOnePlayer} matches with 1 player. Top 6 handicappers get automatic byes.`,
     });
 
     return updatedMatches;
