@@ -69,7 +69,7 @@ export function TournamentBracket({
   const [bracketData, setBracketData] = useState<BracketRound[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const { toast } = useToast();
-  const { generateTournamentBracket } = useBracketGeneration();
+  const { generateTournamentBracket, fillFirstRoundMatches } = useBracketGeneration();
 
   // Initialize bracket structure
   useEffect(() => {
@@ -241,6 +241,11 @@ export function TournamentBracket({
     onMatchUpdate([...matches, ...newMatches]);
   };
 
+  const fillFirstRound = () => {
+    const updatedMatches = fillFirstRoundMatches(tournamentId, players, matches);
+    onMatchUpdate(updatedMatches);
+  };
+
   const getRoundName = (round: number, totalRounds: number): string => {
     if (round === totalRounds) return "Final";
     if (round === totalRounds - 1) return "Semifinals";
@@ -292,28 +297,34 @@ export function TournamentBracket({
                   Generate Bracket
                 </Button>
               ) : (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="sm">
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete All Matches
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Delete All Matches</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to delete all matches? This will permanently remove all match data and cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={deleteAllMatches} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                <>
+                  <Button onClick={fillFirstRound} variant="outline" size="sm">
+                    <Users className="h-4 w-4 mr-2" />
+                    Fill First Round
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="sm">
+                        <Trash2 className="h-4 w-4 mr-2" />
                         Delete All Matches
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete All Matches</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete all matches? This will permanently remove all match data and cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={deleteAllMatches} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                          Delete All Matches
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
               )}
             </div>
           </div>

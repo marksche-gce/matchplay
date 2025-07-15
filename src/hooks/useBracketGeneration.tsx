@@ -172,7 +172,116 @@ export function useBracketGeneration() {
     return `Round ${round}`;
   };
 
+  const fillFirstRoundMatches = (
+    tournamentId: string,
+    players: Player[],
+    existingMatches: Match[]
+  ): Match[] => {
+    if (players.length < 1) {
+      toast({
+        title: "No Players",
+        description: "At least 1 player is required to fill brackets.",
+        variant: "destructive"
+      });
+      return existingMatches;
+    }
+
+    // Sort players by handicap (best handicaps first - lowest values)
+    const sortedPlayers = [...players].sort((a, b) => a.handicap - b.handicap);
+    
+    // Get only first round matches for this tournament
+    const firstRoundMatches = existingMatches.filter(
+      m => m.tournamentId === tournamentId && m.round === "Round 1"
+    );
+    
+    if (firstRoundMatches.length === 0) {
+      toast({
+        title: "No First Round Matches",
+        description: "Generate the bracket structure first.",
+        variant: "destructive"
+      });
+      return existingMatches;
+    }
+
+    // Calculate byes - best players advance automatically to second round
+    const totalFirstRoundSlots = firstRoundMatches.length * 2; // Each match can hold 2 players
+    const playersInFirstRound = Math.min(sortedPlayers.length, totalFirstRoundSlots);
+    const byeCount = Math.max(0, sortedPlayers.length - playersInFirstRound);
+    
+    // Best players get byes (skip first round)
+    const byePlayers = sortedPlayers.slice(0, byeCount);
+    const firstRoundPlayers = sortedPlayers.slice(byeCount);
+    
+    console.log(`Filling first round: ${firstRoundPlayers.length} players, ${byeCount} byes`);
+    
+    // Clear existing players from first round matches
+    const updatedMatches = existingMatches.map(match => {
+      if (match.tournamentId === tournamentId && match.round === "Round 1") {
+        return {
+          ...match,
+          player1: undefined,
+          player2: undefined
+        };
+      }
+      return match;
+    });
+    
+    // Distribute players into first round matches - ensure each match gets at least 1 player
+    const matchesToFill = updatedMatches.filter(
+      m => m.tournamentId === tournamentId && m.round === "Round 1"
+    );
+    
+    // First pass: give each match at least one player
+    for (let i = 0; i < Math.min(firstRoundPlayers.length, matchesToFill.length); i++) {
+      const player = firstRoundPlayers[i];
+      const matchIndex = updatedMatches.findIndex(m => m.id === matchesToFill[i].id);
+      if (matchIndex !== -1) {
+        updatedMatches[matchIndex].player1 = {
+          name: player.name,
+          handicap: player.handicap
+        };
+      }
+    }
+    
+    // Second pass: fill remaining players into matches that still have space
+    for (let i = matchesToFill.length; i < firstRoundPlayers.length; i++) {
+      const player = firstRoundPlayers[i];
+      
+      // Find a match that only has player1 but no player2
+      const matchIndex = updatedMatches.findIndex(m => 
+        m.tournamentId === tournamentId && 
+        m.round === "Round 1" && 
+        m.player1 && 
+        !m.player2
+      );
+      
+      if (matchIndex !== -1) {
+        updatedMatches[matchIndex].player2 = {
+          name: player.name,
+          handicap: player.handicap
+        };
+      }
+    }
+
+    // Show bye information
+    if (byeCount > 0) {
+      const byePlayerNames = byePlayers.map(p => p.name).join(", ");
+      toast({
+        title: "Byes Assigned",
+        description: `${byeCount} best players received byes to second round: ${byePlayerNames}`,
+      });
+    }
+
+    toast({
+      title: "First Round Filled!",
+      description: `${firstRoundPlayers.length} players assigned to ${matchesToFill.length} first-round matches.`,
+    });
+
+    return updatedMatches;
+  };
+
   return {
-    generateTournamentBracket
+    generateTournamentBracket,
+    fillFirstRoundMatches
   };
 }
