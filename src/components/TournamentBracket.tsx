@@ -516,27 +516,44 @@ export function TournamentBracket({
                       </div>
                     ))
                   ) : (
-                    // Show empty placeholder for rounds with no matches
+                    // Show scheduled match placeholders for rounds with no matches
                     <div className="space-y-4">
                       {/* Calculate expected number of matches for this round */}
-                      {Array.from({ length: Math.max(1, Math.pow(2, Math.max(0, Math.ceil(Math.log2(maxPlayers)) - round.roundNumber))) }, (_, index) => (
-                        <div key={`empty-${index}`} className="relative">
-                          <Card className="shadow-card border-dashed border-2 opacity-50">
-                            <CardContent className="p-6 text-center">
-                              <Clock className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                              <p className="text-sm text-muted-foreground">Awaiting Players</p>
-                              <p className="text-xs text-muted-foreground mt-1">Winners advance here</p>
-                            </CardContent>
-                          </Card>
-                          
-                          {/* Connection lines to next round */}
-                          {roundIndex < bracketData.length - 1 && (
-                            <div className="absolute top-1/2 -right-8 transform -translate-y-1/2">
-                              <ChevronRight className="h-6 w-6 text-muted-foreground opacity-30" />
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                      {Array.from({ length: Math.max(1, Math.pow(2, Math.max(0, Math.ceil(Math.log2(maxPlayers)) - round.roundNumber))) }, (_, index) => {
+                        // Create a placeholder scheduled match
+                        const placeholderMatch: Match = {
+                          id: `placeholder-${round.name}-${index}`,
+                          tournamentId: tournamentId,
+                          type: "singles" as const,
+                          round: round.name,
+                          status: "scheduled" as const,
+                          date: new Date().toISOString().split('T')[0],
+                          time: "TBD"
+                        };
+                        
+                        return (
+                          <div key={`empty-${index}`} className="relative">
+                            <MatchCard
+                              match={placeholderMatch}
+                              onEditMatch={() => {
+                                // Show placeholder message for empty matches
+                                toast({
+                                  title: "Match Not Ready",
+                                  description: "This match will be available once the previous round is completed.",
+                                  variant: "default"
+                                });
+                              }}
+                            />
+                            
+                            {/* Connection lines to next round */}
+                            {roundIndex < bracketData.length - 1 && (
+                              <div className="absolute top-1/2 -right-8 transform -translate-y-1/2">
+                                <ChevronRight className="h-6 w-6 text-muted-foreground opacity-30" />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
