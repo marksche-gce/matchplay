@@ -651,6 +651,30 @@ export function TournamentDashboard() {
   };
 
 
+  const handleBracketMatchUpdate = async (updatedMatches: Match[]) => {
+    // Update local state immediately for responsive UI
+    setMatches(updatedMatches);
+    
+    // Find matches that were updated and persist them to database
+    const currentMatchMap = new Map(matches.map(m => [m.id, m]));
+    const updatedMatchMap = new Map(updatedMatches.map(m => [m.id, m]));
+    
+    for (const [matchId, updatedMatch] of updatedMatchMap) {
+      const currentMatch = currentMatchMap.get(matchId);
+      
+      // Check if this match was actually updated
+      if (currentMatch && (
+        currentMatch.status !== updatedMatch.status ||
+        currentMatch.winner !== updatedMatch.winner ||
+        currentMatch.player1?.score !== updatedMatch.player1?.score ||
+        currentMatch.player2?.score !== updatedMatch.player2?.score
+      )) {
+        // Persist changes to database
+        await handleEditMatch(matchId, updatedMatch);
+      }
+    }
+  };
+
   const handleEditMatch = async (matchId: string, updates: Partial<Match>) => {
     try {
       // First, update the match details
@@ -1493,7 +1517,7 @@ export function TournamentDashboard() {
               tournamentId={currentTournament?.id || ""}
               matches={matches}
               players={players}
-              onMatchUpdate={setMatches}
+              onMatchUpdate={handleBracketMatchUpdate}
               format={currentTournament?.format || "matchplay"}
               maxPlayers={currentTournament?.max_players || 32}
             />
