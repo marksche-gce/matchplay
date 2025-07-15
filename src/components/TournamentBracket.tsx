@@ -204,6 +204,71 @@ export function TournamentBracket({
     }
   };
 
+  const progressWinnerImmediately = (currentMatches: Match[], completedMatch: Match): Match[] => {
+    if (!completedMatch.winner || completedMatch.status !== "completed") {
+      return currentMatches;
+    }
+
+    // Find the next match that this winner should advance to
+    const nextMatch = currentMatches.find(m => 
+      m.previousMatch1Id === completedMatch.id || 
+      m.previousMatch2Id === completedMatch.id
+    );
+
+    if (!nextMatch || nextMatch.status !== "scheduled") {
+      return currentMatches;
+    }
+
+    // Progress the winner to the next match immediately
+    const updatedMatches = currentMatches.map(match => {
+      if (match.id === nextMatch.id) {
+        let updatedMatch = { ...match };
+
+        if (completedMatch.type === "singles" && completedMatch.winner) {
+          const winnerPlayer = completedMatch.winner === completedMatch.player1?.name 
+            ? completedMatch.player1 
+            : completedMatch.player2;
+          
+          if (match.previousMatch1Id === completedMatch.id) {
+            updatedMatch.player1 = winnerPlayer ? { ...winnerPlayer, score: undefined } : undefined;
+          } else if (match.previousMatch2Id === completedMatch.id) {
+            updatedMatch.player2 = winnerPlayer ? { ...winnerPlayer, score: undefined } : undefined;
+          }
+        } else if (completedMatch.type === "foursome" && completedMatch.winner) {
+          const winnerTeam = completedMatch.winner === "team1" 
+            ? completedMatch.team1 
+            : completedMatch.team2;
+          
+          if (match.previousMatch1Id === completedMatch.id) {
+            updatedMatch.team1 = winnerTeam ? { 
+              ...winnerTeam, 
+              teamScore: undefined,
+              player1: { ...winnerTeam.player1, score: undefined },
+              player2: { ...winnerTeam.player2, score: undefined }
+            } : undefined;
+          } else if (match.previousMatch2Id === completedMatch.id) {
+            updatedMatch.team2 = winnerTeam ? { 
+              ...winnerTeam, 
+              teamScore: undefined,
+              player1: { ...winnerTeam.player1, score: undefined },
+              player2: { ...winnerTeam.player2, score: undefined }
+            } : undefined;
+          }
+        }
+
+        return updatedMatch;
+      }
+      return match;
+    });
+    
+    toast({
+      title: "Winner Advanced!",
+      description: `${completedMatch.winner} has been advanced to the next round.`,
+    });
+
+    return updatedMatches;
+  };
+
   const handleMatchUpdate = (matchId: string, updates: Partial<Match>) => {
     // Check if this is a generated match (non-UUID ID) - these shouldn't be persisted to database
     const isGeneratedMatch = !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(matchId);
@@ -232,9 +297,6 @@ export function TournamentBracket({
             });
             return match; // Don't update if winner is invalid
           }
-          
-          // Progress winner after state update
-          setTimeout(() => progressWinner(updatedMatch), 100);
         }
         
         return updatedMatch;
@@ -242,7 +304,15 @@ export function TournamentBracket({
       return match;
     });
 
-    onMatchUpdate(updatedMatches);
+    // Progress winner immediately after updating matches
+    let finalMatches = updatedMatches;
+    const completedMatch = updatedMatches.find(m => m.id === matchId);
+    
+    if (completedMatch?.status === "completed" && completedMatch.winner) {
+      finalMatches = progressWinnerImmediately(updatedMatches, completedMatch);
+    }
+
+    onMatchUpdate(finalMatches);
   };
 
   const deleteAllMatches = () => {
