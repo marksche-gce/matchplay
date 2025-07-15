@@ -1546,6 +1546,7 @@ export function TournamentDashboard() {
               matches={matches}
               players={players}
               onMatchUpdate={handleBracketMatchUpdate}
+              onCreateMatch={handleCreateMatch}
               format={currentTournament?.format || "matchplay"}
               maxPlayers={currentTournament?.max_players || 32}
             />

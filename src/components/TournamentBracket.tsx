@@ -54,6 +54,7 @@ interface TournamentBracketProps {
   matches: Match[];
   players: { id: string; name: string; handicap: number; }[];
   onMatchUpdate: (matches: Match[]) => void;
+  onCreateMatch: (matchData: Omit<Match, "id">) => Promise<void>;
   format: "matchplay" | "strokeplay" | "scramble";
   maxPlayers: number;
 }
@@ -63,6 +64,7 @@ export function TournamentBracket({
   matches, 
   players, 
   onMatchUpdate,
+  onCreateMatch,
   format,
   maxPlayers 
 }: TournamentBracketProps) {
@@ -264,15 +266,14 @@ export function TournamentBracket({
     }
 
     try {
-      const newMatches: Match[] = [];
+      let createdCount = 0;
       
-      // Convert generated matches to database format
+      // Convert generated matches to database format and create them
       for (const round of bracketData) {
         for (const match of round.matches) {
           // Only create matches that have at least one player
           if (match.player1) {
-            const newMatch: Match = {
-              id: crypto.randomUUID(), // Generate proper UUID
+            const matchData: Omit<Match, "id"> = {
               tournamentId: tournamentId,
               type: "singles",
               player1: match.player1,
@@ -283,24 +284,24 @@ export function TournamentBracket({
               time: "09:00",
               tee: match.tee
             };
-            newMatches.push(newMatch);
+            
+            // Create the match in the database
+            await onCreateMatch(matchData);
+            createdCount++;
           }
         }
       }
       
-      // Update with the new database-ready matches
-      onMatchUpdate([...matches.filter(m => m.tournamentId !== tournamentId), ...newMatches]);
-      
       toast({
         title: "Database Matches Created!",
-        description: `${newMatches.length} matches have been created and can now be edited.`,
+        description: `${createdCount} matches have been created in the database and can now be edited.`,
       });
       
     } catch (error) {
       console.error('Error creating database matches:', error);
       toast({
         title: "Error",
-        description: "Failed to create database matches.",
+        description: "Failed to create database matches. Please try again.",
         variant: "destructive"
       });
     }
