@@ -73,10 +73,9 @@ export function TournamentBracket({
   const { toast } = useToast();
   const { generateTournamentBracket, fillFirstRoundMatches } = useBracketGeneration();
 
-  // Initialize bracket structure and advance all winners
+  // Initialize bracket structure and advance all winners only when needed
   useEffect(() => {
-    if (format === "matchplay") {
-      generateBracket();
+    if (format === "matchplay" && bracketData.length > 0) {
       autoCompleteByeMatches();
       advanceAllWinners();
     }
