@@ -172,30 +172,40 @@ export function TournamentBracket({
 
   const progressWinnerImmediately = (currentMatches: Match[], completedMatch: Match): Match[] => {
     if (!completedMatch.winner || completedMatch.status !== "completed") {
+      console.log("No winner or not completed:", completedMatch);
       return currentMatches;
     }
+
+    console.log("Processing winner advancement:", completedMatch.winner, "from match:", completedMatch.id);
 
     // Find the winner from the players array
     const winnerPlayer = players.find(p => p.name === completedMatch.winner);
     if (!winnerPlayer) {
+      console.log("Winner player not found:", completedMatch.winner);
       return currentMatches;
     }
 
-    // Find next match using database relationships or round progression
+    // Find next match that has this completed match as one of its previous matches
     const nextMatch = currentMatches.find(match => 
       match.tournamentId === completedMatch.tournamentId &&
       (match.previousMatch1Id === completedMatch.id || match.previousMatch2Id === completedMatch.id)
     );
 
+    console.log("Looking for next match with previousMatch1Id or previousMatch2Id:", completedMatch.id);
+    console.log("Found next match:", nextMatch);
+
     if (nextMatch) {
+      console.log("Advancing winner to next match:", nextMatch.id);
       const updatedMatches = currentMatches.map(match => {
         if (match.id === nextMatch.id) {
           const updatedMatch = { ...match };
           
           // Add winner to correct position based on which previous match this was
           if (match.previousMatch1Id === completedMatch.id) {
+            console.log("Adding winner to position 1");
             updatedMatch.player1 = { ...winnerPlayer, score: undefined };
           } else if (match.previousMatch2Id === completedMatch.id) {
+            console.log("Adding winner to position 2");
             updatedMatch.player2 = { ...winnerPlayer, score: undefined };
           }
           
@@ -212,6 +222,7 @@ export function TournamentBracket({
       return updatedMatches;
     }
 
+    console.log("No next match found for completed match:", completedMatch.id);
     return currentMatches;
   };
 
