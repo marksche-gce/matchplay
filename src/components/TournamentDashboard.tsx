@@ -662,6 +662,11 @@ export function TournamentDashboard() {
     for (const [matchId, updatedMatch] of updatedMatchMap) {
       const currentMatch = currentMatchMap.get(matchId);
       
+      // Skip matches with non-UUID IDs (these are generated matches not yet in database)
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(matchId)) {
+        continue;
+      }
+      
       // Check if this match was actually updated
       if (currentMatch && (
         currentMatch.status !== updatedMatch.status ||
@@ -670,7 +675,11 @@ export function TournamentDashboard() {
         currentMatch.player2?.score !== updatedMatch.player2?.score
       )) {
         // Persist changes to database
-        await handleEditMatch(matchId, updatedMatch);
+        try {
+          await handleEditMatch(matchId, updatedMatch);
+        } catch (error) {
+          console.error('Error updating match:', error);
+        }
       }
     }
   };

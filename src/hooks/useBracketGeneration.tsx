@@ -44,7 +44,7 @@ export function useBracketGeneration() {
     console.log(`Tournament setup: maxPlayers=${maxPlayers}, firstRoundMatches=${firstRoundMatches}`);
     
     const newMatches: Match[] = [];
-    let matchIdCounter = Date.now();
+    let matchIdCounter = 0;
     
     // Generate all empty first round matches (maxPlayers/2)
     console.log(`Creating ${firstRoundMatches} empty first round matches`);
