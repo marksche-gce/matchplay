@@ -253,6 +253,59 @@ export function TournamentBracket({
     onMatchUpdate([...matches, ...newMatches]);
   };
 
+  const createDatabaseMatches = async () => {
+    if (!bracketData.length) {
+      toast({
+        title: "No Bracket Generated",
+        description: "Generate a bracket first before creating database matches.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const newMatches: Match[] = [];
+      
+      // Convert generated matches to database format
+      for (const round of bracketData) {
+        for (const match of round.matches) {
+          // Only create matches that have at least one player
+          if (match.player1) {
+            const newMatch: Match = {
+              id: crypto.randomUUID(), // Generate proper UUID
+              tournamentId: tournamentId,
+              type: "singles",
+              player1: match.player1,
+              player2: match.player2,
+              round: match.round,
+              status: "scheduled",
+              date: new Date().toISOString().split('T')[0],
+              time: "09:00",
+              tee: match.tee
+            };
+            newMatches.push(newMatch);
+          }
+        }
+      }
+      
+      // Update with the new database-ready matches
+      onMatchUpdate([...matches.filter(m => m.tournamentId !== tournamentId), ...newMatches]);
+      
+      toast({
+        title: "Database Matches Created!",
+        description: `${newMatches.length} matches have been created and can now be edited.`,
+      });
+      
+    } catch (error) {
+      console.error('Error creating database matches:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create database matches.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const fillFirstRound = () => {
     const updatedMatches = fillFirstRoundMatches(tournamentId, players, matches);
     onMatchUpdate(updatedMatches);
@@ -313,6 +366,10 @@ export function TournamentBracket({
                   <Button onClick={fillFirstRound} variant="outline" size="sm">
                     <Users className="h-4 w-4 mr-2" />
                     Fill First Round
+                  </Button>
+                  
+                  <Button onClick={createDatabaseMatches} variant="fairway" size="sm">
+                    Create Database Matches
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
