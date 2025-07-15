@@ -338,6 +338,9 @@ export function TournamentBracket({
     }
 
     try {
+      const originalMatch = matches.find(m => m.id === matchId);
+      if (!originalMatch) return;
+
       const updatedMatches = matches.map(match => {
         if (match.id === matchId) {
           const updatedMatch = { ...match, ...updates };
@@ -381,51 +384,97 @@ export function TournamentBracket({
 
       if (matchError) throw matchError;
 
-      // Update match participants if players or scores changed
-      if (updates.player1 || updates.player2) {
-        // Delete existing participants
-        const { error: deleteError } = await supabase
+      // Check if players actually changed (not just score updates)
+      const playersChanged = 
+        (originalMatch.player1?.name !== updatedMatch.player1?.name) ||
+        (originalMatch.player2?.name !== updatedMatch.player2?.name);
+
+      // Check if scores changed
+      const scoresChanged = 
+        (originalMatch.player1?.score !== updatedMatch.player1?.score) ||
+        (originalMatch.player2?.score !== updatedMatch.player2?.score);
+
+      // Update participants only if players changed or scores changed
+      if (playersChanged || scoresChanged) {
+        // Get current participants
+        const { data: currentParticipants, error: fetchError } = await supabase
           .from('match_participants')
-          .delete()
+          .select('*')
           .eq('match_id', matchId);
 
-        if (deleteError) throw deleteError;
+        if (fetchError) throw fetchError;
 
-        // Insert updated participants
-        const participants = [];
+        // Update or insert participants
+        const participantUpdates = [];
         
         if (updatedMatch.player1) {
           const player1 = players.find(p => p.name === updatedMatch.player1?.name);
           if (player1) {
-            participants.push({
-              match_id: matchId,
-              player_id: player1.id,
-              position: 1,
-              team_number: null,
-              score: updatedMatch.player1.score || null
-            });
+            const existingParticipant = currentParticipants?.find(p => p.position === 1);
+            if (existingParticipant) {
+              // Update existing participant
+              participantUpdates.push(
+                supabase
+                  .from('match_participants')
+                  .update({
+                    player_id: player1.id,
+                    score: updatedMatch.player1.score || null
+                  })
+                  .eq('id', existingParticipant.id)
+              );
+            } else {
+              // Insert new participant
+              participantUpdates.push(
+                supabase
+                  .from('match_participants')
+                  .insert({
+                    match_id: matchId,
+                    player_id: player1.id,
+                    position: 1,
+                    team_number: null,
+                    score: updatedMatch.player1.score || null
+                  })
+              );
+            }
           }
         }
         
         if (updatedMatch.player2) {
           const player2 = players.find(p => p.name === updatedMatch.player2?.name);
           if (player2) {
-            participants.push({
-              match_id: matchId,
-              player_id: player2.id,
-              position: 2,
-              team_number: null,
-              score: updatedMatch.player2.score || null
-            });
+            const existingParticipant = currentParticipants?.find(p => p.position === 2);
+            if (existingParticipant) {
+              // Update existing participant
+              participantUpdates.push(
+                supabase
+                  .from('match_participants')
+                  .update({
+                    player_id: player2.id,
+                    score: updatedMatch.player2.score || null
+                  })
+                  .eq('id', existingParticipant.id)
+              );
+            } else {
+              // Insert new participant
+              participantUpdates.push(
+                supabase
+                  .from('match_participants')
+                  .insert({
+                    match_id: matchId,
+                    player_id: player2.id,
+                    position: 2,
+                    team_number: null,
+                    score: updatedMatch.player2.score || null
+                  })
+              );
+            }
           }
         }
 
-        if (participants.length > 0) {
-          const { error: participantsError } = await supabase
-            .from('match_participants')
-            .insert(participants);
-
-          if (participantsError) throw participantsError;
+        // Execute all participant updates
+        for (const updatePromise of participantUpdates) {
+          const { error: participantError } = await updatePromise;
+          if (participantError) throw participantError;
         }
       }
 
