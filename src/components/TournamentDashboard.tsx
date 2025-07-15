@@ -743,8 +743,18 @@ export function TournamentDashboard() {
       }
     }
     
-    // Refresh matches from database instead of using mixed array
-    await fetchMatches();
+    // Only refresh from database if we have database matches to avoid clearing generated matches
+    const hasUuidMatches = updatedMatches.some(m => 
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(m.id)
+    );
+    
+    if (hasUuidMatches) {
+      // We have database matches, refresh from database to ensure consistency
+      await fetchMatches();
+    } else {
+      // Only generated matches, keep them in state
+      setMatches(updatedMatches);
+    }
   };
 
   // Database-only update function (doesn't refresh matches from DB)
