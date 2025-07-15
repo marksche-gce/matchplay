@@ -153,13 +153,7 @@ export function useBracketGeneration() {
     const totalMatches = firstRoundMatches.length;
     const totalPlayers = sortedPlayers.length;
     
-    // Calculate how many matches will have 2 players vs 1 player
-    // If we have more players than matches, some matches get 2 players
-    const playersForTwoPlayerMatches = Math.max(0, (totalPlayers - totalMatches) * 2);
-    const twoPlayerMatches = Math.min(totalMatches, Math.floor(playersForTwoPlayerMatches / 2));
-    const onePlayerMatches = totalMatches - twoPlayerMatches;
-    
-    console.log(`First round setup: ${totalMatches} total matches, ${twoPlayerMatches} with 2 players, ${onePlayerMatches} with 1 player (free pass)`);
+    console.log(`First round setup: ${totalMatches} total matches, ${totalPlayers} total players`);
     
     // Clear existing players from first round matches
     const updatedMatches = existingMatches.map(match => {
@@ -180,36 +174,28 @@ export function useBracketGeneration() {
     
     let playerIndex = 0;
     
-    // Strategy: Best players get free passes (1 player matches), worst players compete (2 player matches)
-    // First, assign best players to one-player matches (free pass)
-    for (let i = 0; i < onePlayerMatches && playerIndex < sortedPlayers.length; i++) {
-      const player = sortedPlayers[playerIndex];
-      const matchIndex = updatedMatches.findIndex(m => m.id === matchesToFill[i].id);
-      if (matchIndex !== -1) {
-        updatedMatches[matchIndex].player1 = {
-          name: player.name,
-          handicap: player.handicap
+    // Assign players to matches - each player goes to one match only
+    // Some matches will have 1 player, some will have 2 players
+    for (let matchIndex = 0; matchIndex < totalMatches && playerIndex < totalPlayers; matchIndex++) {
+      const targetMatchIndex = updatedMatches.findIndex(m => m.id === matchesToFill[matchIndex].id);
+      
+      if (targetMatchIndex !== -1 && playerIndex < totalPlayers) {
+        // Add first player to this match
+        updatedMatches[targetMatchIndex].player1 = {
+          name: sortedPlayers[playerIndex].name,
+          handicap: sortedPlayers[playerIndex].handicap
         };
-      }
-      playerIndex++;
-    }
-    
-    // Then, assign remaining players to two-player matches
-    for (let i = onePlayerMatches; i < totalMatches && playerIndex < sortedPlayers.length; i++) {
-      const matchIndex = updatedMatches.findIndex(m => m.id === matchesToFill[i].id);
-      if (matchIndex !== -1) {
-        // Add first player
-        if (playerIndex < sortedPlayers.length) {
-          updatedMatches[matchIndex].player1 = {
-            name: sortedPlayers[playerIndex].name,
-            handicap: sortedPlayers[playerIndex].handicap
-          };
-          playerIndex++;
-        }
+        playerIndex++;
         
-        // Add second player
-        if (playerIndex < sortedPlayers.length) {
-          updatedMatches[matchIndex].player2 = {
+        // Decide if this match should have a second player
+        // We'll add a second player if we have enough remaining players
+        // and we're not in the last few matches (to ensure some matches have only 1 player)
+        const remainingPlayers = totalPlayers - playerIndex;
+        const remainingMatches = totalMatches - matchIndex - 1;
+        
+        // Add second player if we have more players than remaining matches
+        if (playerIndex < totalPlayers && remainingPlayers > remainingMatches) {
+          updatedMatches[targetMatchIndex].player2 = {
             name: sortedPlayers[playerIndex].name,
             handicap: sortedPlayers[playerIndex].handicap
           };
