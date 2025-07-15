@@ -84,7 +84,7 @@ export function TournamentBracket({
   const generateBracket = () => {
     const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
     
-    // Group matches by round
+    // Group existing matches by round
     const roundsMap = new Map<string, Match[]>();
     tournamentMatches.forEach(match => {
       const roundName = match.round;
@@ -94,7 +94,7 @@ export function TournamentBracket({
       roundsMap.get(roundName)!.push(match);
     });
 
-    // Create bracket structure with proper ordering - always show all rounds
+    // Create bracket structure with proper ordering - always show all rounds with expected matches
     const rounds: BracketRound[] = [];
     const totalRounds = Math.ceil(Math.log2(maxPlayers));
     
@@ -107,12 +107,33 @@ export function TournamentBracket({
       else roundNames.push(`Round ${i}`);
     }
     
-    // Create all rounds, even if they have no matches
+    // Create all rounds with expected number of matches
     roundNames.forEach((roundName, index) => {
-      const roundMatches = roundsMap.get(roundName) || [];
+      const existingMatches = roundsMap.get(roundName) || [];
+      const expectedMatches = Math.pow(2, Math.max(0, totalRounds - (index + 1)));
+      const allMatches: Match[] = [];
+      
+      // Add existing matches
+      allMatches.push(...existingMatches);
+      
+      // Fill remaining slots with placeholder matches
+      const remainingSlots = Math.max(0, expectedMatches - existingMatches.length);
+      for (let i = 0; i < remainingSlots; i++) {
+        const placeholderMatch: Match = {
+          id: `placeholder-${roundName}-${i}`,
+          tournamentId: tournamentId,
+          type: "singles" as const,
+          round: roundName,
+          status: "scheduled" as const,
+          date: new Date().toISOString().split('T')[0],
+          time: "TBD"
+        };
+        allMatches.push(placeholderMatch);
+      }
+      
       rounds.push({
         name: roundName,
-        matches: roundMatches,
+        matches: allMatches,
         roundNumber: index + 1
       });
     });
@@ -522,66 +543,34 @@ export function TournamentBracket({
                 </div>
                 
                 <div className="space-y-6">
-                  {round.matches.length > 0 ? (
-                    round.matches.map((match, matchIndex) => (
-                      <div key={match.id} className="relative">
-                        <MatchCard
-                          match={match}
-                          onEditMatch={(matchId) => {
-                            const selectedMatch = matches.find(m => m.id === matchId);
-                            setSelectedMatch(selectedMatch || null);
-                          }}
-                        />
-                        
-                        {/* Connection lines to next round */}
-                        {roundIndex < bracketData.length - 1 && (
-                          <div className="absolute top-1/2 -right-8 transform -translate-y-1/2">
-                            <ChevronRight className="h-6 w-6 text-muted-foreground" />
-                          </div>
-                        )}
-                      </div>
-                    ))
-                  ) : (
-                    // Show scheduled match placeholders for rounds with no matches
-                    <div className="space-y-4">
-                      {/* Calculate expected number of matches for this round */}
-                      {Array.from({ length: Math.max(1, Math.pow(2, Math.max(0, Math.ceil(Math.log2(maxPlayers)) - round.roundNumber))) }, (_, index) => {
-                        // Create a placeholder scheduled match
-                        const placeholderMatch: Match = {
-                          id: `placeholder-${round.name}-${index}`,
-                          tournamentId: tournamentId,
-                          type: "singles" as const,
-                          round: round.name,
-                          status: "scheduled" as const,
-                          date: new Date().toISOString().split('T')[0],
-                          time: "TBD"
-                        };
-                        
-                        return (
-                          <div key={`empty-${index}`} className="relative">
-                            <MatchCard
-                              match={placeholderMatch}
-                              onEditMatch={() => {
-                                // Show placeholder message for empty matches
-                                toast({
-                                  title: "Match Not Ready",
-                                  description: "This match will be available once the previous round is completed.",
-                                  variant: "default"
-                                });
-                              }}
-                            />
-                            
-                            {/* Connection lines to next round */}
-                            {roundIndex < bracketData.length - 1 && (
-                              <div className="absolute top-1/2 -right-8 transform -translate-y-1/2">
-                                <ChevronRight className="h-6 w-6 text-muted-foreground opacity-30" />
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                  {round.matches.map((match, matchIndex) => (
+                    <div key={match.id} className="relative">
+                      <MatchCard
+                        match={match}
+                        onEditMatch={(matchId) => {
+                          // Check if this is a placeholder match
+                          if (matchId.startsWith('placeholder-')) {
+                            toast({
+                              title: "Match Not Ready",
+                              description: "This match will be available once the previous round is completed.",
+                              variant: "default"
+                            });
+                            return;
+                          }
+                          
+                          const selectedMatch = matches.find(m => m.id === matchId);
+                          setSelectedMatch(selectedMatch || null);
+                        }}
+                      />
+                      
+                      {/* Connection lines to next round */}
+                      {roundIndex < bracketData.length - 1 && (
+                        <div className="absolute top-1/2 -right-8 transform -translate-y-1/2">
+                          <ChevronRight className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                      )}
                     </div>
-                  )}
+                  ))}
                 </div>
               </div>
             ))}
