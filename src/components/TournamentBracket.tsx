@@ -525,8 +525,24 @@ export function TournamentBracket({
   };
 
   const fillFirstRound = () => {
-    const updatedMatches = fillFirstRoundMatches(tournamentId, players, matches);
-    onMatchUpdate(updatedMatches);
+    console.log("fillFirstRound called");
+    console.log("tournamentId:", tournamentId);
+    console.log("players:", players);
+    console.log("current matches:", matches);
+    
+    try {
+      const updatedMatches = fillFirstRoundMatches(tournamentId, players, matches);
+      console.log("fillFirstRoundMatches returned:", updatedMatches);
+      onMatchUpdate(updatedMatches);
+      console.log("onMatchUpdate called successfully");
+    } catch (error) {
+      console.error("Error in fillFirstRound:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fill first round. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const getRoundName = (round: number, totalRounds: number): string => {
