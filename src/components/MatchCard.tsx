@@ -42,9 +42,10 @@ interface MatchCardProps {
   onViewDetails?: () => void;
   onEditMatch?: (matchId: string) => void;
   previousMatches?: Match[]; // For showing source match information
+  showScores?: boolean; // Control whether to show scores
 }
 
-export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch, previousMatches = [] }: MatchCardProps) {
+export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch, previousMatches = [], showScores = true }: MatchCardProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "scheduled": return "bg-warning text-warning-foreground";
@@ -162,7 +163,7 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch, pr
                     <p className="text-sm text-muted-foreground">Handicap: {match.player1.handicap}</p>
                   </div>
                 </div>
-                {match.status === "completed" && match.player1.score !== undefined && (
+                {showScores && match.status === "completed" && match.player1.score !== undefined && (
                   <div className="text-right">
                     <p className="text-2xl font-bold">{match.player1.score}</p>
                   </div>
@@ -201,7 +202,7 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch, pr
                       <p className="text-sm text-muted-foreground">Handicap: {match.player2.handicap}</p>
                     </div>
                   </div>
-                  {match.status === "completed" && match.player2.score !== undefined && (
+                  {showScores && match.status === "completed" && match.player2.score !== undefined && (
                     <div className="text-right">
                       <p className="text-2xl font-bold">{match.player2.score}</p>
                     </div>
@@ -232,7 +233,7 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch, pr
                   <div className="w-2 h-2 bg-primary rounded-full"></div>
                   <span className="text-sm font-medium text-muted-foreground">Team 1</span>
                 </div>
-                {renderTeamCard(match.team1, match.status === "completed", match.winner === "team1")}
+                {renderTeamCard(match.team1, showScores && match.status === "completed", match.winner === "team1")}
               </div>
               
               {/* VS Divider */}
@@ -248,7 +249,7 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch, pr
                   <div className="w-2 h-2 bg-secondary rounded-full"></div>
                   <span className="text-sm font-medium text-muted-foreground">Team 2</span>
                 </div>
-                {renderTeamCard(match.team2, match.status === "completed", match.winner === "team2")}
+                {renderTeamCard(match.team2, showScores && match.status === "completed", match.winner === "team2")}
               </div>
             </>
           ) : match.type === "singles" && !match.player1 ? (

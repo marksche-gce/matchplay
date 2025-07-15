@@ -639,6 +639,7 @@ export function TournamentBracket({
                       <MatchCard
                         match={match}
                         previousMatches={matches.filter(m => m.tournamentId === tournamentId)}
+                        showScores={false}
                         onEditMatch={(matchId) => {
                           // Allow editing of all matches, including placeholder ones
                           const selectedMatch = matches.find(m => m.id === matchId);
