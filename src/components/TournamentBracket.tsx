@@ -104,7 +104,7 @@ export function TournamentBracket({
     
     // Use database matches if they exist, otherwise use generated matches
     const matchesToUse = databaseMatches.length > 0 ? databaseMatches : generatedMatches;
-    console.log("Using matches:", matchesToUse.length > 0 ? "database" : "generated");
+    console.log("Using matches:", databaseMatches.length > 0 ? "database" : "generated", "count:", matchesToUse.length);
     
     // Group existing matches by round
     const roundsMap = new Map<string, Match[]>();
@@ -416,8 +416,8 @@ export function TournamentBracket({
     
     if (isGeneratedMatch) {
       toast({
-        title: "Create Database Matches First",
-        description: "Click 'Create Database Matches' to save the bracket before editing matches.",
+        title: "Cannot Edit Generated Matches",
+        description: "You need to click 'Create Database Matches' button first to save the bracket structure to the database before you can edit individual matches.",
         variant: "destructive"
       });
       return;
