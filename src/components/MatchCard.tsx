@@ -46,10 +46,12 @@ interface MatchCardProps {
 }
 
 export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch, previousMatches = [], showScores = true }: MatchCardProps) {
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string, hasWinner: boolean = false) => {
     switch (status) {
       case "scheduled": return "bg-warning text-warning-foreground";
-      case "completed": return "bg-muted text-muted-foreground";
+      case "completed": return hasWinner 
+        ? "bg-gradient-to-r from-yellow-500 to-amber-500 text-white shadow-md" 
+        : "bg-muted text-muted-foreground";
       default: return "bg-secondary text-secondary-foreground";
     }
   };
@@ -131,9 +133,12 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch, pr
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">{match.round}</CardTitle>
-          <Badge className={getStatusColor(match.status)}>
+          <Badge className={getStatusColor(match.status, !!match.winner)}>
             {getStatusIcon(match.status)}
             {match.status.replace('-', ' ').charAt(0).toUpperCase() + match.status.slice(1).replace('-', ' ')}
+            {match.winner && match.status === "completed" && (
+              <Award className="h-3 w-3 ml-1" />
+            )}
           </Badge>
         </div>
       </CardHeader>

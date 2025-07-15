@@ -145,7 +145,20 @@ export function EditMatchDialog({
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      
+      // Auto-complete match when winner is selected
+      if (field === "winner" && value && value !== "no-winner") {
+        newData.status = "completed";
+      }
+      // Auto-schedule match when winner is cleared
+      if (field === "winner" && (value === "no-winner" || value === "")) {
+        newData.status = "scheduled";
+      }
+      
+      return newData;
+    });
   };
 
   return (
