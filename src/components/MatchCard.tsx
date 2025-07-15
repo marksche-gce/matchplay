@@ -108,7 +108,7 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch }: 
       
       <CardContent className="space-y-4">
         <div className="relative">
-          {match.type === "singles" && match.player1 && match.player2 ? (
+          {match.type === "singles" && match.player1 ? (
             <>
               {/* Singles Match - Player 1 */}
               <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
@@ -124,6 +124,9 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch }: 
                       {match.winner === match.player1.name && (
                         <Award className="h-6 w-6 text-yellow-500 drop-shadow-sm" />
                       )}
+                      {!match.player2 && (
+                        <Badge variant="secondary" className="text-xs">Free Pass</Badge>
+                      )}
                     </div>
                     <p className="text-sm text-muted-foreground">Handicap: {match.player1.handicap}</p>
                   </div>
@@ -135,37 +138,60 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch }: 
                 )}
               </div>
               
-              {/* VS Divider */}
+              {/* VS Divider or Free Pass indicator */}
               <div className="flex items-center justify-center py-2">
-                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-bold text-sm">
-                  VS
-                </div>
-              </div>
-              
-              {/* Singles Match - Player 2 */}
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10 bg-gradient-golf">
-                    <AvatarFallback className="bg-primary text-primary-foreground">
-                      {match.player2.name.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold">{match.player2.name}</p>
-                      {match.winner === match.player2.name && (
-                        <Award className="h-6 w-6 text-yellow-500 drop-shadow-sm" />
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground">Handicap: {match.player2.handicap}</p>
+                {match.player2 ? (
+                  <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-bold text-sm">
+                    VS
                   </div>
-                </div>
-                {match.status === "completed" && match.player2.score !== undefined && (
-                  <div className="text-right">
-                    <p className="text-2xl font-bold">{match.player2.score}</p>
+                ) : (
+                  <div className="w-12 h-8 bg-secondary/50 rounded-full flex items-center justify-center text-secondary-foreground font-medium text-xs border-2 border-dashed border-secondary">
+                    BYE
                   </div>
                 )}
               </div>
+              
+              {/* Singles Match - Player 2 or Bye */}
+              {match.player2 ? (
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10 bg-gradient-golf">
+                      <AvatarFallback className="bg-primary text-primary-foreground">
+                        {match.player2.name.split(' ').map(n => n[0]).join('')}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold">{match.player2.name}</p>
+                        {match.winner === match.player2.name && (
+                          <Award className="h-6 w-6 text-yellow-500 drop-shadow-sm" />
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground">Handicap: {match.player2.handicap}</p>
+                    </div>
+                  </div>
+                  {match.status === "completed" && match.player2.score !== undefined && (
+                    <div className="text-right">
+                      <p className="text-2xl font-bold">{match.player2.score}</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border-2 border-dashed border-muted">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 bg-muted/50 rounded-full flex items-center justify-center">
+                      <Users className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-muted-foreground italic">No Opponent</p>
+                      <p className="text-sm text-muted-foreground">Automatic advance</p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="text-muted-foreground">
+                    Bye
+                  </Badge>
+                </div>
+              )}
             </>
           ) : match.type === "foursome" && match.team1 && match.team2 ? (
             <>
@@ -194,6 +220,39 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch }: 
                 {renderTeamCard(match.team2, match.status === "completed", match.winner === "team2")}
               </div>
             </>
+          ) : match.type === "singles" && !match.player1 ? (
+            // Empty bracket - no players assigned yet
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border-2 border-dashed border-muted">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 bg-muted/50 rounded-full flex items-center justify-center">
+                    <Users className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-muted-foreground italic">TBD</p>
+                    <p className="text-sm text-muted-foreground">To be determined</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-center py-2">
+                <div className="w-8 h-8 bg-muted/50 rounded-full flex items-center justify-center text-muted-foreground font-bold text-sm">
+                  VS
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border-2 border-dashed border-muted">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 bg-muted/50 rounded-full flex items-center justify-center">
+                    <Users className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-muted-foreground italic">TBD</p>
+                    <p className="text-sm text-muted-foreground">To be determined</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           ) : null}
         </div>
         
