@@ -78,11 +78,26 @@ export function EditMatchDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log("EditMatchDialog handleSubmit called with formData:", formData);
+    
     const updates: Partial<Match> = {
       round: formData.round,
-      status: formData.status as Match["status"],
-      winner: formData.winner === "no-winner" ? undefined : formData.winner
+      status: formData.status as Match["status"]
     };
+
+    // Handle winner selection properly
+    if (formData.status === "completed") {
+      if (formData.winner && formData.winner !== "no-winner") {
+        updates.winner = formData.winner;
+        console.log("Setting winner to:", formData.winner);
+      } else {
+        updates.winner = undefined;
+        console.log("No winner selected or explicitly set to no-winner");
+      }
+    } else {
+      updates.winner = undefined;
+      console.log("Match not completed, clearing winner");
+    }
 
     // Create updated match for validation
     const updatedMatch = { ...match, ...updates };
@@ -118,6 +133,7 @@ export function EditMatchDialog({
       }
     }
 
+    console.log("Calling onMatchUpdate with:", match.id, updates);
     onMatchUpdate(match.id, updates);
 
     toast({
@@ -167,10 +183,10 @@ export function EditMatchDialog({
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="scheduled">Scheduled</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                </SelectContent>
+                      <SelectContent className="bg-background border z-50">
+                        <SelectItem value="scheduled">Scheduled</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                      </SelectContent>
               </Select>
             </div>
 
@@ -185,7 +201,7 @@ export function EditMatchDialog({
                       <SelectTrigger>
                         <SelectValue placeholder="Select player 1" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-background border z-50">
                         {availablePlayers.map(player => (
                           <SelectItem key={player.name} value={player.name}>
                             {player.name} (HC: {player.handicap})
@@ -201,7 +217,7 @@ export function EditMatchDialog({
                       <SelectTrigger>
                         <SelectValue placeholder="Select player 2" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-background border z-50">
                         {availablePlayers.map(player => (
                           <SelectItem key={player.name} value={player.name}>
                             {player.name} (HC: {player.handicap})
@@ -250,7 +266,7 @@ export function EditMatchDialog({
                         <SelectTrigger>
                           <SelectValue placeholder="Select winner" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-background border z-50">
                           <SelectItem value="no-winner">(No winner yet)</SelectItem>
                           {formData.player1Name && <SelectItem value={formData.player1Name}>{formData.player1Name}</SelectItem>}
                           {formData.player2Name && <SelectItem value={formData.player2Name}>{formData.player2Name}</SelectItem>}
