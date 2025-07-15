@@ -86,6 +86,9 @@ export type Database = {
           id: string
           match_date: string | null
           match_time: string | null
+          next_match_id: string | null
+          previous_match_1_id: string | null
+          previous_match_2_id: string | null
           round: string
           status: string
           tee: number | null
@@ -99,6 +102,9 @@ export type Database = {
           id?: string
           match_date?: string | null
           match_time?: string | null
+          next_match_id?: string | null
+          previous_match_1_id?: string | null
+          previous_match_2_id?: string | null
           round: string
           status?: string
           tee?: number | null
@@ -112,6 +118,9 @@ export type Database = {
           id?: string
           match_date?: string | null
           match_time?: string | null
+          next_match_id?: string | null
+          previous_match_1_id?: string | null
+          previous_match_2_id?: string | null
           round?: string
           status?: string
           tee?: number | null
@@ -121,6 +130,27 @@ export type Database = {
           winner_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "matches_next_match_id_fkey"
+            columns: ["next_match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_previous_match_1_id_fkey"
+            columns: ["previous_match_1_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_previous_match_2_id_fkey"
+            columns: ["previous_match_2_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "matches_tournament_id_fkey"
             columns: ["tournament_id"]

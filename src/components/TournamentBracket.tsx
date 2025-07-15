@@ -9,6 +9,7 @@ import { MatchCard } from "./MatchCard";
 import { EditMatchDialog } from "./EditMatchDialog";
 import { useToast } from "@/hooks/use-toast";
 import { useBracketGeneration } from "@/hooks/useBracketGeneration";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Player {
   name: string;
@@ -169,58 +170,58 @@ export function TournamentBracket({
     setBracketData(rounds);
   };
 
-  const autoCompleteByeMatches = () => {
-    const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
-    let updatedMatches = [...matches];
-    let hasChanges = false;
-
-    // Find matches with only one player (bye matches)
-    tournamentMatches.forEach(match => {
-      if (match.status === "scheduled") {
-        // Check for singles match with only one player
-        if (match.type === "singles" && match.player1 && !match.player2) {
-          // Auto-complete match with player1 as winner
-          const completedMatch = {
-            ...match,
-            status: "completed" as const,
-            winner: match.player1.name
-          };
-          
-          updatedMatches = updatedMatches.map(m => 
-            m.id === match.id ? completedMatch : m
-          );
-          hasChanges = true;
-          
-          toast({
-            title: "Bye Match Completed",
-            description: `${match.player1.name} automatically advances (bye).`,
-          });
-        }
-        // Check for foursome match with only one team
-        else if (match.type === "foursome" && match.team1 && !match.team2) {
-          // Auto-complete match with team1 as winner
-          const completedMatch = {
-            ...match,
-            status: "completed" as const,
-            winner: "team1"
-          };
-          
-          updatedMatches = updatedMatches.map(m => 
-            m.id === match.id ? completedMatch : m
-          );
-          hasChanges = true;
-          
-          toast({
-            title: "Bye Match Completed",
-            description: `Team 1 automatically advances (bye).`,
-          });
-        }
-      }
-    });
-
-    if (hasChanges) {
-      onMatchUpdate(updatedMatches);
+  const progressWinnerImmediately = (currentMatches: Match[], completedMatch: Match): Match[] => {
+    if (!completedMatch.winner || completedMatch.status !== "completed") {
+      console.log("No winner or match not completed:", completedMatch);
+      return currentMatches;
     }
+
+    console.log("Processing winner advancement for:", completedMatch.id, "winner:", completedMatch.winner);
+
+    // Find the winner from the players array
+    const winnerPlayer = players.find(p => p.name === completedMatch.winner);
+    
+    if (!winnerPlayer) {
+      console.warn("Winner player not found in players array:", completedMatch.winner);
+      return currentMatches;
+    }
+
+    // Find the next round match where this winner should advance
+    const nextRoundNumber = parseInt(completedMatch.round.split(' ')[1]) + 1;
+    const nextRoundName = `Round ${nextRoundNumber}`;
+    
+    const nextMatch = currentMatches.find(match => 
+      match.round === nextRoundName && 
+      match.tournamentId === completedMatch.tournamentId &&
+      (!match.player1 || !match.player2) // Find match with available slot
+    );
+
+    if (nextMatch) {
+      const updatedMatches = currentMatches.map(match => {
+        if (match.id === nextMatch.id) {
+          const updatedMatch = { ...match };
+          
+          // Add winner to the next match
+          if (!updatedMatch.player1) {
+            updatedMatch.player1 = { ...winnerPlayer, score: undefined };
+          } else if (!updatedMatch.player2) {
+            updatedMatch.player2 = { ...winnerPlayer, score: undefined };
+          }
+          
+          return updatedMatch;
+        }
+        return match;
+      });
+      
+      toast({
+        title: "Winner Advanced!",
+        description: `${completedMatch.winner} has been advanced to ${nextRoundName}.`,
+      });
+      
+      return updatedMatches;
+    }
+
+    return currentMatches;
   };
 
   const advanceAllWinners = () => {
@@ -258,156 +259,6 @@ export function TournamentBracket({
       return validWinners.includes(winner);
     }
     return false;
-  };
-
-  const progressWinner = (completedMatch: Match) => {
-    if (!completedMatch.winner || completedMatch.status !== "completed") {
-      return;
-    }
-
-    // Validate winner
-    if (!validateWinnerProgression(completedMatch, completedMatch.winner)) {
-      toast({
-        title: "Invalid Winner",
-        description: "The selected winner did not participate in this match.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Find the next match that this winner should advance to
-    const nextMatch = matches.find(m => 
-      m.previousMatch1Id === completedMatch.id || 
-      m.previousMatch2Id === completedMatch.id
-    );
-
-    if (nextMatch && nextMatch.status === "scheduled") {
-      // Progress the winner to the next match
-      const updatedMatches = matches.map(match => {
-        if (match.id === nextMatch.id) {
-          let updatedMatch = { ...match };
-
-          if (completedMatch.type === "singles" && completedMatch.winner) {
-            const winnerPlayer = completedMatch.winner === completedMatch.player1?.name 
-              ? completedMatch.player1 
-              : completedMatch.player2;
-            
-            if (match.previousMatch1Id === completedMatch.id) {
-              updatedMatch.player1 = winnerPlayer ? { ...winnerPlayer, score: undefined } : undefined;
-            } else if (match.previousMatch2Id === completedMatch.id) {
-              updatedMatch.player2 = winnerPlayer ? { ...winnerPlayer, score: undefined } : undefined;
-            }
-          } else if (completedMatch.type === "foursome" && completedMatch.winner) {
-            const winnerTeam = completedMatch.winner === "team1" 
-              ? completedMatch.team1 
-              : completedMatch.team2;
-            
-            if (match.previousMatch1Id === completedMatch.id) {
-              updatedMatch.team1 = winnerTeam ? { 
-                ...winnerTeam, 
-                teamScore: undefined,
-                player1: { ...winnerTeam.player1, score: undefined },
-                player2: { ...winnerTeam.player2, score: undefined }
-              } : undefined;
-            } else if (match.previousMatch2Id === completedMatch.id) {
-              updatedMatch.team2 = winnerTeam ? { 
-                ...winnerTeam, 
-                teamScore: undefined,
-                player1: { ...winnerTeam.player1, score: undefined },
-                player2: { ...winnerTeam.player2, score: undefined }
-              } : undefined;
-            }
-          }
-
-          return updatedMatch;
-        }
-        return match;
-      });
-
-      onMatchUpdate(updatedMatches);
-      
-      toast({
-        title: "Winner Advanced!",
-        description: `${completedMatch.winner} has been advanced to the next round.`,
-      });
-    }
-  };
-
-  const progressWinnerImmediately = (currentMatches: Match[], completedMatch: Match): Match[] => {
-    if (!completedMatch.winner || completedMatch.status !== "completed") {
-      console.log("No winner or match not completed:", completedMatch);
-      return currentMatches;
-    }
-
-    console.log("Processing winner advancement for:", completedMatch.id, "winner:", completedMatch.winner);
-
-    // Find the next match that this winner should advance to
-    const nextMatch = currentMatches.find(m => 
-      m.previousMatch1Id === completedMatch.id || 
-      m.previousMatch2Id === completedMatch.id
-    );
-
-    console.log("Found next match:", nextMatch?.id, "for completed match:", completedMatch.id);
-
-    if (!nextMatch || nextMatch.status !== "scheduled") {
-      console.log("No next match found or next match not scheduled");
-      return currentMatches;
-    }
-
-    // Progress the winner to the next match immediately
-    const updatedMatches = currentMatches.map(match => {
-      if (match.id === nextMatch.id) {
-        let updatedMatch = { ...match };
-        console.log("Updating next match:", match.id, "from completed match:", completedMatch.id);
-
-        if (completedMatch.type === "singles" && completedMatch.winner) {
-          const winnerPlayer = completedMatch.winner === completedMatch.player1?.name 
-            ? completedMatch.player1 
-            : completedMatch.player2;
-          
-          console.log("Winner player:", winnerPlayer);
-
-          if (match.previousMatch1Id === completedMatch.id) {
-            console.log("Setting player1 to:", winnerPlayer?.name);
-            updatedMatch.player1 = winnerPlayer ? { ...winnerPlayer, score: undefined } : undefined;
-          } else if (match.previousMatch2Id === completedMatch.id) {
-            console.log("Setting player2 to:", winnerPlayer?.name);
-            updatedMatch.player2 = winnerPlayer ? { ...winnerPlayer, score: undefined } : undefined;
-          }
-        } else if (completedMatch.type === "foursome" && completedMatch.winner) {
-          const winnerTeam = completedMatch.winner === "team1" 
-            ? completedMatch.team1 
-            : completedMatch.team2;
-          
-          if (match.previousMatch1Id === completedMatch.id) {
-            updatedMatch.team1 = winnerTeam ? { 
-              ...winnerTeam, 
-              teamScore: undefined,
-              player1: { ...winnerTeam.player1, score: undefined },
-              player2: { ...winnerTeam.player2, score: undefined }
-            } : undefined;
-          } else if (match.previousMatch2Id === completedMatch.id) {
-            updatedMatch.team2 = winnerTeam ? { 
-              ...winnerTeam, 
-              teamScore: undefined,
-              player1: { ...winnerTeam.player1, score: undefined },
-              player2: { ...winnerTeam.player2, score: undefined }
-            } : undefined;
-          }
-        }
-
-        console.log("Updated match:", updatedMatch);
-        return updatedMatch;
-      }
-      return match;
-    });
-    
-    toast({
-      title: "Winner Advanced!",
-      description: `${completedMatch.winner} has been advanced to the next round.`,
-    });
-
-    return updatedMatches;
   };
 
   const handleMatchUpdate = (matchId: string, updates: Partial<Match>) => {
@@ -487,41 +338,143 @@ export function TournamentBracket({
 
     try {
       let createdCount = 0;
+      const matchIdMap = new Map<string, string>(); // Map from temp ID to real UUID
       
-      // Convert generated matches to database format and create them
+      // First pass: Create all matches without relationships
+      const allMatches = [];
       for (const round of bracketData) {
         for (const match of round.matches) {
           // Only create matches that have at least one player
           if (match.player1) {
-            const matchData: Omit<Match, "id"> = {
-              tournamentId: tournamentId,
+            const matchData = {
+              tournament_id: tournamentId,
               type: "singles",
-              player1: match.player1,
-              player2: match.player2,
               round: match.round,
-              status: "scheduled",
-              date: new Date().toISOString().split('T')[0],
-              time: "09:00",
-              tee: match.tee
+              status: match.status,
+              match_date: null,
+              match_time: null,
+              tee: null,
+              winner_id: null,
+              next_match_id: null,
+              previous_match_1_id: null,
+              previous_match_2_id: null
             };
-            
-            // Create the match in the database
-            await onCreateMatch(matchData);
-            createdCount++;
+            allMatches.push({ tempId: match.id, matchData, originalMatch: match });
           }
         }
       }
-      
+
+      // Create all matches in database first
+      const { data: createdMatches, error: createError } = await supabase
+        .from('matches')
+        .insert(allMatches.map(m => m.matchData))
+        .select('id');
+
+      if (createError) throw createError;
+
+      // Map temp IDs to real UUIDs
+      createdMatches.forEach((dbMatch, index) => {
+        matchIdMap.set(allMatches[index].tempId, dbMatch.id);
+      });
+
+      // Second pass: Update relationships
+      const relationshipUpdates = [];
+      for (const round of bracketData) {
+        for (const match of round.matches) {
+          if (match.player1) {
+            const realMatchId = matchIdMap.get(match.id);
+            if (realMatchId) {
+              const updates: any = {};
+              
+              if (match.nextMatchId) {
+                const nextRealId = matchIdMap.get(match.nextMatchId);
+                if (nextRealId) updates.next_match_id = nextRealId;
+              }
+              
+              if (match.previousMatch1Id) {
+                const prev1RealId = matchIdMap.get(match.previousMatch1Id);
+                if (prev1RealId) updates.previous_match_1_id = prev1RealId;
+              }
+              
+              if (match.previousMatch2Id) {
+                const prev2RealId = matchIdMap.get(match.previousMatch2Id);
+                if (prev2RealId) updates.previous_match_2_id = prev2RealId;
+              }
+              
+              if (Object.keys(updates).length > 0) {
+                relationshipUpdates.push({ id: realMatchId, updates });
+              }
+            }
+          }
+        }
+      }
+
+      // Update relationships in database
+      for (const { id, updates } of relationshipUpdates) {
+        const { error: updateError } = await supabase
+          .from('matches')
+          .update(updates)
+          .eq('id', id);
+        
+        if (updateError) throw updateError;
+      }
+
+      // Create match participants
+      for (let i = 0; i < allMatches.length; i++) {
+        const dbMatchId = createdMatches[i].id;
+        const originalMatch = allMatches[i].originalMatch;
+        
+        const participants = [];
+        
+        if (originalMatch.player1) {
+          const player1 = players.find(p => p.name === originalMatch.player1.name);
+          if (player1) {
+            participants.push({
+              match_id: dbMatchId,
+              player_id: player1.id,
+              position: 1,
+              team_number: null,
+              score: null
+            });
+          }
+        }
+        
+        if (originalMatch.player2) {
+          const player2 = players.find(p => p.name === originalMatch.player2.name);
+          if (player2) {
+            participants.push({
+              match_id: dbMatchId,
+              player_id: player2.id,
+              position: 2,
+              team_number: null,
+              score: null
+            });
+          }
+        }
+        
+        if (participants.length > 0) {
+          const { error: participantsError } = await supabase
+            .from('match_participants')
+            .insert(participants);
+          
+          if (participantsError) throw participantsError;
+        }
+        
+        createdCount++;
+      }
+
       toast({
         title: "Database Matches Created!",
-        description: `${createdCount} matches have been created in the database and can now be edited.`,
+        description: `Successfully created ${createdCount} matches with bracket relationships.`,
       });
-      
+
+      // Refresh matches to show the created ones
+      onMatchUpdate([...matches]);
     } catch (error) {
       console.error('Error creating database matches:', error);
       toast({
-        title: "Error",
-        description: "Failed to create database matches. Please try again.",
+        title: "Error Creating Matches",
+        description: "Failed to create matches in database. Please try again.",
         variant: "destructive"
       });
     }
@@ -529,15 +482,10 @@ export function TournamentBracket({
 
   const fillFirstRound = () => {
     console.log("fillFirstRound called");
-    console.log("tournamentId:", tournamentId);
-    console.log("players:", players);
-    console.log("current matches:", matches);
     
     try {
       const updatedMatches = fillFirstRoundMatches(tournamentId, players, matches);
-      console.log("fillFirstRoundMatches returned:", updatedMatches);
       onMatchUpdate(updatedMatches);
-      console.log("onMatchUpdate called successfully");
     } catch (error) {
       console.error("Error in fillFirstRound:", error);
       toast({
@@ -546,13 +494,6 @@ export function TournamentBracket({
         variant: "destructive"
       });
     }
-  };
-
-  const getRoundName = (round: number, totalRounds: number): string => {
-    if (round === totalRounds) return "Final";
-    if (round === totalRounds - 1) return "Semifinals";
-    if (round === totalRounds - 2) return "Quarterfinals";
-    return `Round ${round}`;
   };
 
   const getMatchProgress = () => {
@@ -605,7 +546,7 @@ export function TournamentBracket({
                     Fill First Round
                   </Button>
                   
-                  <Button onClick={createDatabaseMatches} variant="fairway" size="sm">
+                  <Button onClick={createDatabaseMatches} variant="default" size="sm">
                     Create Database Matches
                   </Button>
                   
