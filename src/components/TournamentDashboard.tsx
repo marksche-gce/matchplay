@@ -298,6 +298,29 @@ export function TournamentDashboard() {
     }
   };
 
+  
+  const getNextRoundDate = (): string => {
+    // Find the next scheduled match date
+    const scheduledMatches = tournamentMatches.filter(m => m.status === "scheduled");
+    
+    if (scheduledMatches.length === 0) {
+      return "TBD";
+    }
+    
+    // Get all unique dates from scheduled matches and sort them
+    const matchDates = scheduledMatches
+      .map(m => m.date)
+      .filter(date => date && date !== "TBD")
+      .sort();
+    
+    if (matchDates.length === 0) {
+      return "TBD";
+    }
+    
+    // Return the earliest scheduled date
+    return matchDates[0];
+  };
+
   const currentTournament = tournaments.find(t => t.id === selectedTournament);
   const tournamentPlayers = players; // Use all fetched players since they're already filtered by tournament
   const tournamentMatches = matches.filter(m => m.tournamentId === selectedTournament);
@@ -1181,6 +1204,10 @@ export function TournamentDashboard() {
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-warning/10 rounded-lg">
                   <Calendar className="h-5 w-5 text-warning" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{getNextRoundDate()}</p>
+                  <p className="text-sm text-muted-foreground">Next Round</p>
                 </div>
               </div>
             </CardContent>
