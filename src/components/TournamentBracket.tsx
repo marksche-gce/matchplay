@@ -413,39 +413,53 @@ export function TournamentBracket({
   const handleMatchUpdate = async (matchId: string, updates: Partial<Match>) => {
     console.log("handleMatchUpdate called for match ID:", matchId, "updates:", updates);
     
-    // Check if this is a generated match (non-UUID ID) - these need to be saved to database first
+    // Check if this is a generated match (non-UUID ID)
     const isGeneratedMatch = !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(matchId);
     
     console.log("Is generated match:", isGeneratedMatch, "Match ID:", matchId);
     
     if (isGeneratedMatch) {
-      console.log("Generated match detected - creating database matches first");
+      console.log("Updating generated match in local state only");
+      
+      // Update the match in local state (not database)
+      const updatedMatches = matches.map(match => {
+        if (match.id === matchId) {
+          const updatedMatch = { ...match, ...updates };
+          
+          // If match is being completed, validate winner
+          if (updatedMatch.status === "completed" && updatedMatch.winner) {
+            if (!validateWinnerProgression(updatedMatch, updatedMatch.winner)) {
+              toast({
+                title: "Invalid Winner",
+                description: "The selected winner did not participate in this match.",
+                variant: "destructive"
+              });
+              return match; // Don't update if winner is invalid
+            }
+          }
+          
+          return updatedMatch;
+        }
+        return match;
+      });
+
+      // Progress winner immediately in local state
+      let finalMatches = updatedMatches;
+      const completedMatch = updatedMatches.find(m => m.id === matchId);
+      
+      if (completedMatch?.status === "completed" && completedMatch.winner) {
+        finalMatches = progressWinnerImmediately(updatedMatches, completedMatch);
+      }
+
+      onMatchUpdate(finalMatches);
+
       toast({
-        title: "Converting to Database Matches",
-        description: "Converting bracket to database format before saving your changes...",
+        title: "Match Updated! (Local Only)",
+        description: "Changes saved locally. Click 'Create Database Matches' to save permanently.",
+        variant: "default"
       });
       
-      try {
-        // Automatically create database matches first
-        await createDatabaseMatches();
-        
-        // After database matches are created, we need to find the corresponding database match
-        // and then save the updates to it. For now, just show success message.
-        toast({
-          title: "Bracket Converted!",
-          description: "Your bracket has been saved to the database. Please try editing the match again.",
-        });
-        return;
-        
-      } catch (error) {
-        console.error("Failed to create database matches:", error);
-        toast({
-          title: "❌ Failed to Convert Bracket",
-          description: "Could not save bracket to database. Please try clicking 'Create Database Matches' manually.",
-          variant: "destructive"
-        });
-        return;
-      }
+      return;
     }
 
     try {
