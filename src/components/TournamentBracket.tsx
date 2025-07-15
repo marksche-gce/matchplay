@@ -82,6 +82,7 @@ export function TournamentBracket({
       if (tournamentMatches.length > 0) {
         generateBracket(); // Show existing matches in bracket view
         advanceAllWinners();
+        processAutoAdvanceByes(); // Handle bye matches
       }
     }
   }, [matches]);
@@ -247,6 +248,76 @@ export function TournamentBracket({
 
     if (hasChanges) {
       onMatchUpdate(updatedMatches);
+    }
+  };
+
+  const processAutoAdvanceByes = async () => {
+    const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
+    const byeMatches = tournamentMatches.filter(m => 
+      m.status === "scheduled" && 
+      m.player1 && 
+      !m.player2 && // Only one player in the match
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(m.id) // Only real database matches
+    );
+
+    if (byeMatches.length === 0) return;
+
+    console.log(`Processing ${byeMatches.length} bye matches`);
+
+    let updatedMatches = [...matches];
+    let hasChanges = false;
+
+    for (const byeMatch of byeMatches) {
+      console.log(`Auto-advancing ${byeMatch.player1?.name} from bye match ${byeMatch.id}`);
+      
+      try {
+        // Complete the bye match with the single player as winner
+        const completedByeMatch = {
+          ...byeMatch,
+          status: "completed" as const,
+          winner: byeMatch.player1?.name
+        };
+
+        // Update match in database
+        const winnerPlayer = players.find(p => p.name === byeMatch.player1?.name);
+        if (winnerPlayer) {
+          const { error: updateError } = await supabase
+            .from('matches')
+            .update({
+              status: 'completed',
+              winner_id: winnerPlayer.id
+            })
+            .eq('id', byeMatch.id);
+
+          if (updateError) throw updateError;
+
+          // Progress winner to next match in database
+          await progressWinnerToDatabase(completedByeMatch, winnerPlayer);
+        }
+
+        // Update the match in the local array
+        const matchIndex = updatedMatches.findIndex(m => m.id === byeMatch.id);
+        if (matchIndex !== -1) {
+          updatedMatches[matchIndex] = completedByeMatch;
+          hasChanges = true;
+
+          // Progress the winner immediately in UI
+          updatedMatches = progressWinnerImmediately(updatedMatches, completedByeMatch);
+        }
+
+      } catch (error) {
+        console.error(`Error processing bye match ${byeMatch.id}:`, error);
+        // Continue with other bye matches even if one fails
+      }
+    }
+
+    if (hasChanges) {
+      onMatchUpdate(updatedMatches);
+      
+      toast({
+        title: "Bye Matches Auto-Advanced",
+        description: `${byeMatches.length} players with free passes have been advanced to the next round.`,
+      });
     }
   };
 
