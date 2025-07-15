@@ -37,29 +37,17 @@ export function useBracketGeneration() {
     players: Player[],
     maxPlayers: number
   ): Match[] => {
-    if (players.length < 2) {
-      toast({
-        title: "Not Enough Players",
-        description: "At least 2 players are required to generate a bracket.",
-        variant: "destructive"
-      });
-      return [];
-    }
-
-    // Sort players by handicap (best handicaps first - lowest values)
-    const sortedPlayers = [...players].sort((a, b) => a.handicap - b.handicap);
-
     // Calculate tournament structure based on max players (always fixed)
     const totalRounds = calculateTotalRounds(maxPlayers);
     const firstRoundMatches = calculateFirstRoundMatches(maxPlayers);
     
-    console.log(`Tournament setup: maxPlayers=${maxPlayers}, actualPlayers=${sortedPlayers.length}, firstRoundMatches=${firstRoundMatches}`);
+    console.log(`Tournament setup: maxPlayers=${maxPlayers}, firstRoundMatches=${firstRoundMatches}`);
     
     const newMatches: Match[] = [];
     let matchIdCounter = Date.now();
     
-    // Step 1: Generate all empty first round matches (maxPlayers/2)
-    console.log(`Creating ${firstRoundMatches} first round matches`);
+    // Generate all empty first round matches (maxPlayers/2)
+    console.log(`Creating ${firstRoundMatches} empty first round matches`);
     for (let i = 0; i < firstRoundMatches; i++) {
       const match: Match = {
         id: (matchIdCounter++).toString(),
@@ -72,38 +60,6 @@ export function useBracketGeneration() {
         tee: (i + 1).toString()
       };
       newMatches.push(match);
-    }
-
-    // Step 2: Calculate byes and assign players
-    // For a 16-player tournament: need 8 players in second round
-    // If we have 12 players: 4 best get byes, 8 worst play in first round
-    const secondRoundSlots = maxPlayers / 2;
-    const byeCount = Math.max(0, secondRoundSlots - (sortedPlayers.length - secondRoundSlots));
-    const actualByeCount = Math.min(byeCount, sortedPlayers.length);
-    
-    // Best players get byes
-    const byePlayers = sortedPlayers.slice(0, actualByeCount);
-    const firstRoundPlayers = sortedPlayers.slice(actualByeCount);
-    
-    console.log(`Byes: ${actualByeCount}, First round players: ${firstRoundPlayers.length}`);
-    
-    // Step 3: Assign first round players to matches (ensure each match gets at least 1 player)
-    // Start with worst players and work up, ensuring fair distribution
-    for (let i = 0; i < firstRoundPlayers.length; i++) {
-      const player = firstRoundPlayers[i];
-      const matchIndex = i % firstRoundMatches; // Distribute evenly across matches
-      
-      if (!newMatches[matchIndex].player1) {
-        newMatches[matchIndex].player1 = {
-          name: player.name,
-          handicap: player.handicap
-        };
-      } else if (!newMatches[matchIndex].player2) {
-        newMatches[matchIndex].player2 = {
-          name: player.name,
-          handicap: player.handicap
-        };
-      }
     }
 
     // Generate subsequent rounds
@@ -139,18 +95,9 @@ export function useBracketGeneration() {
       }
     }
 
-    // Show bye information
-    if (actualByeCount > 0) {
-      const byePlayerNames = byePlayers.map(p => p.name).join(", ");
-      toast({
-        title: "Byes Assigned",
-        description: `${actualByeCount} best players received byes: ${byePlayerNames}`,
-      });
-    }
-
     toast({
       title: "Bracket Generated!",
-      description: `Tournament bracket created with ${firstRoundMatches} first-round matches. Each match has at least one player.`,
+      description: `Empty tournament bracket created with ${firstRoundMatches} first-round matches.`,
     });
 
     return newMatches;
