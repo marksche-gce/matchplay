@@ -819,6 +819,9 @@ export function TournamentBracket({
 
   const fillFirstRound = () => {
     console.log("fillFirstRound called");
+    console.log("Current matches:", matches);
+    console.log("Current players:", players);
+    console.log("Tournament ID:", tournamentId);
     
     try {
       const updatedMatches = fillFirstRoundMatches(tournamentId, players, matches);

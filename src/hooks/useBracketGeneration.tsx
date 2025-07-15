@@ -124,6 +124,9 @@ export function useBracketGeneration() {
     players: Player[],
     existingMatches: Match[]
   ): Match[] => {
+    console.log("fillFirstRoundMatches called with:", { tournamentId, playersCount: players.length, matchesCount: existingMatches.length });
+    console.log("All existing matches:", existingMatches);
+    
     if (players.length < 1) {
       toast({
         title: "No Players",
@@ -135,11 +138,14 @@ export function useBracketGeneration() {
 
     // Sort players by handicap (best handicaps first - lowest values)
     const sortedPlayers = [...players].sort((a, b) => a.handicap - b.handicap);
+    console.log("Sorted players:", sortedPlayers);
     
     // Get only first round matches for this tournament
     const firstRoundMatches = existingMatches.filter(
       m => m.tournamentId === tournamentId && m.round === "Round 1"
     );
+    console.log("First round matches found:", firstRoundMatches);
+    console.log("Unique rounds in matches:", [...new Set(existingMatches.map(m => m.round))]);
     
     if (firstRoundMatches.length === 0) {
       toast({
