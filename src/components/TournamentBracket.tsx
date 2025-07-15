@@ -177,120 +177,51 @@ export function TournamentBracket({
 
     console.log("Processing winner advancement for:", completedMatch.winner, "from match:", completedMatch.id);
 
-    // Use bracket structure to find next match
-    const tournamentMatches = currentMatches.filter(m => m.tournamentId === completedMatch.tournamentId);
-    const roundsMap = new Map<string, Match[]>();
-    tournamentMatches.forEach(match => {
-      const roundName = match.round;
-      if (!roundsMap.has(roundName)) {
-        roundsMap.set(roundName, []);
-      }
-      roundsMap.get(roundName)!.push(match);
-    });
-
-    // Find current round and match position
-    const currentRoundMatches = roundsMap.get(completedMatch.round) || [];
-    const currentMatchIndex = currentRoundMatches.findIndex(m => m.id === completedMatch.id);
-    
-    if (currentMatchIndex === -1) {
-      console.log("Current match not found in round");
+    // Find winner in completed match
+    const winnerPlayer = completedMatch.winner === completedMatch.player1?.name ? completedMatch.player1 : completedMatch.player2;
+    if (!winnerPlayer) {
+      console.log("Winner player not found in completed match");
       return currentMatches;
     }
 
-    // Determine next round using the same logic as bracket generation
-    const totalRounds = Math.ceil(Math.log2(maxPlayers));
-    const roundNames: string[] = [];
-    for (let i = 1; i <= totalRounds; i++) {
-      if (i === totalRounds) roundNames.push("Final");
-      else if (i === totalRounds - 1) roundNames.push("Semifinals");
-      else if (i === totalRounds - 2) roundNames.push("Quarterfinals");
-      else roundNames.push(`Round ${i}`);
-    }
-    
-    const currentRoundIndex = roundNames.indexOf(completedMatch.round);
-    if (currentRoundIndex === -1 || currentRoundIndex === roundNames.length - 1) {
-      console.log("No next round available");
-      return currentMatches; // No next round or already final
-    }
-
-    const nextRoundName = roundNames[currentRoundIndex + 1];
-    const nextRoundMatches = roundsMap.get(nextRoundName) || [];
-    
-    console.log("Current round:", completedMatch.round, "index:", currentRoundIndex);
-    console.log("Next round name:", nextRoundName);
-    console.log("Next round matches:", nextRoundMatches.length);
-    console.log("Available rounds:", Array.from(roundsMap.keys()));
-    
-    // Calculate which match in the next round this winner should advance to
-    const nextMatchIndex = Math.floor(currentMatchIndex / 2);
-    const nextMatch = nextRoundMatches[nextMatchIndex];
-
-    console.log("Next match index:", nextMatchIndex, "Next match found:", nextMatch?.id, "for winner:", completedMatch.winner);
-
-    if (nextMatch) {
-      // Find the winner player from the completed match participants
-      const winnerPlayer = completedMatch.winner === completedMatch.player1?.name ? completedMatch.player1 : completedMatch.player2;
-      
-      if (!winnerPlayer) {
-        console.log("Winner player not found in completed match");
-        return currentMatches;
-      }
-
-      console.log("Advancing winner to position:", currentMatchIndex % 2 === 0 ? 1 : 2);
-
-      const updatedMatches = currentMatches.map(match => {
-        if (match.id === nextMatch.id) {
-          const updatedMatch = { ...match };
+    // Use bracket data structure to find next match
+    let nextMatchFound = false;
+    const updatedBracketData = bracketData.map(round => {
+      const updatedMatches = round.matches.map(match => {
+        // Check if this match should receive a winner from the completed match
+        if (match.previousMatch1Id === completedMatch.id) {
+          console.log("Adding winner to player1 position in match:", match.id);
+          const updatedMatch = { ...match, player1: { ...winnerPlayer, score: undefined } };
+          nextMatchFound = true;
           
-          // Add winner to correct position (even index -> player1, odd index -> player2)
-          if (currentMatchIndex % 2 === 0) {
-            updatedMatch.player1 = { ...winnerPlayer, score: undefined };
-          } else {
-            updatedMatch.player2 = { ...winnerPlayer, score: undefined };
-          }
+          // Update bracket display
+          return updatedMatch;
+        } else if (match.previousMatch2Id === completedMatch.id) {
+          console.log("Adding winner to player2 position in match:", match.id);
+          const updatedMatch = { ...match, player2: { ...winnerPlayer, score: undefined } };
+          nextMatchFound = true;
           
+          // Update bracket display
           return updatedMatch;
         }
         return match;
       });
       
-      // Update database if this is a real match (not placeholder)
-      const isRealMatch = !/^placeholder-/.test(nextMatch.id);
-      if (isRealMatch) {
-        const position = currentMatchIndex % 2 === 0 ? 1 : 2;
-        const winnerDbPlayer = players.find(p => p.name === winnerPlayer.name);
-        
-        if (winnerDbPlayer) {
-          console.log("Adding winner to database match:", nextMatch.id, "position:", position);
-          // Add participant to next match in database
-          supabase
-            .from('match_participants')
-            .insert({
-              match_id: nextMatch.id,
-              player_id: winnerDbPlayer.id,
-              position: position,
-              team_number: null,
-              score: null
-            })
-            .then(({ error }) => {
-              if (error && !error.message.includes('duplicate')) {
-                console.error('Error adding participant to next match:', error);
-              } else {
-                console.log("Winner successfully added to database");
-              }
-            });
-        }
-      }
+      return { ...round, matches: updatedMatches };
+    });
+
+    if (nextMatchFound) {
+      console.log("Winner successfully advanced in bracket display");
+      setBracketData(updatedBracketData);
       
       toast({
         title: "Winner Advanced!",
         description: `${completedMatch.winner} has been advanced to the next round.`,
       });
-      
-      return updatedMatches;
+    } else {
+      console.log("No next match found for winner advancement");
     }
 
-    console.log("No next match found");
     return currentMatches;
   };
 
