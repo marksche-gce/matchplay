@@ -153,13 +153,18 @@ export function useBracketGeneration() {
     const totalMatches = firstRoundMatches.length;
     const totalPlayers = sortedPlayers.length;
     
-    // Top 6 best handicappers get automatic byes (don't play in first round)
-    const byePlayers = sortedPlayers.slice(0, 6);
-    const competingPlayers = sortedPlayers.slice(6);
+    // Calculate how many players need to compete in first round vs get free passes
+    const maxTournamentPlayers = totalMatches * 2; // e.g., 16 matches = 32 max players
+    const freePassPlayers = Math.min(6, Math.max(0, maxTournamentPlayers - totalPlayers));
+    const competingPlayers = totalPlayers - freePassPlayers;
+    
+    // Best handicappers get free passes, worst handicappers compete
+    const playersWithFreePasses = sortedPlayers.slice(0, freePassPlayers);
+    const playersToCompete = sortedPlayers.slice(freePassPlayers);
     
     console.log(`First round setup: ${totalMatches} total matches, ${totalPlayers} total players`);
-    console.log(`Bye players (top 6):`, byePlayers.map(p => `${p.name} (${p.handicap})`));
-    console.log(`Competing players:`, competingPlayers.length);
+    console.log(`Free pass players (${freePassPlayers}):`, playersWithFreePasses.map(p => `${p.name} (${p.handicap})`));
+    console.log(`Competing players (${competingPlayers}):`, playersToCompete.length);
     
     // Clear existing players from first round matches
     const updatedMatches = existingMatches.map(match => {
@@ -178,45 +183,56 @@ export function useBracketGeneration() {
       m => m.tournamentId === tournamentId && m.round === "Round 1"
     );
     
-    // Fill first round matches with competing players (excluding bye players)
     let playerIndex = 0;
+    let matchIndex = 0;
     
-    // First, try to fill matches with pairs of players
-    for (let matchIndex = 0; matchIndex < totalMatches && playerIndex < competingPlayers.length - 1; matchIndex++) {
+    // First, fill matches with pairs of competing players
+    while (playerIndex < playersToCompete.length - 1 && matchIndex < totalMatches) {
       const targetMatchIndex = updatedMatches.findIndex(m => m.id === matchesToFill[matchIndex].id);
       
       if (targetMatchIndex !== -1) {
-        // Assign two players to this match
         updatedMatches[targetMatchIndex].player1 = {
-          name: competingPlayers[playerIndex].name,
-          handicap: competingPlayers[playerIndex].handicap
+          name: playersToCompete[playerIndex].name,
+          handicap: playersToCompete[playerIndex].handicap
         };
         
         updatedMatches[targetMatchIndex].player2 = {
-          name: competingPlayers[playerIndex + 1].name,
-          handicap: competingPlayers[playerIndex + 1].handicap
+          name: playersToCompete[playerIndex + 1].name,
+          handicap: playersToCompete[playerIndex + 1].handicap
         };
         
         playerIndex += 2;
       }
+      matchIndex++;
     }
     
-    // If there's one remaining player, assign to next available match
-    if (playerIndex < competingPlayers.length) {
-      for (let matchIndex = 0; matchIndex < totalMatches; matchIndex++) {
-        const targetMatchIndex = updatedMatches.findIndex(m => m.id === matchesToFill[matchIndex].id);
-        
-        if (targetMatchIndex !== -1 && 
-            !updatedMatches[targetMatchIndex].player1 && 
-            !updatedMatches[targetMatchIndex].player2) {
-          
-          updatedMatches[targetMatchIndex].player1 = {
-            name: competingPlayers[playerIndex].name,
-            handicap: competingPlayers[playerIndex].handicap
-          };
-          break;
-        }
+    // If there's one remaining competing player, assign to next match
+    if (playerIndex < playersToCompete.length && matchIndex < totalMatches) {
+      const targetMatchIndex = updatedMatches.findIndex(m => m.id === matchesToFill[matchIndex].id);
+      
+      if (targetMatchIndex !== -1) {
+        updatedMatches[targetMatchIndex].player1 = {
+          name: playersToCompete[playerIndex].name,
+          handicap: playersToCompete[playerIndex].handicap
+        };
       }
+      matchIndex++;
+    }
+    
+    // Fill remaining matches with free pass players (one per match)
+    let freePassIndex = 0;
+    while (freePassIndex < playersWithFreePasses.length && matchIndex < totalMatches) {
+      const targetMatchIndex = updatedMatches.findIndex(m => m.id === matchesToFill[matchIndex].id);
+      
+      if (targetMatchIndex !== -1) {
+        updatedMatches[targetMatchIndex].player1 = {
+          name: playersWithFreePasses[freePassIndex].name,
+          handicap: playersWithFreePasses[freePassIndex].handicap
+        };
+      }
+      
+      freePassIndex++;
+      matchIndex++;
     }
 
     // Count matches with players
@@ -234,7 +250,7 @@ export function useBracketGeneration() {
 
     toast({
       title: "First Round Filled!",
-      description: `${matchesWithTwoPlayers} matches with 2 players, ${matchesWithOnePlayer} matches with 1 player. Top 6 handicappers get automatic byes.`,
+      description: `${matchesWithTwoPlayers} matches with 2 players, ${matchesWithOnePlayer} matches with free passes.`,
     });
 
     return updatedMatches;
