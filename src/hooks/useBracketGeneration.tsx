@@ -203,34 +203,16 @@ export function useBracketGeneration() {
       return existingMatches;
     }
 
-    // Ensure we have enough players for all first round matches
-    if (sortedPlayers.length < firstRoundMatches.length) {
-      toast({
-        title: "Not Enough Players",
-        description: `Need at least ${firstRoundMatches.length} players to fill all first round matches. Current: ${sortedPlayers.length}`,
-        variant: "destructive"
-      });
-      return existingMatches;
-    }
-
-    // Calculate byes: best players who skip first round entirely
-    // We need enough players in first round to fill all matches (at least 1 per match)
-    const minPlayersForFirstRound = firstRoundMatches.length;
-    const maxPlayersForFirstRound = firstRoundMatches.length * 2;
+    const totalMatches = firstRoundMatches.length;
+    const totalPlayers = sortedPlayers.length;
     
-    // If we have more players than can fit in first round, give byes to the best
-    let byeCount = 0;
-    let firstRoundPlayerCount = sortedPlayers.length;
+    // Calculate how many matches will have 2 players vs 1 player
+    // If we have more players than matches, some matches get 2 players
+    const playersForTwoPlayerMatches = Math.max(0, (totalPlayers - totalMatches) * 2);
+    const twoPlayerMatches = Math.min(totalMatches, Math.floor(playersForTwoPlayerMatches / 2));
+    const onePlayerMatches = totalMatches - twoPlayerMatches;
     
-    if (sortedPlayers.length > maxPlayersForFirstRound) {
-      byeCount = sortedPlayers.length - maxPlayersForFirstRound;
-      firstRoundPlayerCount = maxPlayersForFirstRound;
-    }
-    
-    const byePlayers = sortedPlayers.slice(0, byeCount);
-    const firstRoundPlayers = sortedPlayers.slice(byeCount, byeCount + firstRoundPlayerCount);
-    
-    console.log(`Filling first round: ${firstRoundPlayers.length} players, ${byeCount} byes, ${firstRoundMatches.length} matches`);
+    console.log(`First round setup: ${totalMatches} total matches, ${twoPlayerMatches} with 2 players, ${onePlayerMatches} with 1 player (free pass)`);
     
     // Clear existing players from first round matches
     const updatedMatches = existingMatches.map(match => {
@@ -249,69 +231,62 @@ export function useBracketGeneration() {
       m => m.tournamentId === tournamentId && m.round === "Round 1"
     );
     
-    // CRITICAL: Ensure EVERY match gets at least one player
-    // First pass: give each match exactly one player
-    for (let i = 0; i < matchesToFill.length; i++) {
-      if (i < firstRoundPlayers.length) {
-        const player = firstRoundPlayers[i];
-        const matchIndex = updatedMatches.findIndex(m => m.id === matchesToFill[i].id);
-        if (matchIndex !== -1) {
-          updatedMatches[matchIndex].player1 = {
-            name: player.name,
-            handicap: player.handicap
-          };
-        }
-      }
-    }
+    let playerIndex = 0;
     
-    // Second pass: fill remaining players into matches that still have space
-    for (let i = matchesToFill.length; i < firstRoundPlayers.length; i++) {
-      const player = firstRoundPlayers[i];
-      
-      // Find a match that only has player1 but no player2
-      const matchIndex = updatedMatches.findIndex(m => 
-        m.tournamentId === tournamentId && 
-        m.round === "Round 1" && 
-        m.player1 && 
-        !m.player2
-      );
-      
+    // Strategy: Best players get free passes (1 player matches), worst players compete (2 player matches)
+    // First, assign best players to one-player matches (free pass)
+    for (let i = 0; i < onePlayerMatches && playerIndex < sortedPlayers.length; i++) {
+      const player = sortedPlayers[playerIndex];
+      const matchIndex = updatedMatches.findIndex(m => m.id === matchesToFill[i].id);
       if (matchIndex !== -1) {
-        updatedMatches[matchIndex].player2 = {
+        updatedMatches[matchIndex].player1 = {
           name: player.name,
           handicap: player.handicap
         };
       }
+      playerIndex++;
+    }
+    
+    // Then, assign remaining players to two-player matches
+    for (let i = onePlayerMatches; i < totalMatches && playerIndex < sortedPlayers.length; i++) {
+      const matchIndex = updatedMatches.findIndex(m => m.id === matchesToFill[i].id);
+      if (matchIndex !== -1) {
+        // Add first player
+        if (playerIndex < sortedPlayers.length) {
+          updatedMatches[matchIndex].player1 = {
+            name: sortedPlayers[playerIndex].name,
+            handicap: sortedPlayers[playerIndex].handicap
+          };
+          playerIndex++;
+        }
+        
+        // Add second player
+        if (playerIndex < sortedPlayers.length) {
+          updatedMatches[matchIndex].player2 = {
+            name: sortedPlayers[playerIndex].name,
+            handicap: sortedPlayers[playerIndex].handicap
+          };
+          playerIndex++;
+        }
+      }
     }
 
-    // Verify all matches have at least one player
-    const emptyMatches = updatedMatches.filter(m => 
+    // Count matches with players
+    const matchesWithTwoPlayers = updatedMatches.filter(m => 
       m.tournamentId === tournamentId && 
       m.round === "Round 1" && 
-      !m.player1
-    );
+      m.player1 && m.player2
+    ).length;
     
-    if (emptyMatches.length > 0) {
-      toast({
-        title: "Error",
-        description: `${emptyMatches.length} matches still empty. This should not happen.`,
-        variant: "destructive"
-      });
-      return existingMatches;
-    }
-
-    // Show bye information
-    if (byeCount > 0) {
-      const byePlayerNames = byePlayers.map(p => p.name).join(", ");
-      toast({
-        title: "Byes Assigned",
-        description: `${byeCount} best players received byes to second round: ${byePlayerNames}`,
-      });
-    }
+    const matchesWithOnePlayer = updatedMatches.filter(m => 
+      m.tournamentId === tournamentId && 
+      m.round === "Round 1" && 
+      m.player1 && !m.player2
+    ).length;
 
     toast({
       title: "First Round Filled!",
-      description: `All ${matchesToFill.length} first-round matches now have at least one player.`,
+      description: `${matchesWithTwoPlayers} matches with 2 players, ${matchesWithOnePlayer} matches with 1 player (free pass).`,
     });
 
     return updatedMatches;
