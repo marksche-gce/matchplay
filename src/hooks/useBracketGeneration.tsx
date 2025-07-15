@@ -52,7 +52,7 @@ export function useBracketGeneration() {
       const match: Match = {
         id: (matchIdCounter++).toString(),
         tournamentId,
-        type: "singles",
+        type: "foursome", // First round is foursome
         round: "Round 1",
         status: "scheduled",
         date: new Date().toISOString().split('T')[0],
