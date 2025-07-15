@@ -172,40 +172,55 @@ export function TournamentBracket({
 
   const progressWinnerImmediately = (currentMatches: Match[], completedMatch: Match): Match[] => {
     if (!completedMatch.winner || completedMatch.status !== "completed") {
-      console.log("No winner or not completed:", completedMatch);
       return currentMatches;
     }
-
-    console.log("Processing winner advancement:", completedMatch.winner, "from match:", completedMatch.id);
 
     // Find the winner from the players array
     const winnerPlayer = players.find(p => p.name === completedMatch.winner);
     if (!winnerPlayer) {
-      console.log("Winner player not found:", completedMatch.winner);
       return currentMatches;
     }
 
-    // Find next match that has this completed match as one of its previous matches
-    const nextMatch = currentMatches.find(match => 
-      match.tournamentId === completedMatch.tournamentId &&
-      (match.previousMatch1Id === completedMatch.id || match.previousMatch2Id === completedMatch.id)
-    );
+    // Use bracket structure to find next match
+    const tournamentMatches = currentMatches.filter(m => m.tournamentId === completedMatch.tournamentId);
+    const roundsMap = new Map<string, Match[]>();
+    tournamentMatches.forEach(match => {
+      const roundName = match.round;
+      if (!roundsMap.has(roundName)) {
+        roundsMap.set(roundName, []);
+      }
+      roundsMap.get(roundName)!.push(match);
+    });
 
-    console.log("Looking for next match with previousMatch1Id or previousMatch2Id:", completedMatch.id);
-    console.log("Found next match:", nextMatch);
+    // Find current round and match position
+    const currentRoundMatches = roundsMap.get(completedMatch.round) || [];
+    const currentMatchIndex = currentRoundMatches.findIndex(m => m.id === completedMatch.id);
+    
+    if (currentMatchIndex === -1) return currentMatches;
+
+    // Determine next round
+    const roundNames = ["Round 1", "Round 2", "Round 3", "Quarterfinals", "Semifinals", "Final"];
+    const currentRoundIndex = roundNames.indexOf(completedMatch.round);
+    if (currentRoundIndex === -1 || currentRoundIndex === roundNames.length - 1) {
+      return currentMatches; // No next round or already final
+    }
+
+    const nextRoundName = roundNames[currentRoundIndex + 1];
+    const nextRoundMatches = roundsMap.get(nextRoundName) || [];
+    
+    // Calculate which match in the next round this winner should advance to
+    const nextMatchIndex = Math.floor(currentMatchIndex / 2);
+    const nextMatch = nextRoundMatches[nextMatchIndex];
 
     if (nextMatch) {
-      console.log("Advancing winner to next match:", nextMatch.id);
       const updatedMatches = currentMatches.map(match => {
         if (match.id === nextMatch.id) {
           const updatedMatch = { ...match };
           
-          // Add winner to correct position based on which previous match this was
-          if (match.previousMatch1Id === completedMatch.id) {
-            console.log("Adding winner to position 1");
+          // Add winner to correct position (even index -> player1, odd index -> player2)
+          if (currentMatchIndex % 2 === 0) {
             updatedMatch.player1 = { ...winnerPlayer, score: undefined };
-          } else if (match.previousMatch2Id === completedMatch.id) {
-            console.log("Adding winner to position 2");
+          } else {
             updatedMatch.player2 = { ...winnerPlayer, score: undefined };
           }
           
@@ -213,6 +228,31 @@ export function TournamentBracket({
         }
         return match;
       });
+      
+      // Update database if this is a real match (not placeholder)
+      const isRealMatch = !/^placeholder-/.test(nextMatch.id);
+      if (isRealMatch) {
+        const position = currentMatchIndex % 2 === 0 ? 1 : 2;
+        const winnerDbPlayer = players.find(p => p.name === winnerPlayer.name);
+        
+        if (winnerDbPlayer) {
+          // Add participant to next match in database
+          supabase
+            .from('match_participants')
+            .insert({
+              match_id: nextMatch.id,
+              player_id: winnerDbPlayer.id,
+              position: position,
+              team_number: null,
+              score: null
+            })
+            .then(({ error }) => {
+              if (error && !error.message.includes('duplicate')) {
+                console.error('Error adding participant to next match:', error);
+              }
+            });
+        }
+      }
       
       toast({
         title: "Winner Advanced!",
@@ -222,7 +262,6 @@ export function TournamentBracket({
       return updatedMatches;
     }
 
-    console.log("No next match found for completed match:", completedMatch.id);
     return currentMatches;
   };
 
