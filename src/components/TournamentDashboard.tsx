@@ -743,8 +743,8 @@ export function TournamentDashboard() {
       }
     }
     
-    // Update local state only after successful database saves
-    setMatches(updatedMatches);
+    // Refresh matches from database instead of using mixed array
+    await fetchMatches();
   };
 
   // Database-only update function (doesn't refresh matches from DB)
