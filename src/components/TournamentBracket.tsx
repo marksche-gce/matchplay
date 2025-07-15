@@ -595,37 +595,6 @@ export function TournamentBracket({
                   <p className="text-sm text-muted-foreground mt-1">
                     {round.matches.filter(m => m.status === "completed").length}/{round.matches.length} completed
                   </p>
-                  
-                  {/* Players in this round overview */}
-                  <div className="mt-2 p-2 bg-muted/30 rounded-lg">
-                    <p className="text-xs font-medium text-muted-foreground mb-1">Players in round:</p>
-                    <div className="flex flex-wrap gap-1 justify-center">
-                      {round.matches.map((match, matchIndex) => {
-                        const players = [];
-                        if (match.type === "singles") {
-                          if (match.player1) players.push(match.player1.name);
-                          if (match.player2) players.push(match.player2.name);
-                        } else if (match.type === "foursome") {
-                          if (match.team1) {
-                            players.push(`${match.team1.player1.name} & ${match.team1.player2.name}`);
-                          }
-                          if (match.team2) {
-                            players.push(`${match.team2.player1.name} & ${match.team2.player2.name}`);
-                          }
-                        }
-                        return players.map((playerName, playerIndex) => (
-                          <Badge key={`${matchIndex}-${playerIndex}`} variant="secondary" className="text-xs">
-                            {playerName.length > 15 ? `${playerName.substring(0, 15)}...` : playerName}
-                          </Badge>
-                        ));
-                      }).flat()}
-                      {round.matches.every(m => (!m.player1 && !m.team1)) && (
-                        <Badge variant="outline" className="text-xs text-muted-foreground">
-                          No players assigned yet
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
                 </div>
                 
                 <div className="space-y-6">
