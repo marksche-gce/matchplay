@@ -197,8 +197,16 @@ export function TournamentBracket({
       return currentMatches;
     }
 
-    // Determine next round
-    const roundNames = ["Round 1", "Round 2", "Round 3", "Quarterfinals", "Semifinals", "Final"];
+    // Determine next round using the same logic as bracket generation
+    const totalRounds = Math.ceil(Math.log2(maxPlayers));
+    const roundNames: string[] = [];
+    for (let i = 1; i <= totalRounds; i++) {
+      if (i === totalRounds) roundNames.push("Final");
+      else if (i === totalRounds - 1) roundNames.push("Semifinals");
+      else if (i === totalRounds - 2) roundNames.push("Quarterfinals");
+      else roundNames.push(`Round ${i}`);
+    }
+    
     const currentRoundIndex = roundNames.indexOf(completedMatch.round);
     if (currentRoundIndex === -1 || currentRoundIndex === roundNames.length - 1) {
       console.log("No next round available");
@@ -208,11 +216,16 @@ export function TournamentBracket({
     const nextRoundName = roundNames[currentRoundIndex + 1];
     const nextRoundMatches = roundsMap.get(nextRoundName) || [];
     
+    console.log("Current round:", completedMatch.round, "index:", currentRoundIndex);
+    console.log("Next round name:", nextRoundName);
+    console.log("Next round matches:", nextRoundMatches.length);
+    console.log("Available rounds:", Array.from(roundsMap.keys()));
+    
     // Calculate which match in the next round this winner should advance to
     const nextMatchIndex = Math.floor(currentMatchIndex / 2);
     const nextMatch = nextRoundMatches[nextMatchIndex];
 
-    console.log("Next match found:", nextMatch?.id, "for winner:", completedMatch.winner);
+    console.log("Next match index:", nextMatchIndex, "Next match found:", nextMatch?.id, "for winner:", completedMatch.winner);
 
     if (nextMatch) {
       // Find the winner player from the completed match participants
