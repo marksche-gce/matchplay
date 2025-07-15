@@ -685,21 +685,20 @@ export function TournamentDashboard() {
   const handleBracketMatchUpdate = async (updatedMatches: Match[]) => {
     console.log("handleBracketMatchUpdate called with:", updatedMatches.length, "matches");
     
-    // Update local state immediately for responsive UI
-    setMatches(updatedMatches);
-    
-    // Find matches that were updated and persist them to database
+    // Find matches that were updated and persist them to database first
     const currentMatchMap = new Map(matches.map(m => [m.id, m]));
     const updatedMatchMap = new Map(updatedMatches.map(m => [m.id, m]));
     
+    const savePromises = [];
+    
     for (const [matchId, updatedMatch] of updatedMatchMap) {
-      const currentMatch = currentMatchMap.get(matchId);
-      
       // Skip matches with non-UUID IDs (these are generated matches not yet in database)
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(matchId)) {
         console.log("Skipping non-UUID match:", matchId);
         continue;
       }
+      
+      const currentMatch = currentMatchMap.get(matchId);
       
       // Check if this match was actually updated
       if (currentMatch && (
@@ -716,20 +715,124 @@ export function TournamentDashboard() {
           newWinner: updatedMatch.winner
         });
         
-        // Persist changes to database
-        try {
-          await handleEditMatch(matchId, updatedMatch);
-          console.log("Successfully saved match update for:", matchId);
-        } catch (error) {
-          console.error('Error updating match:', matchId, error);
-          toast({
-            title: "Error Saving Match",
-            description: `Failed to save updates for match ${matchId}`,
-            variant: "destructive"
-          });
-        }
+        // Add to promises but use database-only update function
+        savePromises.push(handleEditMatchDatabase(matchId, updatedMatch));
       } else {
         console.log("No changes detected for match:", matchId);
+      }
+    }
+    
+    // Wait for all database updates to complete
+    if (savePromises.length > 0) {
+      try {
+        await Promise.all(savePromises);
+        console.log("All database updates completed successfully");
+        
+        toast({
+          title: "Matches Updated!",
+          description: "All match updates have been saved successfully.",
+        });
+      } catch (error) {
+        console.error('Error updating matches:', error);
+        toast({
+          title: "Error Saving Matches",
+          description: "Failed to save some match updates",
+          variant: "destructive"
+        });
+        return; // Don't update state if database save failed
+      }
+    }
+    
+    // Update local state only after successful database saves
+    setMatches(updatedMatches);
+  };
+
+  // Database-only update function (doesn't refresh matches from DB)
+  const handleEditMatchDatabase = async (matchId: string, updates: Partial<Match>) => {
+    console.log("handleEditMatchDatabase called for:", matchId, "with updates:", updates);
+    
+    // First, update the match details
+    const matchUpdates: any = {
+      round: updates.round,
+      status: updates.status
+    };
+
+    // Set winner_id based on winner name
+    if (updates.winner && updates.winner !== "no-winner") {
+      const winnerPlayer = players.find(p => p.name === updates.winner);
+      console.log("Looking for winner player:", updates.winner, "found:", winnerPlayer);
+      if (winnerPlayer) {
+        matchUpdates.winner_id = winnerPlayer.id;
+        console.log("Setting winner_id to:", winnerPlayer.id);
+      } else {
+        console.warn("Winner player not found in players list:", updates.winner);
+        console.log("Available player names:", players.map(p => p.name));
+      }
+    } else {
+      console.log("No winner specified or winner is 'no-winner'");
+      matchUpdates.winner_id = null;
+    }
+
+    console.log("About to update match with:", matchUpdates);
+
+    // Update match in database
+    const { data, error: matchError } = await supabase
+      .from('matches')
+      .update(matchUpdates)
+      .eq('id', matchId)
+      .select();
+
+    if (matchError) {
+      console.error("Database error updating match:", matchError);
+      throw matchError;
+    }
+
+    console.log("Successfully updated match in database. Updated data:", data);
+
+    // Update match participants if it's a singles match with score updates
+    if (updates.player1?.score !== undefined || updates.player2?.score !== undefined) {
+      // Get current match participants
+      const { data: participants, error: participantsError } = await supabase
+        .from('match_participants')
+        .select('*')
+        .eq('match_id', matchId);
+
+      if (participantsError) throw participantsError;
+
+      // Update scores for each participant
+      const updatePromises = [];
+      
+      if (updates.player1?.score !== undefined) {
+        const player1Participant = participants.find(p => p.position === 1);
+        if (player1Participant) {
+          updatePromises.push(
+            supabase
+              .from('match_participants')
+              .update({ score: updates.player1.score })
+              .eq('id', player1Participant.id)
+          );
+        }
+      }
+
+      if (updates.player2?.score !== undefined) {
+        const player2Participant = participants.find(p => p.position === 2);
+        if (player2Participant) {
+          updatePromises.push(
+            supabase
+              .from('match_participants')
+              .update({ score: updates.player2.score })
+              .eq('id', player2Participant.id)
+          );
+        }
+      }
+
+      // Execute all score updates
+      if (updatePromises.length > 0) {
+        const results = await Promise.all(updatePromises);
+        const scoreErrors = results.filter(result => result.error);
+        if (scoreErrors.length > 0) {
+          throw new Error('Failed to update some scores');
+        }
       }
     }
   };
@@ -739,97 +842,14 @@ export function TournamentDashboard() {
     console.log("Available players for winner lookup:", players.map(p => ({ id: p.id, name: p.name })));
     
     try {
-      // First, update the match details
-      const matchUpdates: any = {
-        round: updates.round,
-        status: updates.status
-      };
-
-      // Set winner_id based on winner name
-      if (updates.winner && updates.winner !== "no-winner") {
-        const winnerPlayer = players.find(p => p.name === updates.winner);
-        console.log("Looking for winner player:", updates.winner, "found:", winnerPlayer);
-        if (winnerPlayer) {
-          matchUpdates.winner_id = winnerPlayer.id;
-          console.log("Setting winner_id to:", winnerPlayer.id);
-        } else {
-          console.warn("Winner player not found in players list:", updates.winner);
-          console.log("Available player names:", players.map(p => p.name));
-        }
-      } else {
-        console.log("No winner specified or winner is 'no-winner'");
-        matchUpdates.winner_id = null;
-      }
-
-      console.log("About to update match with:", matchUpdates);
-
-      // Update match in database
-      const { data, error: matchError } = await supabase
-        .from('matches')
-        .update(matchUpdates)
-        .eq('id', matchId)
-        .select(); // Add select to see what was actually updated
-
-      if (matchError) {
-        console.error("Database error updating match:", matchError);
-        throw matchError;
-      }
-
-      console.log("Successfully updated match in database. Updated data:", data);
-
-      // Update match participants if it's a singles match with score updates
-      if (updates.player1?.score !== undefined || updates.player2?.score !== undefined) {
-        // Get current match participants
-        const { data: participants, error: participantsError } = await supabase
-          .from('match_participants')
-          .select('*')
-          .eq('match_id', matchId);
-
-        if (participantsError) throw participantsError;
-
-        // Update scores for each participant
-        const updatePromises = [];
-        
-        if (updates.player1?.score !== undefined) {
-          const player1Participant = participants.find(p => p.position === 1);
-          if (player1Participant) {
-            updatePromises.push(
-              supabase
-                .from('match_participants')
-                .update({ score: updates.player1.score })
-                .eq('id', player1Participant.id)
-            );
-          }
-        }
-
-        if (updates.player2?.score !== undefined) {
-          const player2Participant = participants.find(p => p.position === 2);
-          if (player2Participant) {
-            updatePromises.push(
-              supabase
-                .from('match_participants')
-                .update({ score: updates.player2.score })
-                .eq('id', player2Participant.id)
-            );
-          }
-        }
-
-        // Execute all score updates
-        if (updatePromises.length > 0) {
-          const results = await Promise.all(updatePromises);
-          const scoreErrors = results.filter(result => result.error);
-          if (scoreErrors.length > 0) {
-            throw new Error('Failed to update some scores');
-          }
-        }
-      }
+      await handleEditMatchDatabase(matchId, updates);
 
       toast({
         title: "Match Updated!",
         description: "Match details have been successfully updated.",
       });
 
-      // Refresh matches after edit
+      // Only refresh matches for individual match edits (not bracket updates)
       await fetchMatches();
     } catch (error) {
       console.error('Error updating match:', error);
