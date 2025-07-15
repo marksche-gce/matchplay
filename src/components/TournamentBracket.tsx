@@ -175,11 +175,7 @@ export function TournamentBracket({
       return currentMatches;
     }
 
-    // Find the winner from the players array
-    const winnerPlayer = players.find(p => p.name === completedMatch.winner);
-    if (!winnerPlayer) {
-      return currentMatches;
-    }
+    console.log("Processing winner advancement for:", completedMatch.winner, "from match:", completedMatch.id);
 
     // Use bracket structure to find next match
     const tournamentMatches = currentMatches.filter(m => m.tournamentId === completedMatch.tournamentId);
@@ -196,12 +192,16 @@ export function TournamentBracket({
     const currentRoundMatches = roundsMap.get(completedMatch.round) || [];
     const currentMatchIndex = currentRoundMatches.findIndex(m => m.id === completedMatch.id);
     
-    if (currentMatchIndex === -1) return currentMatches;
+    if (currentMatchIndex === -1) {
+      console.log("Current match not found in round");
+      return currentMatches;
+    }
 
     // Determine next round
     const roundNames = ["Round 1", "Round 2", "Round 3", "Quarterfinals", "Semifinals", "Final"];
     const currentRoundIndex = roundNames.indexOf(completedMatch.round);
     if (currentRoundIndex === -1 || currentRoundIndex === roundNames.length - 1) {
+      console.log("No next round available");
       return currentMatches; // No next round or already final
     }
 
@@ -212,7 +212,19 @@ export function TournamentBracket({
     const nextMatchIndex = Math.floor(currentMatchIndex / 2);
     const nextMatch = nextRoundMatches[nextMatchIndex];
 
+    console.log("Next match found:", nextMatch?.id, "for winner:", completedMatch.winner);
+
     if (nextMatch) {
+      // Find the winner player from the completed match participants
+      const winnerPlayer = completedMatch.winner === completedMatch.player1?.name ? completedMatch.player1 : completedMatch.player2;
+      
+      if (!winnerPlayer) {
+        console.log("Winner player not found in completed match");
+        return currentMatches;
+      }
+
+      console.log("Advancing winner to position:", currentMatchIndex % 2 === 0 ? 1 : 2);
+
       const updatedMatches = currentMatches.map(match => {
         if (match.id === nextMatch.id) {
           const updatedMatch = { ...match };
@@ -236,6 +248,7 @@ export function TournamentBracket({
         const winnerDbPlayer = players.find(p => p.name === winnerPlayer.name);
         
         if (winnerDbPlayer) {
+          console.log("Adding winner to database match:", nextMatch.id, "position:", position);
           // Add participant to next match in database
           supabase
             .from('match_participants')
@@ -249,6 +262,8 @@ export function TournamentBracket({
             .then(({ error }) => {
               if (error && !error.message.includes('duplicate')) {
                 console.error('Error adding participant to next match:', error);
+              } else {
+                console.log("Winner successfully added to database");
               }
             });
         }
@@ -262,6 +277,7 @@ export function TournamentBracket({
       return updatedMatches;
     }
 
+    console.log("No next match found");
     return currentMatches;
   };
 
