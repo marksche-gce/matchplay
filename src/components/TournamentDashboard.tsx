@@ -221,10 +221,18 @@ export function TournamentDashboard() {
       // Transform database matches to frontend format
       const formattedMatches: Match[] = (data || []).map((match: any) => {
         const participants = match.match_participants || [];
+        console.log("Processing match:", match.id, "winner_id:", match.winner_id, "participants:", participants.map(p => ({ id: p.players.id, name: p.players.name })));
         
         if (match.type === 'singles') {
           const player1 = participants.find((p: any) => p.position === 1);
           const player2 = participants.find((p: any) => p.position === 2);
+          const winner = match.winner_id ? participants.find((p: any) => p.players.id === match.winner_id)?.players.name : undefined;
+          
+          console.log("Singles match winner lookup:", {
+            winner_id: match.winner_id,
+            found_winner: winner,
+            participants: participants.map(p => ({ id: p.players.id, name: p.players.name }))
+          });
           
           return {
             id: match.id,
@@ -245,7 +253,7 @@ export function TournamentDashboard() {
             date: new Date(match.match_date || new Date()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
             time: match.match_time || "TBD",
             tee: match.tee ? `Tee ${match.tee}` : undefined,
-            winner: match.winner_id ? participants.find((p: any) => p.players.id === match.winner_id)?.players.name : undefined
+            winner: winner
           };
         } else {
           // Handle foursome matches
@@ -728,6 +736,7 @@ export function TournamentDashboard() {
 
   const handleEditMatch = async (matchId: string, updates: Partial<Match>) => {
     console.log("handleEditMatch called for:", matchId, "with updates:", updates);
+    console.log("Available players for winner lookup:", players.map(p => ({ id: p.id, name: p.name })));
     
     try {
       // First, update the match details
@@ -740,25 +749,33 @@ export function TournamentDashboard() {
       if (updates.winner && updates.winner !== "no-winner") {
         const winnerPlayer = players.find(p => p.name === updates.winner);
         console.log("Looking for winner player:", updates.winner, "found:", winnerPlayer);
-        matchUpdates.winner_id = winnerPlayer?.id || null;
+        if (winnerPlayer) {
+          matchUpdates.winner_id = winnerPlayer.id;
+          console.log("Setting winner_id to:", winnerPlayer.id);
+        } else {
+          console.warn("Winner player not found in players list:", updates.winner);
+          console.log("Available player names:", players.map(p => p.name));
+        }
       } else {
+        console.log("No winner specified or winner is 'no-winner'");
         matchUpdates.winner_id = null;
       }
 
       console.log("About to update match with:", matchUpdates);
 
       // Update match in database
-      const { error: matchError } = await supabase
+      const { data, error: matchError } = await supabase
         .from('matches')
         .update(matchUpdates)
-        .eq('id', matchId);
+        .eq('id', matchId)
+        .select(); // Add select to see what was actually updated
 
       if (matchError) {
         console.error("Database error updating match:", matchError);
         throw matchError;
       }
 
-      console.log("Successfully updated match in database");
+      console.log("Successfully updated match in database. Updated data:", data);
 
       // Update match participants if it's a singles match with score updates
       if (updates.player1?.score !== undefined || updates.player2?.score !== undefined) {
