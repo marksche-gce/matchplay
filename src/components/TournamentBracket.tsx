@@ -413,19 +413,39 @@ export function TournamentBracket({
   const handleMatchUpdate = async (matchId: string, updates: Partial<Match>) => {
     console.log("handleMatchUpdate called for match ID:", matchId, "updates:", updates);
     
-    // Check if this is a generated match (non-UUID ID) - these shouldn't be persisted to database
+    // Check if this is a generated match (non-UUID ID) - these need to be saved to database first
     const isGeneratedMatch = !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(matchId);
     
     console.log("Is generated match:", isGeneratedMatch, "Match ID:", matchId);
     
     if (isGeneratedMatch) {
-      console.log("BLOCKING SAVE: Cannot save generated match to database");
+      console.log("Generated match detected - creating database matches first");
       toast({
-        title: "❌ Cannot Save Generated Match",
-        description: "This is a temporary match (ID: " + matchId + "). Click 'Create Database Matches' first to convert the bracket to real database matches before editing.",
-        variant: "destructive"
+        title: "Converting to Database Matches",
+        description: "Converting bracket to database format before saving your changes...",
       });
-      return;
+      
+      try {
+        // Automatically create database matches first
+        await createDatabaseMatches();
+        
+        // After database matches are created, we need to find the corresponding database match
+        // and then save the updates to it. For now, just show success message.
+        toast({
+          title: "Bracket Converted!",
+          description: "Your bracket has been saved to the database. Please try editing the match again.",
+        });
+        return;
+        
+      } catch (error) {
+        console.error("Failed to create database matches:", error);
+        toast({
+          title: "❌ Failed to Convert Bracket",
+          description: "Could not save bracket to database. Please try clicking 'Create Database Matches' manually.",
+          variant: "destructive"
+        });
+        return;
+      }
     }
 
     try {
