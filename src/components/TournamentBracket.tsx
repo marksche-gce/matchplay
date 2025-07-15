@@ -605,6 +605,11 @@ export function TournamentBracket({
                   <Button onClick={createDatabaseMatches} variant="fairway" size="sm">
                     Create Database Matches
                   </Button>
+                  
+                  <Button onClick={() => setBracketData([])} variant="secondary" size="sm">
+                    Clear Brackets
+                  </Button>
+                  
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="destructive" size="sm">
