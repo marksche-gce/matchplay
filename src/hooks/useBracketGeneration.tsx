@@ -172,46 +172,57 @@ export function useBracketGeneration() {
       m => m.tournamentId === tournamentId && m.round === "Round 1"
     );
     
-    // Create proper tournament seeding: lowest handicap vs highest handicap
-    // Split players into pairs for seeding
-    const totalPlayersForPairing = Math.min(totalPlayers, totalMatches * 2);
-    const playersToUse = sortedPlayers.slice(0, totalPlayersForPairing);
-    
-    // Create seeded pairs: pair lowest handicap with highest handicap
-    const seededPairs: Array<{ player1: MatchPlayer; player2?: MatchPlayer }> = [];
-    
-    if (playersToUse.length <= totalMatches) {
-      // Fewer players than matches - each player gets their own match (bye rounds)
-      playersToUse.forEach(player => {
-        seededPairs.push({ 
-          player1: { name: player.name, handicap: player.handicap } 
-        });
-      });
-    } else {
-      // More players than matches - create proper seeding pairs
-      const lowHandicapPlayers = playersToUse.slice(0, Math.ceil(playersToUse.length / 2));
-      const highHandicapPlayers = playersToUse.slice(Math.ceil(playersToUse.length / 2)).reverse(); // Reverse to start with highest
+    // Ensure every bracket gets at least one player
+    // First, assign one player to each bracket
+    for (let matchIndex = 0; matchIndex < totalMatches && matchIndex < totalPlayers; matchIndex++) {
+      const targetMatchIndex = updatedMatches.findIndex(m => m.id === matchesToFill[matchIndex].id);
       
-      // Pair each low handicap player with a high handicap player
-      for (let i = 0; i < Math.min(totalMatches, lowHandicapPlayers.length); i++) {
-        const pair = {
-          player1: { name: lowHandicapPlayers[i].name, handicap: lowHandicapPlayers[i].handicap },
-          player2: highHandicapPlayers[i] ? { 
-            name: highHandicapPlayers[i].name, 
-            handicap: highHandicapPlayers[i].handicap 
-          } : undefined
+      if (targetMatchIndex !== -1) {
+        updatedMatches[targetMatchIndex].player1 = {
+          name: sortedPlayers[matchIndex].name,
+          handicap: sortedPlayers[matchIndex].handicap
         };
-        seededPairs.push(pair);
       }
     }
     
-    // Assign seeded pairs to matches
-    for (let i = 0; i < Math.min(totalMatches, seededPairs.length); i++) {
-      const matchIndex = updatedMatches.findIndex(m => m.id === matchesToFill[i].id);
+    // Now do optimal pairing for remaining players (lowest vs highest handicap)
+    if (totalPlayers > totalMatches) {
+      const remainingPlayers = sortedPlayers.slice(totalMatches);
+      const remainingCount = remainingPlayers.length;
       
-      if (matchIndex !== -1) {
-        updatedMatches[matchIndex].player1 = seededPairs[i].player1;
-        updatedMatches[matchIndex].player2 = seededPairs[i].player2;
+      // Start pairing from the end, working backwards to pair with highest handicaps
+      for (let i = 0; i < remainingCount; i++) {
+        // Find the best match: pair with a bracket that only has one player
+        // Prefer pairing with players that have different handicap levels
+        let bestMatchIndex = -1;
+        let bestHandicapDiff = -1;
+        
+        for (let matchIndex = 0; matchIndex < totalMatches; matchIndex++) {
+          const targetMatchIndex = updatedMatches.findIndex(m => m.id === matchesToFill[matchIndex].id);
+          
+          if (targetMatchIndex !== -1 && 
+              updatedMatches[targetMatchIndex].player1 && 
+              !updatedMatches[targetMatchIndex].player2) {
+            
+            const existingHandicap = updatedMatches[targetMatchIndex].player1!.handicap;
+            const newHandicap = remainingPlayers[i].handicap;
+            const handicapDiff = Math.abs(existingHandicap - newHandicap);
+            
+            // Prefer larger handicap differences for better competition
+            if (handicapDiff > bestHandicapDiff) {
+              bestHandicapDiff = handicapDiff;
+              bestMatchIndex = targetMatchIndex;
+            }
+          }
+        }
+        
+        // Assign the remaining player to the best match found
+        if (bestMatchIndex !== -1) {
+          updatedMatches[bestMatchIndex].player2 = {
+            name: remainingPlayers[i].name,
+            handicap: remainingPlayers[i].handicap
+          };
+        }
       }
     }
 
