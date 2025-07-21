@@ -1028,8 +1028,8 @@ export function TournamentBracket({
             handleMatchUpdate(matchId, updates);
             setSelectedMatch(null); // Close dialog after update
           }}
-          availablePlayers={players}
-          allPlayers={players}
+          availablePlayers={getAvailablePlayersForMatch(selectedMatch.id)}
+          allPlayers={getAvailablePlayersForMatch(selectedMatch.id)}
         />
       )}
     </div>
