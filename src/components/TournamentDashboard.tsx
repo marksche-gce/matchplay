@@ -341,7 +341,9 @@ export function TournamentDashboard() {
             position,
             score,
             team_number,
+            player_id,
             players (
+              id,
               name,
               handicap
             )
@@ -355,17 +357,18 @@ export function TournamentDashboard() {
       // Transform database matches to frontend format
       const formattedMatches: Match[] = (data || []).map((match: any) => {
         const participants = match.match_participants || [];
-        console.log("Processing match:", match.id, "winner_id:", match.winner_id, "participants:", participants.map(p => ({ id: p.players.id, name: p.players.name })));
+        console.log("Processing match:", match.id, "winner_id:", match.winner_id, "participants:", participants.map(p => ({ player_id: p.player_id, id: p.players?.id, name: p.players?.name })));
         
         if (match.type === 'singles') {
           const player1 = participants.find((p: any) => p.position === 1);
           const player2 = participants.find((p: any) => p.position === 2);
-          const winner = match.winner_id ? participants.find((p: any) => p.players.id === match.winner_id)?.players.name : undefined;
+          // Fix winner lookup - use player_id from match_participants table
+          const winner = match.winner_id ? participants.find((p: any) => p.player_id === match.winner_id)?.players?.name : undefined;
           
           console.log("Singles match winner lookup:", {
             winner_id: match.winner_id,
             found_winner: winner,
-            participants: participants.map(p => ({ id: p.players.id, name: p.players.name }))
+            participants: participants.map(p => ({ player_id: p.player_id, name: p.players?.name }))
           });
           
           return {

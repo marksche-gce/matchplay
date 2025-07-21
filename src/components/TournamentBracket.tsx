@@ -455,7 +455,9 @@ export function TournamentBracket({
   };
 
   const handleMatchUpdate = async (matchId: string, updates: Partial<Match>) => {
+    console.log("=== BRACKET MATCH UPDATE DEBUG ===");
     console.log("handleMatchUpdate called for match ID:", matchId, "updates:", updates);
+    console.log("Original match data:", matches.find(m => m.id === matchId));
     
     // Check if this is a generated match (non-UUID ID)
     const isGeneratedMatch = !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(matchId);
