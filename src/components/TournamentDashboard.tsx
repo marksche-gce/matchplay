@@ -102,6 +102,100 @@ export function TournamentDashboard() {
     }
   }, [selectedTournament]);
 
+  // Set up realtime subscriptions for automatic updates
+  useEffect(() => {
+    if (!selectedTournament) return;
+
+    // Listen for match updates
+    const matchChannel = supabase
+      .channel('match-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'matches',
+          filter: `tournament_id=eq.${selectedTournament}`
+        },
+        (payload) => {
+          console.log('Match update received:', payload);
+          fetchMatches(); // Refresh matches when any match changes
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public', 
+          table: 'match_participants'
+        },
+        (payload) => {
+          console.log('Match participant update received:', payload);
+          fetchMatches(); // Refresh matches when participants change
+        }
+      )
+      .subscribe();
+
+    // Listen for player registration updates
+    const playerChannel = supabase
+      .channel('player-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tournament_registrations',
+          filter: `tournament_id=eq.${selectedTournament}`
+        },
+        (payload) => {
+          console.log('Player registration update received:', payload);
+          fetchPlayers(); // Refresh players when registrations change
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'players'
+        },
+        (payload) => {
+          console.log('Player update received:', payload);
+          fetchPlayers(); // Refresh players when player data changes
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscriptions
+    return () => {
+      supabase.removeChannel(matchChannel);
+      supabase.removeChannel(playerChannel);
+    };
+  }, [selectedTournament]);
+
+  // Listen for tournament updates
+  useEffect(() => {
+    const tournamentChannel = supabase
+      .channel('tournament-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tournaments'
+        },
+        (payload) => {
+          console.log('Tournament update received:', payload);
+          fetchTournaments(); // Refresh tournaments when any tournament changes
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(tournamentChannel);
+    };
+  }, []);
+
   const fetchTournaments = async () => {
     try {
       const { data, error } = await supabase
