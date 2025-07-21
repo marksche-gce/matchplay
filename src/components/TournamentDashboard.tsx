@@ -201,27 +201,29 @@ export function TournamentDashboard() {
 
   // Function to get available players for a specific match (excluding already assigned players)
   const getAvailablePlayersForMatch = (matchId: string) => {
-    const tournamentMatches = matches.filter(m => m.tournamentId === selectedTournament);
+    // Filter matches by current tournament only
+    const tournamentMatches = matches.filter(m => 
+      m.tournamentId === selectedTournament && 
+      m.id !== matchId // Exclude current match from filtering
+    );
     
     console.log("=== PLAYER FILTERING DEBUG ===");
     console.log("Match ID being edited:", matchId);
     console.log("Selected tournament:", selectedTournament);
-    console.log("All matches for tournament:", tournamentMatches.length);
+    console.log("Tournament matches for filtering:", tournamentMatches.length);
     console.log("Tournament matches:", tournamentMatches.map(m => ({ id: m.id, player1: m.player1?.name, player2: m.player2?.name })));
     
-    // Get all assigned player names across all matches except the current one
+    // Get all assigned player names from other matches
     const assignedPlayerNames = new Set<string>();
     tournamentMatches.forEach(match => {
-      if (match.id !== matchId) { // Exclude current match
-        console.log(`Checking match ${match.id} (excluding current ${matchId})`);
-        if (match.player1?.name) {
-          assignedPlayerNames.add(match.player1.name);
-          console.log(`Added player1: ${match.player1.name}`);
-        }
-        if (match.player2?.name) {
-          assignedPlayerNames.add(match.player2.name);
-          console.log(`Added player2: ${match.player2.name}`);
-        }
+      console.log(`Checking match ${match.id}`);
+      if (match.player1?.name) {
+        assignedPlayerNames.add(match.player1.name);
+        console.log(`Added player1: ${match.player1.name}`);
+      }
+      if (match.player2?.name) {
+        assignedPlayerNames.add(match.player2.name);
+        console.log(`Added player2: ${match.player2.name}`);
       }
     });
     
