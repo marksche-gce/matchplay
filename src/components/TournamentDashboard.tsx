@@ -118,8 +118,11 @@ export function TournamentDashboard() {
           filter: `tournament_id=eq.${selectedTournament}`
         },
         (payload) => {
+          console.log('=== REALTIME MATCH UPDATE ===');
           console.log('Match update received:', payload);
+          console.log('Refreshing matches due to realtime update...');
           fetchMatches(); // Refresh matches when any match changes
+          console.log('=== END REALTIME MATCH UPDATE ===');
         }
       )
       .on(
@@ -1299,7 +1302,22 @@ export function TournamentDashboard() {
           await fetchTournaments();
         }}
         onPlayerUpdate={setPlayers}
-        onMatchUpdate={setMatches}
+        onMatchUpdate={(updatedMatches) => {
+          console.log("=== DASHBOARD onMatchUpdate CALLED ===");
+          console.log("Received updated matches:", updatedMatches.length);
+          console.log("Current matches count:", matches.length);
+          
+          // Update matches for this tournament while keeping matches from other tournaments
+          const otherTournamentMatches = matches.filter(m => m.tournamentId !== selectedTournament);
+          const allUpdatedMatches = [...otherTournamentMatches, ...updatedMatches];
+          
+          console.log("Final matches after merge:", allUpdatedMatches.length);
+          console.log("Setting updated matches...");
+          
+          setMatches(allUpdatedMatches);
+          
+          console.log("=== DASHBOARD onMatchUpdate COMPLETE ===");
+        }}
         onBack={() => setShowManagement(false)}
       />
     );

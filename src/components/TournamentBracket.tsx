@@ -681,7 +681,13 @@ export function TournamentBracket({
         finalMatches = progressWinnerImmediately(updatedMatches, updatedMatch);
       }
 
+      console.log("=== CALLING onMatchUpdate ===");
+      console.log("About to call onMatchUpdate with finalMatches count:", finalMatches.length);
+      console.log("Updated match in finalMatches:", finalMatches.find(m => m.id === matchId));
+      
       onMatchUpdate(finalMatches);
+
+      console.log("=== onMatchUpdate CALLED SUCCESSFULLY ===");
 
       toast({
         title: "Match Updated!",
@@ -689,10 +695,12 @@ export function TournamentBracket({
       });
 
     } catch (error) {
+      console.error('=== ERROR IN MATCH UPDATE ===');
       console.error('Error updating match:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
       toast({
         title: "Error Updating Match",
-        description: "Failed to save changes to database. Please try again.",
+        description: `Failed to save changes: ${error.message || 'Unknown error'}`,
         variant: "destructive"
       });
     }
