@@ -93,7 +93,10 @@ export function EditMatchDialog({
       return;
     }
     
+    console.log("=== EDIT MATCH DIALOG DEBUG ===");
     console.log("EditMatchDialog handleSubmit called with formData:", formData);
+    console.log("Match being updated:", match);
+    console.log("Available players passed to dialog:", allPlayers.length > 0 ? allPlayers : availablePlayers);
     
     const updates: Partial<Match> = {
       round: formData.round,
@@ -153,6 +156,13 @@ export function EditMatchDialog({
       }
     }
 
+    console.log("=== FINAL MATCH UPDATE ===");
+    console.log("About to call onMatchUpdate with match ID:", match.id);
+    console.log("Final updates object:", updates);
+    console.log("Updated match will have player1:", updates.player1);
+    console.log("Updated match will have player2:", updates.player2);
+    console.log("=== END FINAL UPDATE ===");
+    
     console.log("Calling onMatchUpdate with:", match.id, updates);
     onMatchUpdate(match.id, updates);
 

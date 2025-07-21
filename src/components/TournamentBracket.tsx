@@ -548,14 +548,16 @@ export function TournamentBracket({
         winner_id: null
       };
 
-      console.log("Database updates:", dbUpdates);
+      console.log("Database updates being sent:", dbUpdates);
 
       // Update match in database
-      const { error: matchError } = await supabase
+      const { data: updateResult, error: matchError } = await supabase
         .from('matches')
         .update(dbUpdates)
-        .eq('id', matchId);
+        .eq('id', matchId)
+        .select();
 
+      console.log("Database update result - data:", updateResult);
       console.log("Database update result - error:", matchError);
       if (matchError) throw matchError;
 
@@ -1010,7 +1012,11 @@ export function TournamentBracket({
             }
           }}
           onMatchUpdate={(matchId, updates) => {
+            console.log("=== BRACKET DIALOG UPDATE ===");
             console.log("Dialog onMatchUpdate called for match:", matchId);
+            console.log("Updates received:", updates);
+            console.log("Original match data:", selectedMatch);
+            console.log("Available players for filtering:", getAvailablePlayersForMatch(selectedMatch.id));
             handleMatchUpdate(matchId, updates);
             setSelectedMatch(null); // Close dialog after update
           }}
