@@ -86,13 +86,16 @@ export function ManualMatchSetup({
     const currentMatch = matchSetups.find(m => m.matchNumber === matchNumber);
     const currentPlayerIds = new Set([currentMatch?.player1Id, currentMatch?.player2Id].filter(Boolean));
     
-    // If availablePlayerIds is empty (initial load), show all players
-    if (availablePlayerIds.size === 0) {
-      return players;
-    }
+    // Get all used player IDs across all matches
+    const usedPlayerIds = new Set<string>();
+    matchSetups.forEach(match => {
+      if (match.player1Id) usedPlayerIds.add(match.player1Id);
+      if (match.player2Id) usedPlayerIds.add(match.player2Id);
+    });
     
+    // Return players that are either not used anywhere, or are used in the current match
     return players.filter(player => 
-      availablePlayerIds.has(player.id) || currentPlayerIds.has(player.id)
+      !usedPlayerIds.has(player.id) || currentPlayerIds.has(player.id)
     );
   };
 
