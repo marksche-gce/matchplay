@@ -308,11 +308,6 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch, pr
               Edit
             </Button>
           )}
-          {match.status === "scheduled" && onScoreUpdate && (
-            <Button variant="outline" className="flex-1" onClick={onScoreUpdate}>
-              Complete Match
-            </Button>
-          )}
           {onViewDetails && (
             <Button variant="ghost" onClick={onViewDetails}>
               Details
