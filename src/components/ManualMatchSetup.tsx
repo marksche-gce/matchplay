@@ -86,6 +86,11 @@ export function ManualMatchSetup({
     const currentMatch = matchSetups.find(m => m.matchNumber === matchNumber);
     const currentPlayerIds = new Set([currentMatch?.player1Id, currentMatch?.player2Id].filter(Boolean));
     
+    // If availablePlayerIds is empty (initial load), show all players
+    if (availablePlayerIds.size === 0) {
+      return players;
+    }
+    
     return players.filter(player => 
       availablePlayerIds.has(player.id) || currentPlayerIds.has(player.id)
     );
