@@ -884,6 +884,24 @@ export function TournamentBracket({
                         match={match}
                         previousMatches={matches.filter(m => m.tournamentId === tournamentId)}
                         showScores={false}
+                        onScoreUpdate={() => {
+                          console.log("Complete match clicked for ID:", match.id);
+                          // Set the match to trigger edit dialog for completion
+                          let selectedMatch = matches.find(m => m.id === match.id);
+                          
+                          // If not found, look in bracketData (for placeholder matches)
+                          if (!selectedMatch) {
+                            for (const round of bracketData) {
+                              const foundMatch = round.matches.find(m => m.id === match.id);
+                              if (foundMatch) {
+                                selectedMatch = foundMatch;
+                                break;
+                              }
+                            }
+                          }
+                          
+                          setSelectedMatch(selectedMatch || null);
+                        }}
                         onEditMatch={(matchId) => {
                           console.log("Edit match clicked for ID:", matchId);
                           // First try to find in matches array (for real matches)

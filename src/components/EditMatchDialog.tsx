@@ -66,19 +66,32 @@ export function EditMatchDialog({
   const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setOpen = onOpenChange || setInternalOpen;
   const [formData, setFormData] = useState({
-    round: match.round,
-    status: match.status,
-    player1Score: match.player1?.score?.toString() || "",
-    player2Score: match.player2?.score?.toString() || "",
-    winner: match.winner || "",
-    player1Name: match.player1?.name || "",
-    player2Name: match.player2?.name || ""
+    round: match?.round || "",
+    status: match?.status || "scheduled",
+    player1Score: match?.player1?.score?.toString() || "",
+    player2Score: match?.player2?.score?.toString() || "",
+    winner: match?.winner || "",
+    player1Name: match?.player1?.name || "",
+    player2Name: match?.player2?.name || ""
   });
   const { toast } = useToast();
   const { validateWinner, validateMatchCompletion } = useBracketValidation();
 
+  console.log("EditMatchDialog rendering with match:", match);
+  console.log("EditMatchDialog open state:", isOpen);
+  console.log("EditMatchDialog available players:", allPlayers?.length || availablePlayers?.length);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!match) {
+      toast({
+        title: "Error",
+        description: "Match data not available",
+        variant: "destructive"
+      });
+      return;
+    }
     
     console.log("EditMatchDialog handleSubmit called with formData:", formData);
     
@@ -178,142 +191,147 @@ export function EditMatchDialog({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md z-50 bg-background border shadow-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Edit3 className="h-5 w-5" />
-            Edit Match
+            Edit Match - {match?.round || 'Unknown Round'}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="round">Round</Label>
-              <Input
-                id="round"
-                value={formData.round}
-                onChange={(e) => handleInputChange("round", e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select value={formData.status} onValueChange={(value) => handleInputChange("status", value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                      <SelectContent className="bg-background border z-50">
-                        <SelectItem value="scheduled">Scheduled</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                      </SelectContent>
-              </Select>
-            </div>
-
-            {match.type === "singles" && (
-              <div className="space-y-4 border-t pt-4">
-                <Label className="text-base font-semibold">Players</Label>
-                
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="player1">Player 1</Label>
-                    <Select value={formData.player1Name} onValueChange={(value) => handleInputChange("player1Name", value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select player 1" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-background border z-50">
-                        <SelectItem value="">No Player</SelectItem>
-                        {(allPlayers.length > 0 ? allPlayers : availablePlayers)
-                          .sort((a, b) => a.handicap - b.handicap)
-                          .map(player => (
-                            <SelectItem key={player.name || player.id} value={player.name}>
-                              {player.name} (HC: {player.handicap})
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="player2">Player 2</Label>
-                    <Select value={formData.player2Name} onValueChange={(value) => handleInputChange("player2Name", value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select player 2" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-background border z-50">
-                        <SelectItem value="">No Opponent</SelectItem>
-                        {(allPlayers.length > 0 ? allPlayers : availablePlayers)
-                          .sort((a, b) => a.handicap - b.handicap)
-                          .map(player => (
-                            <SelectItem key={player.name || player.id} value={player.name}>
-                              {player.name} (HC: {player.handicap})
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+        {!match ? (
+          <div className="p-4 text-center">
+            <p className="text-muted-foreground">Match data not available</p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="round">Round</Label>
+                <Input
+                  id="round"
+                  value={formData.round}
+                  onChange={(e) => handleInputChange("round", e.target.value)}
+                />
               </div>
-            )}
-            
 
-            {formData.status === "completed" && (
-              <div className="space-y-4 border-t pt-4">
-                <Label className="text-base font-semibold">Match Results</Label>
-                
-                {match.type === "singles" && (
-                  <>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <Label htmlFor="player1Score">{formData.player1Name || "Player 1"} Score</Label>
-                        <Input
-                          id="player1Score"
-                          type="number"
-                          placeholder="Score"
-                          value={formData.player1Score}
-                          onChange={(e) => handleInputChange("player1Score", e.target.value)}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="player2Score">{formData.player2Name || "Player 2"} Score</Label>
-                        <Input
-                          id="player2Score"
-                          type="number"
-                          placeholder="Score"
-                          value={formData.player2Score}
-                          onChange={(e) => handleInputChange("player2Score", e.target.value)}
-                        />
-                      </div>
-                    </div>
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Select value={formData.status} onValueChange={(value) => handleInputChange("status", value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border z-50">
+                    <SelectItem value="scheduled">Scheduled</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
+              {match.type === "singles" && (
+                <div className="space-y-4 border-t pt-4">
+                  <Label className="text-base font-semibold">Players</Label>
+                  
+                  <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
-                      <Label htmlFor="winner">Winner</Label>
-                      <Select value={formData.winner} onValueChange={(value) => handleInputChange("winner", value)}>
+                      <Label htmlFor="player1">Player 1</Label>
+                      <Select value={formData.player1Name} onValueChange={(value) => handleInputChange("player1Name", value)}>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select winner" />
+                          <SelectValue placeholder="Select player 1" />
                         </SelectTrigger>
                         <SelectContent className="bg-background border z-50">
-                          <SelectItem value="no-winner">(No winner yet)</SelectItem>
-                          {formData.player1Name && <SelectItem value={formData.player1Name}>{formData.player1Name}</SelectItem>}
-                          {formData.player2Name && <SelectItem value={formData.player2Name}>{formData.player2Name}</SelectItem>}
+                          <SelectItem value="">No Player</SelectItem>
+                          {(allPlayers.length > 0 ? allPlayers : availablePlayers)
+                            .sort((a, b) => a.handicap - b.handicap)
+                            .map(player => (
+                              <SelectItem key={player.name || player.id} value={player.name}>
+                                {player.name} (HC: {player.handicap})
+                              </SelectItem>
+                            ))}
                         </SelectContent>
                       </Select>
                     </div>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="player2">Player 2</Label>
+                      <Select value={formData.player2Name} onValueChange={(value) => handleInputChange("player2Name", value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select player 2" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background border z-50">
+                          <SelectItem value="">No Opponent</SelectItem>
+                          {(allPlayers.length > 0 ? allPlayers : availablePlayers)
+                            .sort((a, b) => a.handicap - b.handicap)
+                            .map(player => (
+                              <SelectItem key={player.name || player.id} value={player.name}>
+                                {player.name} (HC: {player.handicap})
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {formData.status === "completed" && (
+                <div className="space-y-4 border-t pt-4">
+                  <Label className="text-base font-semibold">Match Results</Label>
+                  
+                  {match.type === "singles" && (
+                    <>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="player1Score">{formData.player1Name || "Player 1"} Score</Label>
+                          <Input
+                            id="player1Score"
+                            type="number"
+                            placeholder="Score"
+                            value={formData.player1Score}
+                            onChange={(e) => handleInputChange("player1Score", e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="player2Score">{formData.player2Name || "Player 2"} Score</Label>
+                          <Input
+                            id="player2Score"
+                            type="number"
+                            placeholder="Score"
+                            value={formData.player2Score}
+                            onChange={(e) => handleInputChange("player2Score", e.target.value)}
+                          />
+                        </div>
+                      </div>
 
-          <div className="flex gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1">
-              Cancel
-            </Button>
-            <Button type="submit" variant="default" className="flex-1">
-              Update Match
-            </Button>
-          </div>
-        </form>
+                      <div className="space-y-2">
+                        <Label htmlFor="winner">Winner</Label>
+                        <Select value={formData.winner} onValueChange={(value) => handleInputChange("winner", value)}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select winner" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-background border z-50">
+                            <SelectItem value="no-winner">(No winner yet)</SelectItem>
+                            {formData.player1Name && <SelectItem value={formData.player1Name}>{formData.player1Name}</SelectItem>}
+                            {formData.player2Name && <SelectItem value={formData.player2Name}>{formData.player2Name}</SelectItem>}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button type="submit" variant="default" className="flex-1">
+                Update Match
+              </Button>
+            </div>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );
