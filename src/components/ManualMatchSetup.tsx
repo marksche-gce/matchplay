@@ -355,6 +355,7 @@ export function ManualMatchSetup({
                         <SelectContent className="bg-background border z-50">
                           <SelectItem value="no-player">No Player</SelectItem>
                           {getAvailablePlayersForMatch(match.matchNumber)
+                            .filter(player => player.id !== match.player2Id)
                             .slice()
                             .sort((a, b) => a.handicap - b.handicap)
                             .map(player => (
@@ -378,6 +379,7 @@ export function ManualMatchSetup({
                         <SelectContent className="bg-background border z-50">
                           <SelectItem value="no-opponent">No Opponent</SelectItem>
                           {getAvailablePlayersForMatch(match.matchNumber)
+                            .filter(player => player.id !== match.player1Id)
                             .slice()
                             .sort((a, b) => a.handicap - b.handicap)
                             .map(player => (

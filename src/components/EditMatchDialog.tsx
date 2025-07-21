@@ -242,9 +242,10 @@ export function EditMatchDialog({
                         <SelectContent className="bg-background border z-50">
                           <SelectItem value="no-player">No Player</SelectItem>
                           {(allPlayers.length > 0 ? allPlayers : availablePlayers)
+                            .filter(player => formData.player2Name !== "no-opponent" ? player.name !== formData.player2Name : true)
                             .sort((a, b) => a.handicap - b.handicap)
-                            .map(player => (
-                              <SelectItem key={player.name || player.id} value={player.name}>
+                             .map((player, index) => (
+                               <SelectItem key={`player1-${player.name}-${index}`} value={player.name}>
                                 {player.name} (HC: {player.handicap})
                               </SelectItem>
                             ))}
@@ -261,9 +262,10 @@ export function EditMatchDialog({
                         <SelectContent className="bg-background border z-50">
                           <SelectItem value="no-opponent">No Opponent</SelectItem>
                           {(allPlayers.length > 0 ? allPlayers : availablePlayers)
+                            .filter(player => formData.player1Name !== "no-player" ? player.name !== formData.player1Name : true)
                             .sort((a, b) => a.handicap - b.handicap)
-                            .map(player => (
-                              <SelectItem key={player.name || player.id} value={player.name}>
+                            .map((player, index) => (
+                              <SelectItem key={`player2-${player.name}-${index}`} value={player.name}>
                                 {player.name} (HC: {player.handicap})
                               </SelectItem>
                             ))}
