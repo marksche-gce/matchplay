@@ -7,8 +7,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { MatchCard } from "./MatchCard";
 import { EditMatchDialog } from "./EditMatchDialog";
+import { ManualMatchSetup } from "./ManualMatchSetup";
 import { useToast } from "@/hooks/use-toast";
-import { useBracketGeneration } from "@/hooks/useBracketGeneration";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Player {
@@ -71,18 +71,24 @@ export function TournamentBracket({
 }: TournamentBracketProps) {
   const [bracketData, setBracketData] = useState<BracketRound[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
+  const [showManualSetup, setShowManualSetup] = useState(true);
   const { toast } = useToast();
-  const { generateTournamentBracket, fillFirstRoundMatches } = useBracketGeneration();
 
-  // Only advance winners when brackets exist and matches change
+  // Check if we have database matches to show bracket view
   useEffect(() => {
     if (format === "matchplay") {
-      // Always generate bracket structure from existing matches for display
       const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
-      if (tournamentMatches.length > 0) {
-        generateBracket(); // Show existing matches in bracket view
+      const databaseMatches = tournamentMatches.filter(m => 
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(m.id)
+      );
+      
+      if (databaseMatches.length > 0) {
+        setShowManualSetup(false);
+        generateBracket();
         advanceAllWinners();
-        processAutoAdvanceByes(); // Handle bye matches
+        processAutoAdvanceByes();
+      } else {
+        setShowManualSetup(true);
       }
     }
   }, [matches]);
@@ -658,10 +664,6 @@ export function TournamentBracket({
     });
   };
 
-  const generateInitialBracket = () => {
-    const newMatches = generateTournamentBracket(tournamentId, players, maxPlayers);
-    onMatchUpdate([...matches, ...newMatches]);
-  };
 
   const createDatabaseMatches = async () => {
     if (!bracketData.length) {
@@ -817,24 +819,6 @@ export function TournamentBracket({
     }
   };
 
-  const fillFirstRound = () => {
-    console.log("fillFirstRound called");
-    console.log("Current matches:", matches);
-    console.log("Current players:", players);
-    console.log("Tournament ID:", tournamentId);
-    
-    try {
-      const updatedMatches = fillFirstRoundMatches(tournamentId, players, matches);
-      onMatchUpdate(updatedMatches);
-    } catch (error) {
-      console.error("Error in fillFirstRound:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fill first round. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
 
   const getMatchProgress = () => {
     const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
@@ -873,51 +857,6 @@ export function TournamentBracket({
               <p className="text-sm text-muted-foreground mt-1">
                 Progress: {progress.completed}/{progress.total} matches completed
               </p>
-            </div>
-            <div className="flex items-center gap-2">
-              {bracketData.length === 0 ? (
-                <Button onClick={generateInitialBracket}>
-                  Generate Bracket
-                </Button>
-              ) : (
-                <>
-                  <Button onClick={fillFirstRound} variant="outline" size="sm">
-                    <Users className="h-4 w-4 mr-2" />
-                    Fill First Round
-                  </Button>
-                  
-                  <Button onClick={createDatabaseMatches} variant="default" size="sm">
-                    Create Database Matches
-                  </Button>
-                  
-                  <Button onClick={() => setBracketData([])} variant="secondary" size="sm">
-                    Clear Brackets
-                  </Button>
-                  
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive" size="sm">
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete All Matches
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete All Matches</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete all matches? This will permanently remove all match data and cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={deleteAllMatches} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                          Delete All Matches
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </>
-              )}
             </div>
           </div>
         </CardHeader>
@@ -971,12 +910,12 @@ export function TournamentBracket({
         <Card>
           <CardContent className="p-8 text-center">
             <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-xl font-semibold mb-2">No Bracket Generated</h3>
+            <h3 className="text-xl font-semibold mb-2">No Matches Found</h3>
             <p className="text-muted-foreground mb-4">
-              Generate a tournament bracket to visualize match progression and automatic winner advancement.
+              Use the manual setup to create and configure your tournament matches first.
             </p>
-            <Button onClick={generateInitialBracket} size="lg">
-              Generate Tournament Bracket
+            <Button onClick={() => setShowManualSetup(true)} size="lg">
+              Back to Manual Setup
             </Button>
           </CardContent>
         </Card>
@@ -1000,6 +939,7 @@ export function TournamentBracket({
             setSelectedMatch(null); // Close dialog after update
           }}
           availablePlayers={players}
+          allPlayers={players}
         />
       )}
     </div>

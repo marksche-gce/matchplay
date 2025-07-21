@@ -44,6 +44,7 @@ interface EditMatchDialogProps {
   onMatchUpdate: (matchId: string, updates: Partial<Match>) => void;
   trigger?: React.ReactNode;
   availablePlayers?: Player[];
+  allPlayers?: { id: string; name: string; handicap: number; }[];
   tournamentStartDate?: string;
   tournamentEndDate?: string;
   open?: boolean;
@@ -55,6 +56,7 @@ export function EditMatchDialog({
   onMatchUpdate, 
   trigger, 
   availablePlayers = [], 
+  allPlayers = [],
   tournamentStartDate, 
   tournamentEndDate,
   open: controlledOpen,
@@ -103,18 +105,23 @@ export function EditMatchDialog({
     const updatedMatch = { ...match, ...updates };
 
     if (match.type === "singles") {
-      const selectedPlayer1 = availablePlayers.find(p => p.name === formData.player1Name);
-      const selectedPlayer2 = availablePlayers.find(p => p.name === formData.player2Name);
+      // Use allPlayers if available, otherwise fallback to availablePlayers
+      const playersToSearch = allPlayers.length > 0 ? allPlayers : availablePlayers;
+      
+      const selectedPlayer1 = playersToSearch.find(p => p.name === formData.player1Name);
+      const selectedPlayer2 = playersToSearch.find(p => p.name === formData.player2Name);
       
       updates.player1 = selectedPlayer1 ? {
-        ...selectedPlayer1,
+        name: selectedPlayer1.name,
+        handicap: selectedPlayer1.handicap,
         score: formData.player1Score ? parseInt(formData.player1Score) : undefined
-      } : match.player1;
+      } : (formData.player1Name ? match.player1 : undefined);
       
       updates.player2 = selectedPlayer2 ? {
-        ...selectedPlayer2,
+        name: selectedPlayer2.name,
+        handicap: selectedPlayer2.handicap,
         score: formData.player2Score ? parseInt(formData.player2Score) : undefined
-      } : match.player2;
+      } : (formData.player2Name ? match.player2 : undefined);
       
       // Update the validation match
       updatedMatch.player1 = updates.player1;
@@ -215,11 +222,14 @@ export function EditMatchDialog({
                         <SelectValue placeholder="Select player 1" />
                       </SelectTrigger>
                       <SelectContent className="bg-background border z-50">
-                        {availablePlayers.map(player => (
-                          <SelectItem key={player.name} value={player.name}>
-                            {player.name} (HC: {player.handicap})
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="">No Player</SelectItem>
+                        {(allPlayers.length > 0 ? allPlayers : availablePlayers)
+                          .sort((a, b) => a.handicap - b.handicap)
+                          .map(player => (
+                            <SelectItem key={player.name || player.id} value={player.name}>
+                              {player.name} (HC: {player.handicap})
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -231,11 +241,14 @@ export function EditMatchDialog({
                         <SelectValue placeholder="Select player 2" />
                       </SelectTrigger>
                       <SelectContent className="bg-background border z-50">
-                        {availablePlayers.map(player => (
-                          <SelectItem key={player.name} value={player.name}>
-                            {player.name} (HC: {player.handicap})
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="">No Opponent</SelectItem>
+                        {(allPlayers.length > 0 ? allPlayers : availablePlayers)
+                          .sort((a, b) => a.handicap - b.handicap)
+                          .map(player => (
+                            <SelectItem key={player.name || player.id} value={player.name}>
+                              {player.name} (HC: {player.handicap})
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   </div>
