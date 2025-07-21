@@ -68,7 +68,6 @@ export function CreateMatchDialog({
   const [open, setOpen] = useState(false);
   const [matchType, setMatchType] = useState<"singles" | "foursome">("singles");
   const [formData, setFormData] = useState({
-    round: "",
     // Singles
     player1Id: "",
     player2Id: "",
@@ -106,15 +105,6 @@ export function CreateMatchDialog({
 
   const handleCreateMatch = () => {
     // Validation
-    if (!formData.round.trim()) {
-      toast({
-        title: "Round Required",
-        description: "Please enter a round name.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     if (matchType === "singles") {
       if (!formData.player1Id || !formData.player2Id) {
         toast({
@@ -166,7 +156,7 @@ export function CreateMatchDialog({
     const match: Omit<Match, "id"> = {
       tournamentId,
       type: matchType,
-      round: formData.round,
+      round: "Round 1",
       status: "scheduled",
       date: tournamentStartDate || new Date().toISOString().split('T')[0],
       time: null,
@@ -205,7 +195,6 @@ export function CreateMatchDialog({
     
     // Reset form
     setFormData({
-      round: "",
       player1Id: "",
       player2Id: "",
       team1Player1Id: "",
@@ -224,7 +213,6 @@ export function CreateMatchDialog({
 
   const resetForm = () => {
     setFormData({
-      round: "",
       player1Id: "",
       player2Id: "",
       team1Player1Id: "",
@@ -439,20 +427,6 @@ export function CreateMatchDialog({
             )}
           </div>
 
-          {/* Match Details */}
-          <div className="space-y-4">
-            <Label className="text-base font-semibold">Match Details</Label>
-            
-            <div>
-              <Label htmlFor="round">Round/Stage</Label>
-              <Input
-                id="round"
-                placeholder="e.g., Quarterfinal 1, Round 1"
-                value={formData.round}
-                onChange={(e) => setFormData(prev => ({ ...prev, round: e.target.value }))}
-              />
-            </div>
-          </div>
         </div>
 
         <DialogFooter>
