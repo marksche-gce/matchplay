@@ -92,7 +92,7 @@ export function ManualMatchSetup({
   };
 
   const getSortedPlayers = () => {
-    return [...players].sort((a, b) => a.handicap - b.handicap);
+    return [...players].sort((a, b) => Number(a.handicap) - Number(b.handicap));
   };
 
   const updateMatch = (matchNumber: number, field: 'player1Id' | 'player2Id', value: string | undefined) => {
