@@ -498,6 +498,7 @@ export function TournamentBracket({
       if (!updatedMatch) return;
 
       // Prepare database updates
+      console.log("Preparing database updates for match:", matchId);
       const dbUpdates: any = {
         status: updates.status,
         round: updates.round,
@@ -507,12 +508,15 @@ export function TournamentBracket({
         winner_id: null
       };
 
+      console.log("Database updates:", dbUpdates);
+
       // Update match in database
       const { error: matchError } = await supabase
         .from('matches')
         .update(dbUpdates)
         .eq('id', matchId);
 
+      console.log("Database update result - error:", matchError);
       if (matchError) throw matchError;
 
       // Check if players actually changed (not just score updates)
@@ -626,6 +630,8 @@ export function TournamentBracket({
           await progressWinnerToDatabase(updatedMatch, winnerPlayer);
         }
       }
+
+      console.log("Match update completed successfully");
 
       // Update local state
       let finalMatches = updatedMatches;
