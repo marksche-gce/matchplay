@@ -74,6 +74,24 @@ export function TournamentBracket({
   const [showManualSetup, setShowManualSetup] = useState(true);
   const { toast } = useToast();
 
+  // Function to get available players for a specific match (excluding already assigned players)
+  const getAvailablePlayersForMatch = (matchId: string) => {
+    const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
+    const currentMatch = tournamentMatches.find(m => m.id === matchId);
+    
+    // Get all assigned player names across all matches except the current one
+    const assignedPlayerNames = new Set<string>();
+    tournamentMatches.forEach(match => {
+      if (match.id !== matchId) { // Exclude current match
+        if (match.player1?.name) assignedPlayerNames.add(match.player1.name);
+        if (match.player2?.name) assignedPlayerNames.add(match.player2.name);
+      }
+    });
+    
+    // Return players not assigned to other matches
+    return players.filter(player => !assignedPlayerNames.has(player.name));
+  };
+
   // Check if we have database matches to show bracket view
   useEffect(() => {
     if (format === "matchplay") {
@@ -974,8 +992,8 @@ export function TournamentBracket({
             handleMatchUpdate(matchId, updates);
             setSelectedMatch(null); // Close dialog after update
           }}
-          availablePlayers={players}
-          allPlayers={players}
+          availablePlayers={getAvailablePlayersForMatch(selectedMatch.id)}
+          allPlayers={getAvailablePlayersForMatch(selectedMatch.id)}
         />
       )}
     </div>

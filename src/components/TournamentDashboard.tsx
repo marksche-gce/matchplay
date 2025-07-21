@@ -196,6 +196,23 @@ export function TournamentDashboard() {
     };
   }, []);
 
+  // Function to get available players for a specific match (excluding already assigned players)
+  const getAvailablePlayersForMatch = (matchId: string) => {
+    const tournamentMatches = matches.filter(m => m.tournamentId === selectedTournament);
+    
+    // Get all assigned player names across all matches except the current one
+    const assignedPlayerNames = new Set<string>();
+    tournamentMatches.forEach(match => {
+      if (match.id !== matchId) { // Exclude current match
+        if (match.player1?.name) assignedPlayerNames.add(match.player1.name);
+        if (match.player2?.name) assignedPlayerNames.add(match.player2.name);
+      }
+    });
+    
+    // Return players not assigned to other matches
+    return players.filter(player => !assignedPlayerNames.has(player.name));
+  };
+
   const fetchTournaments = async () => {
     try {
       const { data, error } = await supabase
@@ -1455,7 +1472,7 @@ export function TournamentDashboard() {
                         key={match.id}
                         match={match}
                         onMatchUpdate={handleEditMatch}
-                        availablePlayers={players}
+                        availablePlayers={getAvailablePlayersForMatch(match.id)}
                         tournamentStartDate={currentTournament?.start_date}
                         tournamentEndDate={currentTournament?.end_date}
                         trigger={
@@ -1581,7 +1598,7 @@ export function TournamentDashboard() {
                       key={match.id}
                       match={match}
                       onMatchUpdate={handleEditMatch}
-                      availablePlayers={players}
+                      availablePlayers={getAvailablePlayersForMatch(match.id)}
                       tournamentStartDate={currentTournament?.start_date}
                       tournamentEndDate={currentTournament?.end_date}
                       trigger={
