@@ -346,8 +346,8 @@ export function ManualMatchSetup({
                         </SelectTrigger>
                         <SelectContent className="bg-background border z-50">
                           <SelectItem value="">No Player</SelectItem>
-                          {getSortedPlayers()
-                            .filter(p => availablePlayers.includes(p))
+                          {getAvailablePlayersForMatch(match.matchNumber)
+                            .sort((a, b) => Number(a.handicap) - Number(b.handicap))
                             .map(player => (
                               <SelectItem key={player.id} value={player.id}>
                                 {player.name} (HC: {player.handicap})
@@ -368,8 +368,8 @@ export function ManualMatchSetup({
                         </SelectTrigger>
                         <SelectContent className="bg-background border z-50">
                           <SelectItem value="">No Opponent</SelectItem>
-                          {getSortedPlayers()
-                            .filter(p => availablePlayers.includes(p))
+                          {getAvailablePlayersForMatch(match.matchNumber)
+                            .sort((a, b) => Number(a.handicap) - Number(b.handicap))
                             .map(player => (
                               <SelectItem key={player.id} value={player.id}>
                                 {player.name} (HC: {player.handicap})
