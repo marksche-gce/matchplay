@@ -71,8 +71,8 @@ export function EditMatchDialog({
     player1Score: match?.player1?.score?.toString() || "",
     player2Score: match?.player2?.score?.toString() || "",
     winner: match?.winner || "",
-    player1Name: match?.player1?.name || "",
-    player2Name: match?.player2?.name || ""
+    player1Name: match?.player1?.name || "no-player",
+    player2Name: match?.player2?.name || "no-opponent"
   });
   const { toast } = useToast();
   const { validateWinner, validateMatchCompletion } = useBracketValidation();
@@ -128,13 +128,13 @@ export function EditMatchDialog({
         name: selectedPlayer1.name,
         handicap: selectedPlayer1.handicap,
         score: formData.player1Score ? parseInt(formData.player1Score) : undefined
-      } : (formData.player1Name ? match.player1 : undefined);
+      } : (formData.player1Name && formData.player1Name !== "no-player" ? match.player1 : undefined);
       
       updates.player2 = selectedPlayer2 ? {
         name: selectedPlayer2.name,
         handicap: selectedPlayer2.handicap,
         score: formData.player2Score ? parseInt(formData.player2Score) : undefined
-      } : (formData.player2Name ? match.player2 : undefined);
+      } : (formData.player2Name && formData.player2Name !== "no-opponent" ? match.player2 : undefined);
       
       // Update the validation match
       updatedMatch.player1 = updates.player1;
@@ -240,7 +240,7 @@ export function EditMatchDialog({
                           <SelectValue placeholder="Select player 1" />
                         </SelectTrigger>
                         <SelectContent className="bg-background border z-50">
-                          <SelectItem value="">No Player</SelectItem>
+                          <SelectItem value="no-player">No Player</SelectItem>
                           {(allPlayers.length > 0 ? allPlayers : availablePlayers)
                             .sort((a, b) => a.handicap - b.handicap)
                             .map(player => (
@@ -259,7 +259,7 @@ export function EditMatchDialog({
                           <SelectValue placeholder="Select player 2" />
                         </SelectTrigger>
                         <SelectContent className="bg-background border z-50">
-                          <SelectItem value="">No Opponent</SelectItem>
+                          <SelectItem value="no-opponent">No Opponent</SelectItem>
                           {(allPlayers.length > 0 ? allPlayers : availablePlayers)
                             .sort((a, b) => a.handicap - b.handicap)
                             .map(player => (

@@ -346,14 +346,14 @@ export function ManualMatchSetup({
                     <div className="space-y-2">
                       <Label>Player 1</Label>
                       <Select 
-                        value={match.player1Id || ""} 
-                        onValueChange={(value) => updateMatch(match.matchNumber, 'player1Id', value)}
+                        value={match.player1Id || "no-player"} 
+                        onValueChange={(value) => updateMatch(match.matchNumber, 'player1Id', value === "no-player" ? undefined : value)}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select Player 1" />
                         </SelectTrigger>
                         <SelectContent className="bg-background border z-50">
-                          <SelectItem value="">No Player</SelectItem>
+                          <SelectItem value="no-player">No Player</SelectItem>
                           {getAvailablePlayersForMatch(match.matchNumber)
                             .slice()
                             .sort((a, b) => a.handicap - b.handicap)
@@ -369,14 +369,14 @@ export function ManualMatchSetup({
                     <div className="space-y-2">
                       <Label>Player 2 / Opponent</Label>
                       <Select 
-                        value={match.player2Id || ""} 
-                        onValueChange={(value) => updateMatch(match.matchNumber, 'player2Id', value)}
+                        value={match.player2Id || "no-opponent"} 
+                        onValueChange={(value) => updateMatch(match.matchNumber, 'player2Id', value === "no-opponent" ? undefined : value)}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select Player 2" />
                         </SelectTrigger>
                         <SelectContent className="bg-background border z-50">
-                          <SelectItem value="">No Opponent</SelectItem>
+                          <SelectItem value="no-opponent">No Opponent</SelectItem>
                           {getAvailablePlayersForMatch(match.matchNumber)
                             .slice()
                             .sort((a, b) => a.handicap - b.handicap)
