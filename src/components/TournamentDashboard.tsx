@@ -184,7 +184,10 @@ export function TournamentDashboard() {
         status: "active" as const
       }));
 
-      setPlayers(tournamentPlayers);
+      // Sort players by handicap (lowest to highest) immediately after fetching
+      const sortedTournamentPlayers = tournamentPlayers.sort((a, b) => Number(a.handicap) - Number(b.handicap));
+
+      setPlayers(sortedTournamentPlayers);
     } catch (error) {
       console.error('Error fetching players:', error);
       toast({
