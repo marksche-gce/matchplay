@@ -346,13 +346,20 @@ export function ManualMatchSetup({
                         </SelectTrigger>
                         <SelectContent className="bg-background border z-50">
                           <SelectItem value="">No Player</SelectItem>
-                          {getAvailablePlayersForMatch(match.matchNumber)
-                            .sort((a, b) => Number(a.handicap) - Number(b.handicap))
-                            .map(player => (
+                          {(() => {
+                            const availableForMatch = getAvailablePlayersForMatch(match.matchNumber);
+                            const sorted = availableForMatch.sort((a, b) => {
+                              const handicapA = typeof a.handicap === 'string' ? parseFloat(a.handicap) : Number(a.handicap);
+                              const handicapB = typeof b.handicap === 'string' ? parseFloat(b.handicap) : Number(b.handicap);
+                              return handicapA - handicapB;
+                            });
+                            console.log(`Match ${match.matchNumber} Player 1 sorted:`, sorted.map(p => `${p.name} (${p.handicap})`));
+                            return sorted.map(player => (
                               <SelectItem key={player.id} value={player.id}>
                                 {player.name} (HC: {player.handicap})
                               </SelectItem>
-                            ))}
+                            ));
+                          })()}
                         </SelectContent>
                       </Select>
                     </div>
@@ -368,13 +375,20 @@ export function ManualMatchSetup({
                         </SelectTrigger>
                         <SelectContent className="bg-background border z-50">
                           <SelectItem value="">No Opponent</SelectItem>
-                          {getAvailablePlayersForMatch(match.matchNumber)
-                            .sort((a, b) => Number(a.handicap) - Number(b.handicap))
-                            .map(player => (
+                          {(() => {
+                            const availableForMatch = getAvailablePlayersForMatch(match.matchNumber);
+                            const sorted = availableForMatch.sort((a, b) => {
+                              const handicapA = typeof a.handicap === 'string' ? parseFloat(a.handicap) : Number(a.handicap);
+                              const handicapB = typeof b.handicap === 'string' ? parseFloat(b.handicap) : Number(b.handicap);
+                              return handicapA - handicapB;
+                            });
+                            console.log(`Match ${match.matchNumber} Player 2 sorted:`, sorted.map(p => `${p.name} (${p.handicap})`));
+                            return sorted.map(player => (
                               <SelectItem key={player.id} value={player.id}>
                                 {player.name} (HC: {player.handicap})
                               </SelectItem>
-                            ))}
+                            ));
+                          })()}
                         </SelectContent>
                       </Select>
                     </div>
