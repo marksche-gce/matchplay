@@ -200,17 +200,37 @@ export function TournamentDashboard() {
   const getAvailablePlayersForMatch = (matchId: string) => {
     const tournamentMatches = matches.filter(m => m.tournamentId === selectedTournament);
     
+    console.log("=== PLAYER FILTERING DEBUG ===");
+    console.log("Match ID being edited:", matchId);
+    console.log("Selected tournament:", selectedTournament);
+    console.log("All matches for tournament:", tournamentMatches.length);
+    console.log("Tournament matches:", tournamentMatches.map(m => ({ id: m.id, player1: m.player1?.name, player2: m.player2?.name })));
+    
     // Get all assigned player names across all matches except the current one
     const assignedPlayerNames = new Set<string>();
     tournamentMatches.forEach(match => {
       if (match.id !== matchId) { // Exclude current match
-        if (match.player1?.name) assignedPlayerNames.add(match.player1.name);
-        if (match.player2?.name) assignedPlayerNames.add(match.player2.name);
+        console.log(`Checking match ${match.id} (excluding current ${matchId})`);
+        if (match.player1?.name) {
+          assignedPlayerNames.add(match.player1.name);
+          console.log(`Added player1: ${match.player1.name}`);
+        }
+        if (match.player2?.name) {
+          assignedPlayerNames.add(match.player2.name);
+          console.log(`Added player2: ${match.player2.name}`);
+        }
       }
     });
     
+    console.log("Assigned player names:", Array.from(assignedPlayerNames));
+    console.log("Total players available:", players.length);
+    
     // Return players not assigned to other matches
-    return players.filter(player => !assignedPlayerNames.has(player.name));
+    const availablePlayers = players.filter(player => !assignedPlayerNames.has(player.name));
+    console.log("Available players after filtering:", availablePlayers.map(p => p.name));
+    console.log("=== END DEBUG ===");
+    
+    return availablePlayers;
   };
 
   const fetchTournaments = async () => {
