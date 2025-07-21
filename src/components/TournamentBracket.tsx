@@ -886,8 +886,20 @@ export function TournamentBracket({
                         showScores={false}
                         onEditMatch={(matchId) => {
                           console.log("Edit match clicked for ID:", matchId);
-                          // Allow editing of all matches, including placeholder ones
-                          const selectedMatch = matches.find(m => m.id === matchId);
+                          // First try to find in matches array (for real matches)
+                          let selectedMatch = matches.find(m => m.id === matchId);
+                          
+                          // If not found, look in bracketData (for placeholder matches)
+                          if (!selectedMatch) {
+                            for (const round of bracketData) {
+                              const foundMatch = round.matches.find(m => m.id === matchId);
+                              if (foundMatch) {
+                                selectedMatch = foundMatch;
+                                break;
+                              }
+                            }
+                          }
+                          
                           console.log("Selected match found:", selectedMatch);
                           setSelectedMatch(selectedMatch || null);
                         }}
