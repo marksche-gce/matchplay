@@ -217,11 +217,8 @@ export function CreateTournamentDialog({ onTournamentCreate, open: externalOpen,
             </CardContent>
           </Card>
 
-          <div className="flex gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => setIsOpen(false)} className="flex-1">
-              Cancel
-            </Button>
-            <Button type="submit" variant="premium" className="flex-1">
+          <div className="flex justify-end pt-4">
+            <Button type="submit" variant="premium" className="w-full">
               Create Tournament
             </Button>
           </div>
