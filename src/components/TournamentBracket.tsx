@@ -619,6 +619,19 @@ export function TournamentBracket({
         return match;
       });
 
+      // Immediately update bracket display with the changes
+      setBracketData(prevBracketData => {
+        return prevBracketData.map(round => ({
+          ...round,
+          matches: round.matches.map(match => {
+            if (match.id === matchId) {
+              return { ...match, ...updates };
+            }
+            return match;
+          })
+        }));
+      });
+
       // Check if match was completed and progress winner
       const completedMatch = updatedMatches.find(m => m.id === matchId);
       let finalMatches = updatedMatches;
@@ -641,6 +654,11 @@ export function TournamentBracket({
 
       // Update parent component with the updated matches
       onMatchUpdate(finalMatches);
+      
+      // Immediately update the bracket display to reflect changes
+      setTimeout(() => {
+        generateBracket();
+      }, 100);
 
     } catch (error) {
       console.error('Error updating database match:', error);
