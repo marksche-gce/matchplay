@@ -946,7 +946,9 @@ export function TournamentBracket({
             setSelectedMatch(null); // Close dialog after update
           }}
           availablePlayers={getAvailablePlayersForMatch(selectedMatch.id)}
-          allPlayers={getAvailablePlayersForMatch(selectedMatch.id)}
+          allPlayers={players}
+          maxPlayers={maxPlayers}
+          registeredPlayers={players.length}
         />
       )}
     </div>
