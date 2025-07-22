@@ -953,7 +953,109 @@ export function TournamentDashboard() {
 
     console.log("Successfully updated match in database. Updated data:", data);
 
-    // Update match participants if it's a singles match with score updates
+    // Update match participants if players have changed
+    if (updates.player1?.name !== undefined || updates.player2?.name !== undefined || 
+        updates.team1 !== undefined || updates.team2 !== undefined) {
+      
+      console.log("Updating match participants because players changed");
+      
+      // Delete existing participants
+      const { error: deleteError } = await supabase
+        .from('match_participants')
+        .delete()
+        .eq('match_id', matchId);
+
+      if (deleteError) throw deleteError;
+
+      // Add new participants based on the current match type
+      const participants = [];
+      
+      if (updates.type === "singles" || (!updates.type && (updates.player1 || updates.player2))) {
+        if (updates.player1?.name) {
+          const player1 = players.find(p => p.name === updates.player1?.name);
+          if (player1) {
+            participants.push({
+              match_id: matchId,
+              player_id: player1.id,
+              position: 1,
+              score: updates.player1.score || null
+            });
+          }
+        }
+        
+        if (updates.player2?.name) {
+          const player2 = players.find(p => p.name === updates.player2?.name);
+          if (player2) {
+            participants.push({
+              match_id: matchId,
+              player_id: player2.id,
+              position: 2,
+              score: updates.player2.score || null
+            });
+          }
+        }
+      } else if (updates.type === "foursome" || updates.team1 || updates.team2) {
+        // Handle foursome participants
+        if (updates.team1) {
+          const team1Player1 = players.find(p => p.name === updates.team1?.player1.name);
+          const team1Player2 = players.find(p => p.name === updates.team1?.player2.name);
+          
+          if (team1Player1) {
+            participants.push({
+              match_id: matchId,
+              player_id: team1Player1.id,
+              team_number: 1,
+              position: 1
+            });
+          }
+          
+          if (team1Player2) {
+            participants.push({
+              match_id: matchId,
+              player_id: team1Player2.id,
+              team_number: 1,
+              position: 2
+            });
+          }
+        }
+        
+        if (updates.team2) {
+          const team2Player1 = players.find(p => p.name === updates.team2?.player1.name);
+          const team2Player2 = players.find(p => p.name === updates.team2?.player2.name);
+          
+          if (team2Player1) {
+            participants.push({
+              match_id: matchId,
+              player_id: team2Player1.id,
+              team_number: 2,
+              position: 1
+            });
+          }
+          
+          if (team2Player2) {
+            participants.push({
+              match_id: matchId,
+              player_id: team2Player2.id,
+              team_number: 2,
+              position: 2
+            });
+          }
+        }
+      }
+
+      // Insert new participants
+      if (participants.length > 0) {
+        const { error: participantsError } = await supabase
+          .from('match_participants')
+          .insert(participants);
+
+        if (participantsError) throw participantsError;
+      }
+      
+      console.log("Successfully updated match participants:", participants);
+    }
+    
+    // Update scores if provided (for existing participants)
     if (updates.player1?.score !== undefined || updates.player2?.score !== undefined) {
       // Get current match participants
       const { data: participants, error: participantsError } = await supabase
