@@ -143,10 +143,15 @@ export function EditMatchDialog({
       const selectedPlayer1 = playersToSearch.find(p => p.name === formData.player1Name);
       const selectedPlayer2 = playersToSearch.find(p => p.name === formData.player2Name);
       
+      // Handle "no-opponent" assignments properly for player1
       updates.player1 = selectedPlayer1 ? {
         name: selectedPlayer1.name,
         handicap: selectedPlayer1.handicap,
         score: formData.player1Score ? parseInt(formData.player1Score) : undefined
+      } : formData.player1Name && formData.player1Name.startsWith("no-opponent") ? {
+        name: formData.player1Name,
+        handicap: 0,
+        score: undefined
       } : (formData.player1Name && formData.player1Name !== "no-player" ? match.player1 : undefined);
       
       // Handle "no-opponent" assignments properly
@@ -272,6 +277,11 @@ export function EditMatchDialog({
                         </SelectTrigger>
                         <SelectContent className="bg-background border z-50">
                           <SelectItem value="no-player">No Player</SelectItem>
+                          {noOpponentOptions.map((option) => (
+                            <SelectItem key={`player1-${option.value}`} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
                           {(allPlayers.length > 0 ? allPlayers : availablePlayers)
                             .filter(player => formData.player2Name !== "no-opponent" ? player.name !== formData.player2Name : true)
                             .sort((a, b) => a.handicap - b.handicap)
