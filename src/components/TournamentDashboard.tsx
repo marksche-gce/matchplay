@@ -1604,17 +1604,6 @@ export function TournamentDashboard() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle>Recent Matches</CardTitle>
-                    {tournamentMatches.length > 0 && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => setShowManagement(true)}
-                        className="flex items-center gap-2"
-                      >
-                        <Settings className="h-4 w-4" />
-                        Edit Matches
-                      </Button>
-                    )}
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
