@@ -49,6 +49,8 @@ interface EditMatchDialogProps {
   tournamentEndDate?: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  maxPlayers?: number;
+  registeredPlayers?: number;
 }
 
 export function EditMatchDialog({ 
@@ -60,7 +62,9 @@ export function EditMatchDialog({
   tournamentStartDate, 
   tournamentEndDate,
   open: controlledOpen,
-  onOpenChange
+  onOpenChange,
+  maxPlayers = 32,
+  registeredPlayers = 0
 }: EditMatchDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
@@ -72,14 +76,25 @@ export function EditMatchDialog({
     player2Score: match?.player2?.score?.toString() || "",
     winner: match?.winner || "",
     player1Name: match?.player1?.name || "no-player",
-    player2Name: match?.player2?.name || "no-opponent"
+    player2Name: match?.player2?.name || "no-opponent-1"
   });
   const { toast } = useToast();
   const { validateWinner, validateMatchCompletion } = useBracketValidation();
 
+  // Calculate number of free wins needed
+  const freeWinsNeeded = Math.max(0, maxPlayers - registeredPlayers);
+  
+  // Generate "no opponent" options based on free wins needed
+  const noOpponentOptions = Array.from({ length: freeWinsNeeded }, (_, index) => ({
+    value: `no-opponent-${index + 1}`,
+    label: `No Opponent ${index + 1}`
+  }));
+
   console.log("EditMatchDialog rendering with match:", match);
   console.log("EditMatchDialog open state:", isOpen);
   console.log("EditMatchDialog available players:", allPlayers?.length || availablePlayers?.length);
+  console.log("Free wins needed:", freeWinsNeeded);
+  console.log("No opponent options:", noOpponentOptions);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,7 +152,7 @@ export function EditMatchDialog({
         name: selectedPlayer2.name,
         handicap: selectedPlayer2.handicap,
         score: formData.player2Score ? parseInt(formData.player2Score) : undefined
-      } : (formData.player2Name && formData.player2Name !== "no-opponent" ? match.player2 : undefined);
+      } : (formData.player2Name && !formData.player2Name.startsWith("no-opponent") ? match.player2 : undefined);
       
       // Update the validation match
       updatedMatch.player1 = updates.player1;
@@ -269,17 +284,21 @@ export function EditMatchDialog({
                         <SelectTrigger>
                           <SelectValue placeholder="Select player 2" />
                         </SelectTrigger>
-                        <SelectContent className="bg-background border z-50">
-                          <SelectItem value="no-opponent">No Opponent</SelectItem>
-                          {(allPlayers.length > 0 ? allPlayers : availablePlayers)
-                            .filter(player => formData.player1Name !== "no-player" ? player.name !== formData.player1Name : true)
-                            .sort((a, b) => a.handicap - b.handicap)
-                            .map((player, index) => (
-                              <SelectItem key={`player2-${player.name}-${index}`} value={player.name}>
-                                {player.name} (HC: {player.handicap})
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
+                         <SelectContent className="bg-background border z-50">
+                           {noOpponentOptions.map((option) => (
+                             <SelectItem key={option.value} value={option.value}>
+                               {option.label}
+                             </SelectItem>
+                           ))}
+                           {(allPlayers.length > 0 ? allPlayers : availablePlayers)
+                             .filter(player => formData.player1Name !== "no-player" ? player.name !== formData.player1Name : true)
+                             .sort((a, b) => a.handicap - b.handicap)
+                             .map((player, index) => (
+                               <SelectItem key={`player2-${player.name}-${index}`} value={player.name}>
+                                 {player.name} (HC: {player.handicap})
+                               </SelectItem>
+                             ))}
+                         </SelectContent>
                       </Select>
                     </div>
                   </div>
