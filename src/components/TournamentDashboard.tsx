@@ -979,28 +979,44 @@ export function TournamentDashboard() {
       const participants = [];
       
       if (updates.type === "singles" || (!updates.type && (updates.player1 || updates.player2))) {
-        if (updates.player1?.name) {
+        console.log("Processing singles match participants");
+        console.log("updates.player1:", updates.player1);
+        console.log("updates.player2:", updates.player2);
+        
+        if (updates.player1?.name && updates.player1.name !== "no-player") {
+          console.log("Looking for player1:", updates.player1.name);
           const player1 = players.find(p => p.name === updates.player1?.name);
           if (player1) {
+            console.log("Found player1:", player1);
             participants.push({
               match_id: matchId,
               player_id: player1.id,
               position: 1,
               score: updates.player1.score || null
             });
+          } else {
+            console.log("Player1 not found in players list:", updates.player1.name);
           }
+        } else {
+          console.log("Skipping player1 - no player or 'no-player' selected");
         }
         
-        if (updates.player2?.name) {
+        if (updates.player2?.name && updates.player2.name !== "no-opponent") {
+          console.log("Looking for player2:", updates.player2.name);
           const player2 = players.find(p => p.name === updates.player2?.name);
           if (player2) {
+            console.log("Found player2:", player2);
             participants.push({
               match_id: matchId,
               player_id: player2.id,
               position: 2,
               score: updates.player2.score || null
             });
+          } else {
+            console.log("Player2 not found in players list:", updates.player2.name);
           }
+        } else {
+          console.log("Skipping player2 - no opponent or 'no-opponent' selected");
         }
       } else if (updates.type === "foursome" || updates.team1 || updates.team2) {
         // Handle foursome participants
@@ -1051,7 +1067,7 @@ export function TournamentDashboard() {
         }
       }
 
-      // Insert new participants
+      // Insert new participants (even if only one player)
       if (participants.length > 0) {
         console.log("Attempting to insert participants:", participants);
         
@@ -1067,6 +1083,10 @@ export function TournamentDashboard() {
           }
           throw participantsError;
         }
+        
+        console.log("Successfully inserted participants:", participants);
+      } else {
+        console.log("No participants to insert - match has no valid players assigned");
       }
       
       console.log("Successfully updated match participants:", participants);
