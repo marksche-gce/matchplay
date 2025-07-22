@@ -1659,7 +1659,7 @@ export function TournamentDashboard() {
                         tournamentStartDate={currentTournament?.start_date}
                         tournamentEndDate={currentTournament?.end_date}
                         maxPlayers={currentTournament?.max_players || 32}
-                        registeredPlayers={players.length}
+                        registeredPlayers={tournamentPlayers.length}
                         trigger={
                           <div className="cursor-pointer">
                             <MatchCard 
@@ -1787,7 +1787,7 @@ export function TournamentDashboard() {
                       tournamentStartDate={currentTournament?.start_date}
                       tournamentEndDate={currentTournament?.end_date}
                       maxPlayers={currentTournament?.max_players || 32}
-                      registeredPlayers={players.length}
+                      registeredPlayers={tournamentPlayers.length}
                       trigger={
                         <div className="cursor-pointer">
                           <MatchCard 
