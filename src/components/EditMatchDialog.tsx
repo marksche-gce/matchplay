@@ -76,7 +76,7 @@ export function EditMatchDialog({
     player2Score: match?.player2?.score?.toString() || "",
     winner: match?.winner || "",
     player1Name: match?.player1?.name || "no-player",
-    player2Name: match?.player2?.name || "no-opponent-1"
+    player2Name: match?.player2?.name || "no-player"
   });
   const { toast } = useToast();
   const { validateWinner, validateMatchCompletion } = useBracketValidation();
