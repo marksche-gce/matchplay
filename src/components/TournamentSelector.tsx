@@ -62,13 +62,9 @@ export function TournamentSelector({
         <CardContent className="p-8 text-center">
           <Trophy className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-xl font-semibold mb-2">No Tournaments Yet</h3>
-          <p className="text-muted-foreground mb-6">
+          <p className="text-muted-foreground">
             Create your first tournament to get started with managing golf matchplay events.
           </p>
-          <Button variant="premium" onClick={onCreateNew}>
-            <Trophy className="h-4 w-4 mr-2" />
-            Create Your First Tournament
-          </Button>
         </CardContent>
       </Card>
     );
