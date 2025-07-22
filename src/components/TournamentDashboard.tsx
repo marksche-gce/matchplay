@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Trophy, Users, Calendar, Filter, Settings } from "lucide-react";
+import { Plus, Trophy, Users, Calendar, Filter, Settings, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -908,6 +908,61 @@ export function TournamentDashboard() {
     } else {
       // Only generated matches, keep them in state
       setMatches(updatedMatches);
+    }
+  };
+
+  // Reset all matches function - deletes all matches and participants from database
+  const resetAllMatches = async () => {
+    if (!selectedTournament) return;
+    
+    try {
+      // Get all match IDs for this tournament first
+      const { data: tournamentMatches, error: fetchError } = await supabase
+        .from('matches')
+        .select('id')
+        .eq('tournament_id', selectedTournament);
+
+      if (fetchError) throw fetchError;
+
+      const matchIds = tournamentMatches?.map(m => m.id) || [];
+
+      if (matchIds.length > 0) {
+        // Delete match participants first
+        const { error: participantError } = await supabase
+          .from('match_participants')
+          .delete()
+          .in('match_id', matchIds);
+
+        if (participantError) throw participantError;
+
+        // Delete matches
+        const { error: matchError } = await supabase
+          .from('matches')
+          .delete()
+          .eq('tournament_id', selectedTournament);
+
+        if (matchError) throw matchError;
+      }
+
+      // Clear local state
+      setMatches([]);
+
+      toast({
+        title: "All Matches Reset",
+        description: `Successfully deleted ${matchIds.length} matches and all participants.`,
+        variant: "destructive"
+      });
+
+      // Refresh the matches list
+      await fetchMatches();
+      
+    } catch (error) {
+      console.error('Error resetting matches:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reset matches. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -1982,6 +2037,18 @@ export function TournamentDashboard() {
                       <Trophy className="h-4 w-4 mr-2" />
                       Advanced Tournament Settings
                     </Button>
+                    
+                    {tournamentMatches.length > 0 && (
+                      <Button 
+                        variant="destructive" 
+                        className="w-full justify-start"
+                        onClick={resetAllMatches}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Reset All Matches
+                      </Button>
+                    )}
+                    
                     <p className="text-sm text-muted-foreground">
                       Access detailed tournament configuration, player management, and match scheduling options.
                     </p>
