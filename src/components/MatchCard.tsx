@@ -48,11 +48,11 @@ interface MatchCardProps {
 export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch, previousMatches = [], showScores = true }: MatchCardProps) {
   const getStatusColor = (status: string, hasWinner: boolean = false) => {
     switch (status) {
-      case "scheduled": return "bg-warning text-warning-foreground";
+      case "scheduled": return "bg-blue-100 text-blue-800 border border-blue-200";
       case "completed": return hasWinner 
-        ? "bg-gradient-to-r from-yellow-500 to-amber-500 text-white shadow-md" 
-        : "bg-muted text-muted-foreground";
-      default: return "bg-secondary text-secondary-foreground";
+        ? "bg-success text-success-foreground border border-success/20" 
+        : "bg-muted text-muted-foreground border border-muted";
+      default: return "bg-secondary text-secondary-foreground border border-secondary";
     }
   };
 
