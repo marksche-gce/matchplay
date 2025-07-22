@@ -201,29 +201,53 @@ export function TournamentDashboard() {
 
   // Function to get available players for a specific match (excluding already assigned players)
   const getAvailablePlayersForMatch = (matchId: string) => {
-    // Filter matches by current tournament only
-    const tournamentMatches = matches.filter(m => 
-      m.tournamentId === selectedTournament && 
-      m.id !== matchId // Exclude current match from filtering
-    );
+    if (!selectedTournament) {
+      console.log("No selected tournament, returning all players");
+      return players;
+    }
+
+    // Filter matches by current tournament only, excluding the current match being edited
+    const tournamentMatches = matches.filter(m => {
+      return m.tournamentId === selectedTournament && m.id !== matchId;
+    });
     
     console.log("=== PLAYER FILTERING DEBUG ===");
     console.log("Match ID being edited:", matchId);
     console.log("Selected tournament:", selectedTournament);
+    console.log("Total matches in array:", matches.length);
     console.log("Tournament matches for filtering:", tournamentMatches.length);
-    console.log("Tournament matches:", tournamentMatches.map(m => ({ id: m.id, player1: m.player1?.name, player2: m.player2?.name })));
+    console.log("Tournament matches:", tournamentMatches.map(m => ({ 
+      id: m.id, 
+      tournamentId: m.tournamentId,
+      player1: m.player1?.name, 
+      player2: m.player2?.name 
+    })));
     
-    // Get all assigned player names from other matches
+    // Get all assigned player names from other matches in this tournament
     const assignedPlayerNames = new Set<string>();
     tournamentMatches.forEach(match => {
-      console.log(`Checking match ${match.id}`);
       if (match.player1?.name) {
         assignedPlayerNames.add(match.player1.name);
-        console.log(`Added player1: ${match.player1.name}`);
       }
       if (match.player2?.name) {
         assignedPlayerNames.add(match.player2.name);
-        console.log(`Added player2: ${match.player2.name}`);
+      }
+      // Also check team players if it's a team match
+      if (match.team1) {
+        if (match.team1.player1?.name) {
+          assignedPlayerNames.add(match.team1.player1.name);
+        }
+        if (match.team1.player2?.name) {
+          assignedPlayerNames.add(match.team1.player2.name);
+        }
+      }
+      if (match.team2) {
+        if (match.team2.player1?.name) {
+          assignedPlayerNames.add(match.team2.player1.name);
+        }
+        if (match.team2.player2?.name) {
+          assignedPlayerNames.add(match.team2.player2.name);
+        }
       }
     });
     
