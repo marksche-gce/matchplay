@@ -218,15 +218,24 @@ export function EditMatchDialog({
         const player1Value = field === "player1Name" ? value : newData.player1Name;
         const player2Value = field === "player2Name" ? value : newData.player2Name;
         
+        console.log("=== AUTO-WINNER LOGIC ===");
+        console.log("Player 1 value:", player1Value);
+        console.log("Player 2 value:", player2Value);
+        
         const player1IsNoPlayer = player1Value === "no-player" || player1Value?.startsWith("no-opponent");
         const player2IsNoPlayer = player2Value === "no-player" || player2Value?.startsWith("no-opponent");
         
+        console.log("Player 1 is no player:", player1IsNoPlayer);
+        console.log("Player 2 is no player:", player2IsNoPlayer);
+        
         if (player1IsNoPlayer && !player2IsNoPlayer && player2Value) {
           // Player 1 has no opponent, Player 2 wins automatically
+          console.log("AUTO-WIN: Player 2 wins automatically -", player2Value);
           newData.status = "completed";
           newData.winner = player2Value;
         } else if (player2IsNoPlayer && !player1IsNoPlayer && player1Value) {
           // Player 2 has no opponent (free pass), Player 1 wins automatically
+          console.log("AUTO-WIN: Player 1 wins automatically -", player1Value);
           newData.status = "completed";
           newData.winner = player1Value;
         } else if (!player1IsNoPlayer && !player2IsNoPlayer) {
@@ -235,6 +244,9 @@ export function EditMatchDialog({
             newData.status = "scheduled";
           }
         }
+        console.log("Final status:", newData.status);
+        console.log("Final winner:", newData.winner);
+        console.log("=== END AUTO-WINNER ===");
       }
       
       return newData;
