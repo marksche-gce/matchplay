@@ -206,42 +206,35 @@ export function TournamentDashboard() {
       return players;
     }
 
-    // Filter matches by current tournament only, excluding the current match being edited
-    const tournamentMatches = matches.filter(m => {
-      const matchTournamentId = m.tournamentId;
-      const match = matchTournamentId === selectedTournament && m.id !== matchId;
-      return match;
-    });
+    // Since matches are already filtered by tournament when fetched from database,
+    // we just need to exclude the current match being edited
+    const otherMatches = matches.filter(m => m.id !== matchId);
     
     console.log("=== PLAYER FILTERING DEBUG ===");
     console.log("Match ID being edited:", matchId);
     console.log("Selected tournament:", selectedTournament);
-    console.log("Selected tournament type:", typeof selectedTournament);
-    console.log("Total matches in array:", matches.length);
-    console.log("First few matches:", matches.slice(0, 3).map(m => ({
-      id: m.id,
-      tournamentId: m.tournamentId,
-      tournamentIdType: typeof m.tournamentId,
-      matches: m.tournamentId === selectedTournament
-    })));
-    console.log("Tournament matches for filtering:", tournamentMatches.length);
-    console.log("Tournament matches:", tournamentMatches.map(m => ({ 
+    console.log("Total matches:", matches.length);
+    console.log("Other matches (excluding current):", otherMatches.length);
+    console.log("Other matches details:", otherMatches.map(m => ({ 
       id: m.id, 
-      tournamentId: m.tournamentId,
+      type: m.type,
       player1: m.player1?.name, 
-      player2: m.player2?.name 
+      player2: m.player2?.name,
+      team1: m.team1 ? `${m.team1.player1?.name} & ${m.team1.player2?.name}` : null,
+      team2: m.team2 ? `${m.team2.player1?.name} & ${m.team2.player2?.name}` : null
     })));
     
     // Get all assigned player names from other matches in this tournament
     const assignedPlayerNames = new Set<string>();
-    tournamentMatches.forEach(match => {
+    otherMatches.forEach(match => {
+      // Singles match players
       if (match.player1?.name) {
         assignedPlayerNames.add(match.player1.name);
       }
       if (match.player2?.name) {
         assignedPlayerNames.add(match.player2.name);
       }
-      // Also check team players if it's a team match
+      // Team match players
       if (match.team1) {
         if (match.team1.player1?.name) {
           assignedPlayerNames.add(match.team1.player1.name);
@@ -260,7 +253,7 @@ export function TournamentDashboard() {
       }
     });
     
-    console.log("Assigned player names:", Array.from(assignedPlayerNames));
+    console.log("Assigned player names from other matches:", Array.from(assignedPlayerNames));
     console.log("Total players available:", players.length);
     
     // Return players not assigned to other matches
