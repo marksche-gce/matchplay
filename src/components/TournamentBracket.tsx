@@ -112,9 +112,11 @@ export function TournamentBracket({
     return availablePlayers;
   };
 
-  // Check if we have database matches to show bracket view
+  // Generate bracket structure on component mount and when players change
   useEffect(() => {
     if (format === "matchplay") {
+      generateBracket();
+      
       const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
       const databaseMatches = tournamentMatches.filter(m => 
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(m.id)
@@ -122,14 +124,13 @@ export function TournamentBracket({
       
       if (databaseMatches.length > 0) {
         setShowManualSetup(false);
-        generateBracket();
         advanceAllWinners();
         processAutoAdvanceByes();
       } else {
         setShowManualSetup(true);
       }
     }
-  }, [matches]);
+  }, [matches, players, maxPlayers]);
 
   const generateBracket = () => {
     const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
@@ -849,94 +850,79 @@ export function TournamentBracket({
         </CardHeader>
       </Card>
 
-      {/* Bracket Display */}
-      {bracketData.length > 0 ? (
-        <ScrollArea className="w-full">
-          <div className="flex gap-8 p-4 min-w-max">
-            {bracketData.map((round, roundIndex) => (
-              <div key={round.name} className="flex flex-col gap-4 min-w-80">
-                <div className="text-center">
-                  <Badge variant="outline" className="text-lg px-4 py-2">
-                    {round.name}
-                  </Badge>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {round.matches.filter(m => m.status === "completed").length}/{round.matches.length} completed
-                  </p>
-                </div>
-                
-                <div className="space-y-6">
-                  {round.matches.map((match, matchIndex) => (
-                    <div key={match.id} className="relative">
-                      <MatchCard
-                        match={match}
-                        previousMatches={matches.filter(m => m.tournamentId === tournamentId)}
-                        showScores={false}
-                        onScoreUpdate={() => {
-                          console.log("Complete match clicked for ID:", match.id);
-                          // Set the match to trigger edit dialog for completion
-                          let selectedMatch = matches.find(m => m.id === match.id);
-                          
-                          // If not found, look in bracketData (for placeholder matches)
-                          if (!selectedMatch) {
-                            for (const round of bracketData) {
-                              const foundMatch = round.matches.find(m => m.id === match.id);
-                              if (foundMatch) {
-                                selectedMatch = foundMatch;
-                                break;
-                              }
-                            }
-                          }
-                          
-                          setSelectedMatch(selectedMatch || null);
-                        }}
-                        onEditMatch={(matchId) => {
-                          console.log("Edit match clicked for ID:", matchId);
-                          // First try to find in matches array (for real matches)
-                          let selectedMatch = matches.find(m => m.id === matchId);
-                          
-                          // If not found, look in bracketData (for placeholder matches)
-                          if (!selectedMatch) {
-                            for (const round of bracketData) {
-                              const foundMatch = round.matches.find(m => m.id === matchId);
-                              if (foundMatch) {
-                                selectedMatch = foundMatch;
-                                break;
-                              }
-                            }
-                          }
-                          
-                          console.log("Selected match found:", selectedMatch);
-                          setSelectedMatch(selectedMatch || null);
-                        }}
-                      />
-                      
-                      {/* Connection lines to next round */}
-                      {roundIndex < bracketData.length - 1 && (
-                        <div className="absolute top-1/2 -right-8 transform -translate-y-1/2">
-                          <ChevronRight className="h-6 w-6 text-muted-foreground" />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
+      {/* Bracket Display - Always show bracket structure */}
+      <ScrollArea className="w-full">
+        <div className="flex gap-8 p-4 min-w-max">
+          {bracketData.map((round, roundIndex) => (
+            <div key={round.name} className="flex flex-col gap-4 min-w-80">
+              <div className="text-center">
+                <Badge variant="outline" className="text-lg px-4 py-2">
+                  {round.name}
+                </Badge>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {round.matches.filter(m => m.status === "completed").length}/{round.matches.length} completed
+                </p>
               </div>
-            ))}
-          </div>
-        </ScrollArea>
-      ) : (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-xl font-semibold mb-2">No Matches Found</h3>
-            <p className="text-muted-foreground mb-4">
-              Use the manual setup to create and configure your tournament matches first.
-            </p>
-            <Button onClick={() => setShowManualSetup(true)} size="lg">
-              Back to Manual Setup
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+              
+              <div className="space-y-6">
+                {round.matches.map((match, matchIndex) => (
+                  <div key={match.id} className="relative">
+                    <MatchCard
+                      match={match}
+                      previousMatches={matches.filter(m => m.tournamentId === tournamentId)}
+                      showScores={false}
+                      onScoreUpdate={() => {
+                        console.log("Complete match clicked for ID:", match.id);
+                        // Set the match to trigger edit dialog for completion
+                        let selectedMatch = matches.find(m => m.id === match.id);
+                        
+                        // If not found, look in bracketData (for placeholder matches)
+                        if (!selectedMatch) {
+                          for (const round of bracketData) {
+                            const foundMatch = round.matches.find(m => m.id === match.id);
+                            if (foundMatch) {
+                              selectedMatch = foundMatch;
+                              break;
+                            }
+                          }
+                        }
+                        
+                        setSelectedMatch(selectedMatch || null);
+                      }}
+                      onEditMatch={(matchId) => {
+                        console.log("Edit match clicked for ID:", matchId);
+                        // First try to find in matches array (for real matches)
+                        let selectedMatch = matches.find(m => m.id === matchId);
+                        
+                        // If not found, look in bracketData (for placeholder matches)
+                        if (!selectedMatch) {
+                          for (const round of bracketData) {
+                            const foundMatch = round.matches.find(m => m.id === matchId);
+                            if (foundMatch) {
+                              selectedMatch = foundMatch;
+                              break;
+                            }
+                          }
+                        }
+                        
+                        console.log("Selected match found:", selectedMatch);
+                        setSelectedMatch(selectedMatch || null);
+                      }}
+                    />
+                    
+                    {/* Connection lines to next round */}
+                    {roundIndex < bracketData.length - 1 && (
+                      <div className="absolute top-1/2 -right-8 transform -translate-y-1/2">
+                        <ChevronRight className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
 
       {/* Edit Match Dialog */}
       {selectedMatch && (
