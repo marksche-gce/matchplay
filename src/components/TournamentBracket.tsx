@@ -648,6 +648,7 @@ export function TournamentBracket({
         console.log("Updating player assignments");
         
         // Delete existing participants for this match
+        console.log("Deleting existing participants for match:", matchId);
         const { error: deleteError } = await supabase
           .from('match_participants')
           .delete()
@@ -658,13 +659,19 @@ export function TournamentBracket({
           throw deleteError;
         }
 
+        // Wait a moment to ensure deletion completes
+        console.log("Waiting for deletion to complete...");
+        await new Promise(resolve => setTimeout(resolve, 300));
+
         // Insert new participants
+        console.log("Preparing to insert participants...");
         const participants = [];
         if (updates.player1) {
           // Handle "no opponent" cases - don't try to find player data for these
           if (updates.player1.name && !updates.player1.name.startsWith("no-opponent") && !updates.player1.name.startsWith("no-player")) {
             const player1Data = players.find(p => p.name === updates.player1?.name);
             if (player1Data) {
+              console.log("Adding player1 participant:", player1Data.name, "ID:", player1Data.id);
               participants.push({
                 match_id: matchId,
                 player_id: player1Data.id,
@@ -683,6 +690,7 @@ export function TournamentBracket({
           if (updates.player2.name && !updates.player2.name.startsWith("no-opponent") && !updates.player2.name.startsWith("no-player")) {
             const player2Data = players.find(p => p.name === updates.player2?.name);
             if (player2Data) {
+              console.log("Adding player2 participant:", player2Data.name, "ID:", player2Data.id);
               participants.push({
                 match_id: matchId,
                 player_id: player2Data.id,
@@ -697,7 +705,9 @@ export function TournamentBracket({
           }
         }
 
+        console.log("Final participants array:", participants);
         if (participants.length > 0) {
+          console.log("Inserting", participants.length, "participants into database...");
           const { error: participantError } = await supabase
             .from('match_participants')
             .insert(participants);
@@ -706,6 +716,9 @@ export function TournamentBracket({
             console.error("Participant insert error:", participantError);
             throw participantError;
           }
+          console.log("Successfully inserted all participants");
+        } else {
+          console.log("No participants to insert (all were no-opponent entries)");
         }
       }
 
