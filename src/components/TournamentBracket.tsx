@@ -595,13 +595,37 @@ export function TournamentBracket({
         }
       }
 
+      // Update the match in local state with the changes
+      const updatedMatches = matches.map(match => {
+        if (match.id === matchId) {
+          const updatedMatch = { ...match, ...updates };
+          return updatedMatch;
+        }
+        return match;
+      });
+
+      // Check if match was completed and progress winner
+      const completedMatch = updatedMatches.find(m => m.id === matchId);
+      let finalMatches = updatedMatches;
+      
+      if (completedMatch?.status === "completed" && completedMatch.winner) {
+        console.log("Processing winner progression for completed match");
+        finalMatches = progressWinnerImmediately(updatedMatches, completedMatch);
+        
+        // Also progress winner in database
+        const winnerPlayer = players.find(p => p.name === completedMatch.winner);
+        if (winnerPlayer) {
+          await progressWinnerToDatabase(completedMatch, winnerPlayer);
+        }
+      }
+
       toast({
         title: "Match Updated!",
         description: "Match has been saved to database successfully.",
       });
 
-      // Refresh matches from parent component
-      onMatchUpdate(matches);
+      // Update parent component with the updated matches
+      onMatchUpdate(finalMatches);
 
     } catch (error) {
       console.error('Error updating database match:', error);
