@@ -659,9 +659,27 @@ export function TournamentBracket({
           throw deleteError;
         }
 
-        // Wait a moment to ensure deletion completes
+        // Wait longer and verify deletion completed
         console.log("Waiting for deletion to complete...");
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        // Verify deletion completed by checking if any participants still exist
+        const { data: remainingParticipants, error: checkError } = await supabase
+          .from('match_participants')
+          .select('id')
+          .eq('match_id', matchId);
+          
+        if (checkError) {
+          console.error("Error checking remaining participants:", checkError);
+          throw checkError;
+        }
+        
+        if (remainingParticipants && remainingParticipants.length > 0) {
+          console.log("Still have", remainingParticipants.length, "participants, waiting longer...");
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
+        console.log("Deletion verified complete, proceeding with insert...");
 
         // Insert new participants
         console.log("Preparing to insert participants...");
