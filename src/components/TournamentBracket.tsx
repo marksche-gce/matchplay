@@ -562,25 +562,39 @@ export function TournamentBracket({
         // Insert new participants
         const participants = [];
         if (updates.player1) {
-          const player1Data = players.find(p => p.name === updates.player1?.name);
-          if (player1Data) {
-            participants.push({
-              match_id: matchId,
-              player_id: player1Data.id,
-              position: 1,
-              score: updates.player1.score
-            });
+          // Handle "no opponent" cases - don't try to find player data for these
+          if (updates.player1.name && !updates.player1.name.startsWith("no-opponent") && !updates.player1.name.startsWith("no-player")) {
+            const player1Data = players.find(p => p.name === updates.player1?.name);
+            if (player1Data) {
+              participants.push({
+                match_id: matchId,
+                player_id: player1Data.id,
+                position: 1,
+                score: updates.player1.score
+              });
+            } else {
+              console.log("Could not find player1 data for:", updates.player1.name);
+            }
+          } else {
+            console.log("Skipping database insert for no-opponent player1:", updates.player1.name);
           }
         }
         if (updates.player2) {
-          const player2Data = players.find(p => p.name === updates.player2?.name);
-          if (player2Data) {
-            participants.push({
-              match_id: matchId,
-              player_id: player2Data.id,
-              position: 2,
-              score: updates.player2.score
-            });
+          // Handle "no opponent" cases - don't try to find player data for these
+          if (updates.player2.name && !updates.player2.name.startsWith("no-opponent") && !updates.player2.name.startsWith("no-player")) {
+            const player2Data = players.find(p => p.name === updates.player2?.name);
+            if (player2Data) {
+              participants.push({
+                match_id: matchId,
+                player_id: player2Data.id,
+                position: 2,
+                score: updates.player2.score
+              });
+            } else {
+              console.log("Could not find player2 data for:", updates.player2.name);
+            }
+          } else {
+            console.log("Skipping database insert for no-opponent player2:", updates.player2.name);
           }
         }
 
