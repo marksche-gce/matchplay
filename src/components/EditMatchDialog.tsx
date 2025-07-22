@@ -93,6 +93,7 @@ export function EditMatchDialog({
   console.log("EditMatchDialog rendering with match:", match);
   console.log("EditMatchDialog open state:", isOpen);
   console.log("EditMatchDialog available players:", allPlayers?.length || availablePlayers?.length);
+  console.log("Max players:", maxPlayers, "Registered players:", registeredPlayers);
   console.log("Free wins needed:", freeWinsNeeded);
   console.log("No opponent options:", noOpponentOptions);
 
