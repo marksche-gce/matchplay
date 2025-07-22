@@ -466,47 +466,146 @@ export function TournamentBracket({
     console.log("Is generated match:", isGeneratedMatch, "Match ID:", matchId);
     
     if (isGeneratedMatch) {
-      console.log("Updating generated match in local state only");
+      console.log("Converting placeholder match to database match");
       
-      // Update the match in local state (not database)
-      const updatedMatches = matches.map(match => {
-        if (match.id === matchId) {
-          const updatedMatch = { ...match, ...updates };
-          
-          // If match is being completed, validate winner
-          if (updatedMatch.status === "completed" && updatedMatch.winner) {
-            if (!validateWinnerProgression(updatedMatch, updatedMatch.winner)) {
-              toast({
-                title: "Invalid Winner",
-                description: "The selected winner did not participate in this match.",
-                variant: "destructive"
+      // Find the placeholder match in bracketData
+      let placeholderMatch: Match | null = null;
+      for (const round of bracketData) {
+        const foundMatch = round.matches.find(m => m.id === matchId);
+        if (foundMatch) {
+          placeholderMatch = foundMatch;
+          break;
+        }
+      }
+      
+      if (!placeholderMatch) {
+        toast({
+          title: "Error",
+          description: "Could not find placeholder match data.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      try {
+        // Create a new database match from the placeholder
+        const matchData = {
+          tournament_id: tournamentId,
+          type: "singles",
+          round: updates.round || placeholderMatch.round,
+          status: updates.status || placeholderMatch.status,
+          match_date: null,
+          match_time: null,
+          tee: null,
+          winner_id: null,
+          next_match_id: null,
+          previous_match_1_id: null,
+          previous_match_2_id: null
+        };
+
+        const { data: createdMatch, error: createError } = await supabase
+          .from('matches')
+          .insert([matchData])
+          .select('id')
+          .single();
+
+        if (createError) throw createError;
+
+        const newMatchId = createdMatch.id;
+        console.log("Created new database match with ID:", newMatchId);
+
+        // Now insert match participants
+        const participants = [];
+        if (updates.player1) {
+          if (updates.player1.name && !updates.player1.name.startsWith("no-opponent") && !updates.player1.name.startsWith("no-player")) {
+            const player1Data = players.find(p => p.name === updates.player1.name);
+            if (player1Data) {
+              participants.push({
+                match_id: newMatchId,
+                player_id: player1Data.id,
+                position: 1,
+                score: updates.player1.score
               });
-              return match; // Don't update if winner is invalid
             }
           }
-          
-          return updatedMatch;
         }
-        return match;
-      });
+        if (updates.player2) {
+          if (updates.player2.name && !updates.player2.name.startsWith("no-opponent") && !updates.player2.name.startsWith("no-player")) {
+            const player2Data = players.find(p => p.name === updates.player2.name);
+            if (player2Data) {
+              participants.push({
+                match_id: newMatchId,
+                player_id: player2Data.id,
+                position: 2,
+                score: updates.player2.score
+              });
+            }
+          }
+        }
 
-      // Progress winner immediately in local state
-      let finalMatches = updatedMatches;
-      const completedMatch = updatedMatches.find(m => m.id === matchId);
-      
-      if (completedMatch?.status === "completed" && completedMatch.winner) {
-        finalMatches = progressWinnerImmediately(updatedMatches, completedMatch);
+        if (participants.length > 0) {
+          const { error: participantError } = await supabase
+            .from('match_participants')
+            .insert(participants);
+
+          if (participantError) throw participantError;
+        }
+
+        // Create the new database match object
+        const databaseMatch: Match = {
+          id: newMatchId,
+          tournamentId: tournamentId,
+          type: "singles",
+          round: updates.round || placeholderMatch.round,
+          status: updates.status || placeholderMatch.status,
+          date: placeholderMatch.date,
+          time: placeholderMatch.time,
+          tee: placeholderMatch.tee,
+          winner: updates.winner,
+          player1: updates.player1,
+          player2: updates.player2,
+          nextMatchId: placeholderMatch.nextMatchId,
+          previousMatch1Id: placeholderMatch.previousMatch1Id,
+          previousMatch2Id: placeholderMatch.previousMatch2Id
+        };
+
+        // Replace placeholder match with database match in the matches array
+        const updatedMatches = matches.map(m => m.id === matchId ? databaseMatch : m).concat(
+          matches.some(m => m.id === matchId) ? [] : [databaseMatch]
+        );
+
+        // Update bracket display immediately
+        setBracketData(prevBracketData => {
+          return prevBracketData.map(round => ({
+            ...round,
+            matches: round.matches.map(m => {
+              if (m.id === matchId) {
+                return databaseMatch;
+              }
+              return m;
+            })
+          }));
+        });
+
+        toast({
+          title: "Match Created & Updated!",
+          description: "Placeholder match converted to database match successfully.",
+        });
+
+        // Update parent component with the updated matches
+        onMatchUpdate(updatedMatches);
+        
+        return;
+
+      } catch (error) {
+        console.error('Error converting placeholder to database match:', error);
+        toast({
+          title: "Error",
+          description: "Failed to create database match from placeholder.",
+          variant: "destructive"
+        });
+        return;
       }
-
-      onMatchUpdate(finalMatches);
-
-      toast({
-        title: "Match Updated! (Local Only)",
-        description: "Changes saved locally. Click 'Create Database Matches' to save permanently.",
-        variant: "default"
-      });
-      
-      return;
     }
 
     // Handle database match updates

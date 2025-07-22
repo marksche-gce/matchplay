@@ -149,11 +149,16 @@ export function EditMatchDialog({
         score: formData.player1Score ? parseInt(formData.player1Score) : undefined
       } : (formData.player1Name && formData.player1Name !== "no-player" ? match.player1 : undefined);
       
+      // Handle "no-opponent" assignments properly
       updates.player2 = selectedPlayer2 ? {
         name: selectedPlayer2.name,
         handicap: selectedPlayer2.handicap,
         score: formData.player2Score ? parseInt(formData.player2Score) : undefined
-      } : (formData.player2Name && !formData.player2Name.startsWith("no-opponent") ? match.player2 : undefined);
+      } : formData.player2Name && formData.player2Name.startsWith("no-opponent") ? {
+        name: formData.player2Name,
+        handicap: 0,
+        score: undefined
+      } : (formData.player2Name && formData.player2Name !== "no-player" ? match.player2 : undefined);
       
       // Update the validation match
       updatedMatch.player1 = updates.player1;
