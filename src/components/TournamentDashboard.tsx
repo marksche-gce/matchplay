@@ -972,8 +972,39 @@ export function TournamentDashboard() {
 
       console.log("Successfully deleted existing participants");
 
-      // Add small delay to ensure delete operation is fully committed
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Wait longer and verify deletion is complete
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Verify that all participants are actually deleted
+      const { data: remainingParticipants, error: checkError } = await supabase
+        .from('match_participants')
+        .select('id')
+        .eq('match_id', matchId);
+        
+      if (checkError) {
+        console.error("Error checking remaining participants:", checkError);
+        throw checkError;
+      }
+      
+      if (remainingParticipants && remainingParticipants.length > 0) {
+        console.log("Participants still exist after deletion, waiting longer...");
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Try deleting again
+        const { error: secondDeleteError } = await supabase
+          .from('match_participants')
+          .delete()
+          .eq('match_id', matchId);
+          
+        if (secondDeleteError) {
+          console.error("Error in second deletion attempt:", secondDeleteError);
+          throw secondDeleteError;
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
+      console.log("Verified all participants deleted successfully");
 
       // Add new participants based on the current match type
       const participants = [];
