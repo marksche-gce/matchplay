@@ -208,13 +208,22 @@ export function TournamentDashboard() {
 
     // Filter matches by current tournament only, excluding the current match being edited
     const tournamentMatches = matches.filter(m => {
-      return m.tournamentId === selectedTournament && m.id !== matchId;
+      const matchTournamentId = m.tournamentId;
+      const match = matchTournamentId === selectedTournament && m.id !== matchId;
+      return match;
     });
     
     console.log("=== PLAYER FILTERING DEBUG ===");
     console.log("Match ID being edited:", matchId);
     console.log("Selected tournament:", selectedTournament);
+    console.log("Selected tournament type:", typeof selectedTournament);
     console.log("Total matches in array:", matches.length);
+    console.log("First few matches:", matches.slice(0, 3).map(m => ({
+      id: m.id,
+      tournamentId: m.tournamentId,
+      tournamentIdType: typeof m.tournamentId,
+      matches: m.tournamentId === selectedTournament
+    })));
     console.log("Tournament matches for filtering:", tournamentMatches.length);
     console.log("Tournament matches:", tournamentMatches.map(m => ({ 
       id: m.id, 
