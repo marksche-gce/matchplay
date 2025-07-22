@@ -245,40 +245,54 @@ export function TournamentBracket({
       return currentMatches;
     }
 
-    // Use bracket data structure to find next match
+    // Update both matches array and bracket display
+    let updatedMatches = [...currentMatches];
     let nextMatchFound = false;
+    
     const updatedBracketData = bracketData.map(round => {
-      const updatedMatches = round.matches.map(match => {
+      const updatedRoundMatches = round.matches.map(match => {
         // Check if this match should receive a winner from the completed match
         if (match.previousMatch1Id === completedMatch.id) {
           console.log("Adding winner to player1 position in match:", match.id);
           const updatedMatch = { ...match, player1: { ...winnerPlayer, score: undefined } };
           nextMatchFound = true;
           
-          // Update bracket display
+          // Update both bracket display and matches array
+          const matchIndex = updatedMatches.findIndex(m => m.id === match.id);
+          if (matchIndex !== -1) {
+            updatedMatches[matchIndex] = updatedMatch;
+          }
+          
           return updatedMatch;
         } else if (match.previousMatch2Id === completedMatch.id) {
           console.log("Adding winner to player2 position in match:", match.id);
           const updatedMatch = { ...match, player2: { ...winnerPlayer, score: undefined } };
           nextMatchFound = true;
           
-          // Update bracket display
+          // Update both bracket display and matches array
+          const matchIndex = updatedMatches.findIndex(m => m.id === match.id);
+          if (matchIndex !== -1) {
+            updatedMatches[matchIndex] = updatedMatch;
+          }
+          
           return updatedMatch;
         }
         return match;
       });
       
-      return { ...round, matches: updatedMatches };
+      return { ...round, matches: updatedRoundMatches };
     });
 
     if (nextMatchFound) {
-      console.log("Winner successfully advanced in bracket display");
+      console.log("Winner successfully advanced in bracket display and matches array");
       setBracketData(updatedBracketData);
       
       toast({
         title: "Winner Advanced!",
         description: `${completedMatch.winner} has been advanced to the next round.`,
       });
+      
+      return updatedMatches;
     } else {
       console.log("No next match found for winner advancement");
     }
