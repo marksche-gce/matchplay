@@ -959,13 +959,21 @@ export function TournamentDashboard() {
       
       console.log("Updating match participants because players changed");
       
-      // Delete existing participants
+      // Delete existing participants first and wait for completion
       const { error: deleteError } = await supabase
         .from('match_participants')
         .delete()
         .eq('match_id', matchId);
 
-      if (deleteError) throw deleteError;
+      if (deleteError) {
+        console.error("Error deleting existing participants:", deleteError);
+        throw deleteError;
+      }
+
+      console.log("Successfully deleted existing participants");
+
+      // Add small delay to ensure delete operation is fully committed
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Add new participants based on the current match type
       const participants = [];
@@ -1045,11 +1053,20 @@ export function TournamentDashboard() {
 
       // Insert new participants
       if (participants.length > 0) {
+        console.log("Attempting to insert participants:", participants);
+        
         const { error: participantsError } = await supabase
           .from('match_participants')
           .insert(participants);
 
-        if (participantsError) throw participantsError;
+        if (participantsError) {
+          console.error("Error inserting participants:", participantsError);
+          if (participantsError.code === '23505') {
+            // Unique constraint violation - duplicate key
+            throw new Error('Player assignment conflict. Please try again.');
+          }
+          throw participantsError;
+        }
       }
       
       console.log("Successfully updated match participants:", participants);
