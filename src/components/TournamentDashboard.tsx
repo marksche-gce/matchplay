@@ -1208,20 +1208,38 @@ export function TournamentDashboard() {
     console.log("Available players for winner lookup:", players.map(p => ({ id: p.id, name: p.name })));
     
     try {
+      // Update the database first
       await handleEditMatchDatabase(matchId, updates);
+
+      // Refresh matches from database to get the latest state
+      await fetchMatches();
+
+      // If this was a match completion, trigger immediate bracket visualization update
+      // We do this by calling the bracket's advanceAllWinners logic directly
+      if (updates.status === "completed" && updates.winner) {
+        console.log("Match completed with winner, triggering immediate bracket refresh");
+        
+        // Give the bracket component a moment to process the new matches
+        setTimeout(() => {
+          // Force bracket regeneration by triggering a minimal state update
+          setMatches(prevMatches => {
+            const updatedMatches = [...prevMatches];
+            console.log("Triggering bracket regeneration after match completion");
+            return updatedMatches;
+          });
+        }, 50);
+      }
 
       toast({
         title: "Match Updated!",
         description: "Match details have been successfully updated.",
       });
 
-      // Only refresh matches for individual match edits (not bracket updates)
-      await fetchMatches();
     } catch (error) {
       console.error('Error updating match:', error);
       toast({
         title: "Error",
-        description: "Failed to update match details.",
+        description: "Failed to update match in database",
         variant: "destructive"
       });
     }

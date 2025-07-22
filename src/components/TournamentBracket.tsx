@@ -263,6 +263,17 @@ export function TournamentBracket({
             updatedMatches[matchIndex] = updatedMatch;
           }
           
+          // Also update database if this is a real match
+          if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(match.id)) {
+            const winnerPlayerData = players.find(p => p.name === winnerPlayer.name);
+            if (winnerPlayerData) {
+              console.log("Advancing winner to database for next match:", match.id);
+              progressWinnerToDatabase(completedMatch, winnerPlayerData).catch(error => {
+                console.error("Failed to advance winner in database:", error);
+              });
+            }
+          }
+          
           return updatedMatch;
         } else if (match.previousMatch2Id === completedMatch.id) {
           console.log("Adding winner to player2 position in match:", match.id);
@@ -273,6 +284,17 @@ export function TournamentBracket({
           const matchIndex = updatedMatches.findIndex(m => m.id === match.id);
           if (matchIndex !== -1) {
             updatedMatches[matchIndex] = updatedMatch;
+          }
+          
+          // Also update database if this is a real match
+          if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(match.id)) {
+            const winnerPlayerData = players.find(p => p.name === winnerPlayer.name);
+            if (winnerPlayerData) {
+              console.log("Advancing winner to database for next match:", match.id);
+              progressWinnerToDatabase(completedMatch, winnerPlayerData).catch(error => {
+                console.error("Failed to advance winner in database:", error);
+              });
+            }
           }
           
           return updatedMatch;
@@ -304,6 +326,11 @@ export function TournamentBracket({
     const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
     const completedMatches = tournamentMatches.filter(m => m.status === "completed" && m.winner);
     
+    console.log("advanceAllWinners called with", completedMatches.length, "completed matches");
+    completedMatches.forEach(match => {
+      console.log("Processing completed match:", match.id, "winner:", match.winner);
+    });
+    
     if (completedMatches.length === 0) return;
 
     let updatedMatches = [...matches];
@@ -311,17 +338,24 @@ export function TournamentBracket({
 
     // Process all completed matches to advance winners
     completedMatches.forEach(completedMatch => {
+      console.log("Processing winner advancement for match:", completedMatch.id, "winner:", completedMatch.winner);
       const previousMatches = updatedMatches;
       const advancedMatches = progressWinnerImmediately(previousMatches, completedMatch);
       
       if (advancedMatches !== previousMatches) {
+        console.log("Changes detected after winner advancement");
         updatedMatches = advancedMatches;
         hasChanges = true;
+      } else {
+        console.log("No changes after winner advancement attempt");
       }
     });
 
     if (hasChanges) {
+      console.log("Calling onMatchUpdate with", updatedMatches.length, "updated matches");
       onMatchUpdate(updatedMatches);
+    } else {
+      console.log("No changes to report to parent component");
     }
   };
 
