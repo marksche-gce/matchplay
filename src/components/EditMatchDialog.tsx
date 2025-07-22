@@ -322,6 +322,7 @@ export function EditMatchDialog({
                           <SelectValue placeholder="Select player 2" />
                         </SelectTrigger>
                          <SelectContent className="bg-background border z-50">
+                           <SelectItem value="no-player">No Player</SelectItem>
                            {noOpponentOptions.map((option) => (
                              <SelectItem key={option.value} value={option.value}>
                                {option.label}
