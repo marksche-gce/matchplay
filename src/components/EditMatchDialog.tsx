@@ -215,18 +215,21 @@ export function EditMatchDialog({
       
       // Auto-complete match with "no opponent" and set winner
       if (field === "player1Name" || field === "player2Name") {
-        const player1IsNoOpponent = (field === "player1Name" ? value : newData.player1Name)?.startsWith("no-opponent");
-        const player2IsNoOpponent = (field === "player2Name" ? value : newData.player2Name)?.startsWith("no-opponent");
+        const player1Value = field === "player1Name" ? value : newData.player1Name;
+        const player2Value = field === "player2Name" ? value : newData.player2Name;
         
-        if (player1IsNoOpponent && !player2IsNoOpponent) {
-          // Player 1 is no opponent, Player 2 wins automatically
+        const player1IsNoPlayer = player1Value === "no-player" || player1Value?.startsWith("no-opponent");
+        const player2IsNoPlayer = player2Value === "no-player" || player2Value?.startsWith("no-opponent");
+        
+        if (player1IsNoPlayer && !player2IsNoPlayer && player2Value) {
+          // Player 1 has no opponent, Player 2 wins automatically
           newData.status = "completed";
-          newData.winner = newData.player2Name;
-        } else if (player2IsNoOpponent && !player1IsNoOpponent) {
-          // Player 2 is no opponent, Player 1 wins automatically
+          newData.winner = player2Value;
+        } else if (player2IsNoPlayer && !player1IsNoPlayer && player1Value) {
+          // Player 2 has no opponent (free pass), Player 1 wins automatically
           newData.status = "completed";
-          newData.winner = newData.player1Name;
-        } else if (!player1IsNoOpponent && !player2IsNoOpponent) {
+          newData.winner = player1Value;
+        } else if (!player1IsNoPlayer && !player2IsNoPlayer) {
           // Both are real players, reset to scheduled if not manually completed
           if (newData.status === "completed" && !newData.winner) {
             newData.status = "scheduled";

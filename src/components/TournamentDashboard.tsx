@@ -978,14 +978,20 @@ export function TournamentDashboard() {
 
     // Set winner_id based on winner name
     if (updates.winner && updates.winner !== "no-winner") {
-      const winnerPlayer = players.find(p => p.name === updates.winner);
-      console.log("Looking for winner player:", updates.winner, "found:", winnerPlayer);
-      if (winnerPlayer) {
-        matchUpdates.winner_id = winnerPlayer.id;
-        console.log("Setting winner_id to:", winnerPlayer.id);
+      // Only look for winner in real players, not "no-player" or "no-opponent" entries
+      if (updates.winner !== "no-player" && !updates.winner.startsWith("no-opponent")) {
+        const winnerPlayer = players.find(p => p.name === updates.winner);
+        console.log("Looking for winner player:", updates.winner, "found:", winnerPlayer);
+        if (winnerPlayer) {
+          matchUpdates.winner_id = winnerPlayer.id;
+          console.log("Setting winner_id to:", winnerPlayer.id);
+        } else {
+          console.warn("Winner player not found in players list:", updates.winner);
+          console.log("Available player names:", players.map(p => p.name));
+        }
       } else {
-        console.warn("Winner player not found in players list:", updates.winner);
-        console.log("Available player names:", players.map(p => p.name));
+        console.log("Winner is placeholder player, not setting winner_id");
+        matchUpdates.winner_id = null;
       }
     } else {
       console.log("No winner specified or winner is 'no-winner'");
