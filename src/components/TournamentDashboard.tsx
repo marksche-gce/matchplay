@@ -1220,20 +1220,29 @@ export function TournamentDashboard() {
       // Refresh matches from database to get the latest state
       await fetchMatches();
 
-      // If this was a match completion, trigger immediate bracket visualization update
-      // We do this by calling the bracket's advanceAllWinners logic directly
+      // If this was a match completion, force bracket to process winners immediately
       if (updates.status === "completed" && updates.winner) {
-        console.log("Match completed with winner, triggering immediate bracket refresh");
+        console.log("=== FORCING BRACKET UPDATE FOR COMPLETED MATCH ===");
+        console.log("Match completed with winner:", updates.winner);
         
-        // Give the bracket component a moment to process the new matches
+        // Force bracket component to re-process by updating matches state again
+        // This ensures the bracket's useEffect detects the change and runs advanceAllWinners
         setTimeout(() => {
-          // Force bracket regeneration by triggering a minimal state update
           setMatches(prevMatches => {
-            const updatedMatches = [...prevMatches];
-            console.log("Triggering bracket regeneration after match completion");
-            return updatedMatches;
+            const freshMatches = [...prevMatches];
+            console.log("Forcing bracket re-evaluation for winner advancement");
+            return freshMatches;
           });
-        }, 50);
+        }, 10);
+        
+        // Also force a second update after a short delay to ensure bracket fully processes
+        setTimeout(() => {
+          setMatches(prevMatches => {
+            const finalMatches = [...prevMatches];
+            console.log("Second bracket refresh to ensure winner advancement");
+            return finalMatches;
+          });
+        }, 250);
       }
 
       toast({

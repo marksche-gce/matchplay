@@ -114,6 +114,11 @@ export function TournamentBracket({
 
   // Generate bracket structure on component mount and when players change
   useEffect(() => {
+    console.log("=== BRACKET EFFECT DEBUG ===");
+    console.log("Effect triggered - matches changed:", matches.length);
+    console.log("Tournament ID:", tournamentId);
+    console.log("Format:", format);
+    
     if (format === "matchplay") {
       generateBracket();
       
@@ -122,14 +127,20 @@ export function TournamentBracket({
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(m.id)
       );
       
+      console.log("Database matches found:", databaseMatches.length);
+      console.log("Completed matches:", databaseMatches.filter(m => m.status === "completed").length);
+      
       if (databaseMatches.length > 0) {
         setShowManualSetup(false);
+        console.log("Calling advanceAllWinners...");
         advanceAllWinners();
+        console.log("Calling processAutoAdvanceByes...");
         processAutoAdvanceByes();
       } else {
         setShowManualSetup(true);
       }
     }
+    console.log("=== BRACKET EFFECT COMPLETE ===");
   }, [matches, players, maxPlayers]);
 
   const generateBracket = () => {

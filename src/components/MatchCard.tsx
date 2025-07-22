@@ -148,7 +148,7 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch, pr
           {match.type === "singles" && match.player1 ? (
             <>
               {/* Singles Match - Player 1 */}
-              {match.player1.name === "No Player" || match.player1.name === "no opponent" ? (
+              {match.player1.name === "No Player" || match.player1.name === "no opponent" || match.player1.name.startsWith("no-opponent") ? (
                 <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border-2 border-dashed border-muted">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 bg-muted/50 rounded-full flex items-center justify-center">
@@ -194,7 +194,7 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch, pr
               
               {/* VS Divider or Free Pass indicator */}
               <div className="flex items-center justify-center py-2">
-                {match.player2 && !(match.player2.name === "No Player" || match.player2.name === "no opponent") ? (
+                {match.player2 && !(match.player2.name === "No Player" || match.player2.name === "no opponent" || match.player2.name.startsWith("no-opponent")) ? (
                   <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-bold text-sm">
                     VS
                   </div>
@@ -206,7 +206,7 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch, pr
               </div>
               
               {/* Singles Match - Player 2 or Bye */}
-              {match.player2 && !(match.player2.name === "No Player" || match.player2.name === "no opponent") ? (
+              {match.player2 && !(match.player2.name === "No Player" || match.player2.name === "no opponent" || match.player2.name.startsWith("no-opponent")) ? (
                 <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10 bg-gradient-golf">
@@ -230,7 +230,7 @@ export function MatchCard({ match, onScoreUpdate, onViewDetails, onEditMatch, pr
                     </div>
                   )}
                 </div>
-              ) : match.player2 && (match.player2.name === "No Player" || match.player2.name === "no opponent") ? (
+              ) : match.player2 && (match.player2.name === "No Player" || match.player2.name === "no opponent" || match.player2.name.startsWith("no-opponent")) ? (
                 <div className="flex items-center justify-between p-3 rounded-lg bg-muted/20 border-2 border-dashed border-muted">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 bg-muted/50 rounded-full flex items-center justify-center">
