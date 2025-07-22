@@ -213,6 +213,27 @@ export function EditMatchDialog({
         newData.status = "scheduled";
       }
       
+      // Auto-complete match with "no opponent" and set winner
+      if (field === "player1Name" || field === "player2Name") {
+        const player1IsNoOpponent = (field === "player1Name" ? value : newData.player1Name)?.startsWith("no-opponent");
+        const player2IsNoOpponent = (field === "player2Name" ? value : newData.player2Name)?.startsWith("no-opponent");
+        
+        if (player1IsNoOpponent && !player2IsNoOpponent) {
+          // Player 1 is no opponent, Player 2 wins automatically
+          newData.status = "completed";
+          newData.winner = newData.player2Name;
+        } else if (player2IsNoOpponent && !player1IsNoOpponent) {
+          // Player 2 is no opponent, Player 1 wins automatically
+          newData.status = "completed";
+          newData.winner = newData.player1Name;
+        } else if (!player1IsNoOpponent && !player2IsNoOpponent) {
+          // Both are real players, reset to scheduled if not manually completed
+          if (newData.status === "completed" && !newData.winner) {
+            newData.status = "scheduled";
+          }
+        }
+      }
+      
       return newData;
     });
   };
