@@ -1146,6 +1146,39 @@ export function TournamentBracket({
           console.log("Progressing winner in UI...");
           finalMatches = progressWinnerImmediately(updatedMatches, completedMatch);
           
+          // Update bracket display immediately with the advanced winner
+          setBracketData(prevBracketData => {
+            return prevBracketData.map(round => ({
+              ...round,
+              matches: round.matches.map(match => {
+                // Update the completed match
+                if (match.id === completedMatch.id) {
+                  return { ...match, ...updates };
+                }
+                
+                // Update next match with winner
+                if (match.previousMatch1Id === completedMatch.id || match.previousMatch2Id === completedMatch.id) {
+                  const winnerPlayer = players.find(p => p.name === completedMatch.winner);
+                  if (winnerPlayer) {
+                    const winnerData = {
+                      name: winnerPlayer.name,
+                      handicap: winnerPlayer.handicap,
+                      score: undefined
+                    };
+                    
+                    if (match.previousMatch1Id === completedMatch.id) {
+                      return { ...match, player1: winnerData };
+                    } else if (match.previousMatch2Id === completedMatch.id) {
+                      return { ...match, player2: winnerData };
+                    }
+                  }
+                }
+                
+                return match;
+              })
+            }));
+          });
+          
           // Also progress winner in database
           const winnerPlayer = players.find(p => p.name === completedMatch.winner);
           if (winnerPlayer) {
@@ -1174,12 +1207,6 @@ export function TournamentBracket({
 
       // Update parent component with the updated matches
       onMatchUpdate(finalMatches);
-      
-      // Refresh bracket display to show advancement
-      setTimeout(() => {
-        console.log("Refreshing bracket display...");
-        generateBracket();
-      }, 200);
 
     } catch (error) {
       console.error('Error updating database match:', error);
