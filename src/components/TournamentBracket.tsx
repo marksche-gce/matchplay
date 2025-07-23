@@ -441,20 +441,37 @@ export function TournamentBracket({
       let successfulAdvancements = 0;
 
     // Process all completed matches to advance winners
-    completedMatches.forEach(completedMatch => {
+    for (const completedMatch of completedMatches) {
       console.log("Processing winner advancement for match:", completedMatch.id, "winner:", completedMatch.winner);
-      const previousMatches = updatedMatches;
-      const advancedMatches = progressWinnerImmediately(previousMatches, completedMatch);
       
-      if (advancedMatches !== previousMatches) {
-        console.log("Changes detected after winner advancement");
-        updatedMatches = advancedMatches;
-        hasChanges = true;
-        successfulAdvancements++;
+      // For database matches, use direct database advancement
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(completedMatch.id)) {
+        const winnerPlayerData = players.find(p => p.name === completedMatch.winner);
+        if (winnerPlayerData) {
+          console.log("Advancing database match winner to database:", completedMatch.winner);
+          try {
+            await progressWinnerToDatabase(completedMatch, winnerPlayerData);
+            successfulAdvancements++;
+            hasChanges = true;
+          } catch (error) {
+            console.error("Failed to advance winner in database:", error);
+          }
+        }
       } else {
-        console.log("No changes after winner advancement attempt");
+        // For placeholder matches, use UI advancement
+        const previousMatches = updatedMatches;
+        const advancedMatches = progressWinnerImmediately(previousMatches, completedMatch);
+        
+        if (advancedMatches !== previousMatches) {
+          console.log("Changes detected after winner advancement");
+          updatedMatches = advancedMatches;
+          hasChanges = true;
+          successfulAdvancements++;
+        } else {
+          console.log("No changes after winner advancement attempt");
+        }
       }
-    });
+    }
 
     if (hasChanges) {
       console.log("Changes detected in advanceAllWinners, but NOT calling onMatchUpdate to prevent loops");
