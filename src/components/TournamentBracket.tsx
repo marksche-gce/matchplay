@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Trophy, Award, Clock, Users, ChevronRight, Trash2 } from "lucide-react";
+import { Trophy, Award, Clock, Users, ChevronRight, Trash2, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -610,6 +610,41 @@ export function TournamentBracket({
     }
   };
 
+  const handleUpdateMatches = async () => {
+    console.log("=== UPDATE MATCHES TRIGGERED ===");
+    
+    toast({
+      title: "Updating Matches...",
+      description: "Processing winner advancement and bracket updates.",
+    });
+
+    try {
+      // Regenerate bracket to ensure latest data
+      generateBracket();
+      
+      // Process all completed matches to advance winners
+      advanceAllWinners();
+      
+      // Process bye matches (auto-advance players with no opponents)
+      await processAutoAdvanceByes();
+      
+      toast({
+        title: "Matches Updated!",
+        description: "All winners have been advanced and bracket has been refreshed.",
+      });
+      
+    } catch (error) {
+      console.error('Error updating matches:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update matches. Please try again.",
+        variant: "destructive"
+      });
+    }
+    
+    console.log("=== UPDATE MATCHES COMPLETE ===");
+  };
+
   const handleMatchUpdate = async (matchId: string, updates: Partial<Match>) => {
     console.log("=== BRACKET MATCH UPDATE DEBUG ===");
     console.log("handleMatchUpdate called for match ID:", matchId, "updates:", updates);
@@ -1162,6 +1197,16 @@ export function TournamentBracket({
               <p className="text-sm text-muted-foreground mt-1">
                 Progress: {progress.completed}/{progress.total} matches completed
               </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleUpdateMatches}
+                variant="secondary"
+                className="gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Update Matches
+              </Button>
             </div>
           </div>
         </CardHeader>
