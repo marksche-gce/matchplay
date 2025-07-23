@@ -384,6 +384,12 @@ export function TournamentDashboard() {
           // Fix winner lookup - use player_id from match_participants table
           let winner = match.winner_id ? participants.find((p: any) => p.player_id === match.winner_id)?.players?.name : undefined;
           
+          // If no winner found by ID but we have a winner name, use it directly (backward compatibility)
+          if (!winner && match.winner) {
+            winner = match.winner;
+            console.log("Using direct winner name:", winner);
+          }
+          
           // If match is completed but has no winner, determine winner automatically
           if (match.status === 'completed' && !winner) {
             // For bye matches (only one participant), that participant is the winner
