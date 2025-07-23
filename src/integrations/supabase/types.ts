@@ -42,7 +42,7 @@ export type Database = {
         Row: {
           id: string
           match_id: string
-          player_id: string
+          player_id: string | null
           position: number | null
           score: number | null
           team_number: number | null
@@ -50,7 +50,7 @@ export type Database = {
         Insert: {
           id?: string
           match_id: string
-          player_id: string
+          player_id?: string | null
           position?: number | null
           score?: number | null
           team_number?: number | null
@@ -58,7 +58,7 @@ export type Database = {
         Update: {
           id?: string
           match_id?: string
-          player_id?: string
+          player_id?: string | null
           position?: number | null
           score?: number | null
           team_number?: number | null
