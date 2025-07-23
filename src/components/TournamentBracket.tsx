@@ -1581,6 +1581,101 @@ export function TournamentBracket({
     }
   };
 
+  const generateCompleteBracket = async () => {
+    try {
+      console.log("=== GENERATING COMPLETE BRACKET ===");
+      
+      // Get all Round 1 matches
+      const { data: round1Matches, error: round1Error } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('tournament_id', tournamentId)
+        .eq('round', 'Round 1')
+        .order('created_at');
+        
+      if (round1Error) {
+        console.error("Error getting Round 1 matches:", round1Error);
+        return;
+      }
+      
+      console.log("Found", round1Matches?.length || 0, "Round 1 matches");
+      
+      if (!round1Matches || round1Matches.length === 0) {
+        console.log("No Round 1 matches found, cannot generate bracket");
+        return;
+      }
+      
+      // Calculate how many Quarterfinals matches we need
+      const quarterfinalsNeeded = Math.ceil(round1Matches.length / 2);
+      
+      // Check existing Quarterfinals matches
+      const { data: existingQuarterfinals, error: qfError } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('tournament_id', tournamentId)
+        .eq('round', 'Quarterfinals')
+        .order('created_at');
+        
+      if (qfError) {
+        console.error("Error getting Quarterfinals matches:", qfError);
+        return;
+      }
+      
+      const existingCount = existingQuarterfinals?.length || 0;
+      const missingCount = quarterfinalsNeeded - existingCount;
+      
+      console.log("Need", quarterfinalsNeeded, "Quarterfinals matches, have", existingCount, "missing", missingCount);
+      
+      if (missingCount > 0) {
+        const matchesToCreate = [];
+        for (let i = existingCount; i < quarterfinalsNeeded; i++) {
+          const startIndex = i * 2;
+          const prevMatch1 = round1Matches[startIndex];
+          const prevMatch2 = round1Matches[startIndex + 1];
+          
+          matchesToCreate.push({
+            tournament_id: tournamentId,
+            type: "singles",
+            round: "Quarterfinals",
+            status: "scheduled",
+            previous_match_1_id: prevMatch1?.id || null,
+            previous_match_2_id: prevMatch2?.id || null
+          });
+        }
+        
+        const { data: createdMatches, error: createError } = await supabase
+          .from('matches')
+          .insert(matchesToCreate)
+          .select();
+          
+        if (createError) {
+          console.error("Error creating missing Quarterfinals matches:", createError);
+          throw createError;
+        }
+        
+        console.log("Successfully created", createdMatches?.length, "missing Quarterfinals matches");
+        
+        // Refresh the bracket
+        onMatchUpdate([...matches]);
+        
+        toast({
+          title: "Bracket Completed",
+          description: `Created ${createdMatches?.length} missing Quarterfinals matches`,
+        });
+      } else {
+        console.log("All Quarterfinals matches already exist");
+      }
+      
+    } catch (error) {
+      console.error("Error generating complete bracket:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate complete bracket",
+        variant: "destructive"
+      });
+    }
+  };
+
   const deleteAllMatches = () => {
     const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
     const remainingMatches = matches.filter(m => m.tournamentId !== tournamentId);
@@ -1805,6 +1900,14 @@ export function TournamentBracket({
               >
                 <RefreshCw className="h-4 w-4" />
                 Setup Relationships
+              </Button>
+              <Button
+                onClick={generateCompleteBracket}
+                variant="outline"
+                className="gap-2"
+              >
+                <Trophy className="h-4 w-4" />
+                Complete Bracket
               </Button>
             </div>
           </div>
