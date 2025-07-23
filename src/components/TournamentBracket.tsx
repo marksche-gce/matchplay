@@ -1043,8 +1043,10 @@ export function TournamentBracket({
     const isGeneratedMatch = !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(matchId);
     
     console.log("Is generated match:", isGeneratedMatch, "Match ID:", matchId);
+    console.log("=== STARTING MATCH UPDATE PROCESSING ===");
     
     if (isGeneratedMatch) {
+      console.log("=== PROCESSING PLACEHOLDER MATCH ===");
       console.log("Converting placeholder match to database match");
       
       // Find the placeholder match in bracketData
@@ -1237,14 +1239,17 @@ export function TournamentBracket({
     }
 
     // Handle database match updates
-    console.log("Updating database match");
+    console.log("=== PROCESSING DATABASE MATCH ===");
+    console.log("Updating database match with ID:", matchId);
     
     try {
+      console.log("=== STARTING DATABASE OPERATIONS ===");
       // Update match details in database
       const matchUpdates: any = {
         round: updates.round,
         status: updates.status
       };
+      console.log("Basic match updates prepared:", matchUpdates);
 
       // Set winner_id based on winner name if provided
       if (updates.winner) {
@@ -1276,17 +1281,22 @@ export function TournamentBracket({
       if (updates.tee) matchUpdates.tee = updates.tee;
 
       console.log("Updating match in database with:", matchUpdates);
+      console.log("=== CALLING SUPABASE MATCH UPDATE ===");
 
       const { error: matchError } = await supabase
         .from('matches')
         .update(matchUpdates)
         .eq('id', matchId);
 
+      console.log("=== SUPABASE MATCH UPDATE COMPLETED ===");
+      console.log("Match update error:", matchError);
+
       if (matchError) {
         console.error("Match update error:", matchError);
         throw matchError;
       }
 
+      console.log("=== MATCH UPDATE SUCCESSFUL ===");
       // Handle player and score updates
       if (updates.player1 || updates.player2) {
         console.log("Updating player assignments");
