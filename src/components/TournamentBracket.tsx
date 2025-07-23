@@ -193,14 +193,33 @@ export function TournamentBracket({
       else roundNames.push(`Round ${i}`);
     }
     
-    // Create all rounds with expected number of matches
-    roundNames.forEach((roundName, index) => {
+    // Create all rounds with expected number of matches and proper relationships
+    roundNames.forEach((roundName, roundIndex) => {
       const existingMatches = roundsMap.get(roundName) || [];
-      const expectedMatches = Math.pow(2, Math.max(0, totalRounds - (index + 1)));
+      const expectedMatches = Math.pow(2, Math.max(0, totalRounds - (roundIndex + 1)));
       const allMatches: Match[] = [];
       
       // Add existing matches (already sorted consistently)
-      allMatches.push(...existingMatches);
+      existingMatches.forEach((match, matchIndex) => {
+        // Set up progression relationships for existing matches
+        if (roundIndex > 0) {
+          const prevRoundName = roundNames[roundIndex - 1];
+          const prevRoundMatches = roundsMap.get(prevRoundName) || [];
+          
+          // Each match in current round gets winners from 2 matches in previous round
+          const prevMatchIndex1 = matchIndex * 2;
+          const prevMatchIndex2 = matchIndex * 2 + 1;
+          
+          if (prevMatchIndex1 < prevRoundMatches.length) {
+            match.previousMatch1Id = prevRoundMatches[prevMatchIndex1].id;
+          }
+          if (prevMatchIndex2 < prevRoundMatches.length) {
+            match.previousMatch2Id = prevRoundMatches[prevMatchIndex2].id;
+          }
+        }
+        
+        allMatches.push(match);
+      });
       
       // Fill remaining slots with placeholder matches that show source connections
       const remainingSlots = Math.max(0, expectedMatches - existingMatches.length);
@@ -217,8 +236,8 @@ export function TournamentBracket({
         };
 
         // Set up connections to previous matches for non-first rounds
-        if (index > 0) {
-          const prevRoundName = roundNames[index - 1];
+        if (roundIndex > 0) {
+          const prevRoundName = roundNames[roundIndex - 1];
           const prevRoundMatches = roundsMap.get(prevRoundName) || [];
           const prevRoundMatchIndex1 = matchIndex * 2;
           const prevRoundMatchIndex2 = matchIndex * 2 + 1;
@@ -243,8 +262,17 @@ export function TournamentBracket({
       rounds.push({
         name: roundName,
         matches: allMatches,
-        roundNumber: index + 1
+        roundNumber: roundIndex + 1
       });
+    });
+
+    console.log("Generated bracket with proper relationships:");
+    rounds.forEach(round => {
+      console.log(`${round.name}:`, round.matches.map(m => ({
+        id: m.id,
+        prev1: m.previousMatch1Id,
+        prev2: m.previousMatch2Id
+      })));
     });
 
     setBracketData(rounds);
@@ -358,14 +386,17 @@ export function TournamentBracket({
       console.log("Winner successfully advanced in bracket display and matches array");
       setBracketData(updatedBracketData);
       
-      toast({
-        title: "Winner Advanced!",
-        description: `${completedMatch.winner} has been advanced to the next round.`,
-      });
-      
+      // Don't show individual toast here - let advanceAllWinners handle consolidated messaging
       return updatedMatches;
     } else {
       console.log("No next match found for winner advancement");
+      console.log("Looking for next match with previousMatch1Id or previousMatch2Id =", completedMatch.id);
+      console.log("Available bracket matches:");
+      bracketData.forEach(round => {
+        round.matches.forEach(match => {
+          console.log(`- Match ${match.id}: prev1=${match.previousMatch1Id}, prev2=${match.previousMatch2Id}`);
+        });
+      });
     }
 
     return currentMatches;
@@ -384,6 +415,7 @@ export function TournamentBracket({
 
     let updatedMatches = [...matches];
     let hasChanges = false;
+    let successfulAdvancements = 0;
 
     // Process all completed matches to advance winners
     completedMatches.forEach(completedMatch => {
@@ -395,6 +427,7 @@ export function TournamentBracket({
         console.log("Changes detected after winner advancement");
         updatedMatches = advancedMatches;
         hasChanges = true;
+        successfulAdvancements++;
       } else {
         console.log("No changes after winner advancement attempt");
       }
@@ -403,6 +436,14 @@ export function TournamentBracket({
     if (hasChanges) {
       console.log("Calling onMatchUpdate with", updatedMatches.length, "updated matches");
       onMatchUpdate(updatedMatches);
+      
+      // Show single consolidated toast instead of multiple
+      if (successfulAdvancements > 0) {
+        toast({
+          title: "Winners Advanced!",
+          description: `${successfulAdvancements} winner${successfulAdvancements > 1 ? 's have' : ' has'} been advanced to the next round.`,
+        });
+      }
     } else {
       console.log("No changes to report to parent component");
     }
