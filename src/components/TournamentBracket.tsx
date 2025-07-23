@@ -1159,11 +1159,16 @@ export function TournamentBracket({
                           <div className="space-y-2">
                             <div className={`p-2 rounded border ${match.winner === match.player1?.name ? 'bg-primary/10 border-primary' : 'bg-muted/50'}`}>
                               <div className="text-sm font-medium">
-                                {match.player1?.name || "TBD"}
+                                {match.player1?.name?.startsWith("no-opponent") ? "No Opponent" : (match.player1?.name || "TBD")}
                               </div>
-                              {match.player1?.handicap !== undefined && (
+                              {match.player1?.handicap !== undefined && !match.player1?.name?.startsWith("no-opponent") && (
                                 <div className="text-xs text-muted-foreground">
                                   HC: {match.player1.handicap}
+                                </div>
+                              )}
+                              {match.player1?.name?.startsWith("no-opponent") && (
+                                <div className="text-xs text-muted-foreground italic">
+                                  (Free Pass)
                                 </div>
                               )}
                             </div>
@@ -1172,14 +1177,14 @@ export function TournamentBracket({
                             
                             <div className={`p-2 rounded border ${match.winner === match.player2?.name ? 'bg-primary/10 border-primary' : 'bg-muted/50'}`}>
                               <div className="text-sm font-medium">
-                                {match.player2?.name || (match.player1?.name && !match.player2 ? "No Opponent" : "TBD")}
+                                {match.player2?.name?.startsWith("no-opponent") ? "No Opponent" : (match.player2?.name || (match.player1?.name && !match.player2 ? "No Opponent" : "TBD"))}
                               </div>
-                              {match.player2?.handicap !== undefined && (
+                              {match.player2?.handicap !== undefined && !match.player2?.name?.startsWith("no-opponent") && (
                                 <div className="text-xs text-muted-foreground">
                                   HC: {match.player2.handicap}
                                 </div>
                               )}
-                              {match.player1?.name && !match.player2 && (
+                              {(match.player2?.name?.startsWith("no-opponent") || (match.player1?.name && !match.player2)) && (
                                 <div className="text-xs text-muted-foreground italic">
                                   (Free Pass)
                                 </div>

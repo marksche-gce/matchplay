@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Edit3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -78,6 +78,21 @@ export function EditMatchDialog({
     player1Name: match?.player1?.name || "no-player",
     player2Name: match?.player2?.name || "no-player"
   });
+
+  // Update form data when match changes
+  useEffect(() => {
+    if (match) {
+      setFormData({
+        round: match.round || "",
+        status: match.status || "scheduled",
+        player1Score: match.player1?.score?.toString() || "",
+        player2Score: match.player2?.score?.toString() || "",
+        winner: match.winner || "",
+        player1Name: match.player1?.name || "no-player",
+        player2Name: match.player2?.name || "no-player"
+      });
+    }
+  }, [match]);
   const { toast } = useToast();
   const { validateWinner, validateMatchCompletion } = useBracketValidation();
 
