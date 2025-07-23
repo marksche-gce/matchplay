@@ -122,20 +122,28 @@ export function EditMatchDialog({
     console.log("=== SUBMIT AUTO-WINNER CHECK ===");
     console.log("Player 1:", finalFormData.player1Name, "is no player:", player1IsNoPlayer);
     console.log("Player 2:", finalFormData.player2Name, "is no player:", player2IsNoPlayer);
+    console.log("Player 1 name value:", JSON.stringify(finalFormData.player1Name));
+    console.log("Player 2 name value:", JSON.stringify(finalFormData.player2Name));
     
     if (player1IsNoPlayer && !player2IsNoPlayer && finalFormData.player2Name) {
       // Player 1 has no opponent, Player 2 wins automatically
-      console.log("SUBMIT: Player 2 wins automatically -", finalFormData.player2Name);
+      console.log("🎯 SUBMIT: Player 2 wins automatically -", finalFormData.player2Name);
       finalFormData.status = "completed";
       finalFormData.winner = finalFormData.player2Name;
     } else if (player2IsNoPlayer && !player1IsNoPlayer && finalFormData.player1Name) {
       // Player 2 has no opponent, Player 1 wins automatically
-      console.log("SUBMIT: Player 1 wins automatically -", finalFormData.player1Name);
+      console.log("🎯 SUBMIT: Player 1 wins automatically -", finalFormData.player1Name);
       finalFormData.status = "completed";
       finalFormData.winner = finalFormData.player1Name;
+    } else {
+      console.log("❌ NO AUTO-WINNER TRIGGERED");
+      console.log("Conditions: player1IsNoPlayer:", player1IsNoPlayer, "player2IsNoPlayer:", player2IsNoPlayer);
+      console.log("Player names:", finalFormData.player1Name, finalFormData.player2Name);
     }
     
     console.log("Final form data before creating updates:", finalFormData);
+    console.log("Final status:", finalFormData.status);
+    console.log("Final winner:", finalFormData.winner);
     console.log("=== END SUBMIT AUTO-WINNER ===");
     
     const updates: Partial<Match> = {
