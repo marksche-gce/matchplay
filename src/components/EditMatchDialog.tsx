@@ -176,26 +176,52 @@ export function EditMatchDialog({
       const selectedPlayer2 = playersToSearch.find(p => p.name === finalFormData.player2Name);
       
       // Handle "no-opponent" assignments properly for player1
-      updates.player1 = selectedPlayer1 ? {
-        name: selectedPlayer1.name,
-        handicap: selectedPlayer1.handicap,
-        score: finalFormData.player1Score ? parseInt(finalFormData.player1Score) : undefined
-      } : finalFormData.player1Name && finalFormData.player1Name.startsWith("no-opponent") ? {
-        name: finalFormData.player1Name,
-        handicap: 0,
-        score: undefined
-      } : (finalFormData.player1Name && finalFormData.player1Name !== "no-player" ? match.player1 : undefined);
+      if (finalFormData.player1Name && finalFormData.player1Name !== "no-player") {
+        if (finalFormData.player1Name.startsWith("no-opponent")) {
+          // This is a "no opponent" placeholder
+          updates.player1 = {
+            name: finalFormData.player1Name,
+            handicap: 0,
+            score: undefined
+          };
+        } else {
+          // This is a real player
+          const selectedPlayer1 = playersToSearch.find(p => p.name === finalFormData.player1Name);
+          if (selectedPlayer1) {
+            updates.player1 = {
+              name: selectedPlayer1.name,
+              handicap: selectedPlayer1.handicap,
+              score: finalFormData.player1Score ? parseInt(finalFormData.player1Score) : undefined
+            };
+          }
+        }
+      } else {
+        updates.player1 = undefined;
+      }
       
-      // Handle "no-opponent" assignments properly
-      updates.player2 = selectedPlayer2 ? {
-        name: selectedPlayer2.name,
-        handicap: selectedPlayer2.handicap,
-        score: finalFormData.player2Score ? parseInt(finalFormData.player2Score) : undefined
-      } : finalFormData.player2Name && finalFormData.player2Name.startsWith("no-opponent") ? {
-        name: finalFormData.player2Name,
-        handicap: 0,
-        score: undefined
-      } : (finalFormData.player2Name && finalFormData.player2Name !== "no-player" ? match.player2 : undefined);
+      // Handle "no-opponent" assignments properly for player2  
+      if (finalFormData.player2Name && finalFormData.player2Name !== "no-player") {
+        if (finalFormData.player2Name.startsWith("no-opponent")) {
+          // This is a "no opponent" placeholder
+          updates.player2 = {
+            name: finalFormData.player2Name,
+            handicap: 0,
+            score: undefined
+          };
+        } else {
+          // This is a real player
+          const selectedPlayer2 = playersToSearch.find(p => p.name === finalFormData.player2Name);
+          if (selectedPlayer2) {
+            updates.player2 = {
+              name: selectedPlayer2.name,
+              handicap: selectedPlayer2.handicap,
+              score: finalFormData.player2Score ? parseInt(finalFormData.player2Score) : undefined
+            };
+          }
+        }
+      } else {
+        updates.player2 = undefined;
+      }
       
       // Update the validation match
       updatedMatch.player1 = updates.player1;

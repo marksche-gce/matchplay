@@ -968,7 +968,7 @@ export function TournamentDashboard() {
 
   // Database-only update function (doesn't refresh matches from DB)
   const handleEditMatchDatabase = async (matchId: string, updates: Partial<Match>) => {
-    console.log("handleEditMatchDatabase called for:", matchId, "with updates:", updates);
+    console.log("🎯 handleEditMatchDatabase called for:", matchId, "with updates:", updates);
     
     try {
       // First, update the match details
@@ -989,7 +989,7 @@ export function TournamentDashboard() {
           } else {
             console.warn("Winner player not found in players list:", updates.winner);
             console.log("Available player names:", players.map(p => p.name));
-            matchUpdates.winner_id = null;
+            throw new Error(`Winner "${updates.winner}" not found in registered players`);
           }
         } else {
           console.log("Winner is placeholder player, not setting winner_id");
@@ -1210,10 +1210,18 @@ export function TournamentDashboard() {
   };
 
   const handleEditMatch = async (matchId: string, updates: Partial<Match>) => {
-    console.log("handleEditMatch called for:", matchId, "with updates:", updates);
+    console.log("🎯 handleEditMatch called for:", matchId, "with updates:", updates);
     console.log("Available players for winner lookup:", players.map(p => ({ id: p.id, name: p.name })));
     
     try {
+      // Validate that the updates are valid before sending to database
+      if (updates.winner && !updates.winner.startsWith("no-opponent") && updates.winner !== "no-player") {
+        const winnerExists = players.some(p => p.name === updates.winner);
+        if (!winnerExists) {
+          throw new Error(`Winner "${updates.winner}" not found in registered players`);
+        }
+      }
+
       // Update the database first
       await handleEditMatchDatabase(matchId, updates);
 
@@ -1251,7 +1259,7 @@ export function TournamentDashboard() {
       });
 
     } catch (error) {
-      console.error('Error updating match:', error);
+      console.error('🚨 Error updating match:', error);
       
       // More specific error message
       let errorMessage = "Failed to update match in database";
