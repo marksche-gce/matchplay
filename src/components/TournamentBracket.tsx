@@ -1292,26 +1292,15 @@ export function TournamentBracket({
         console.log("Updating player assignments");
         
         try {
-          // Get existing participants first
-          const { data: existingParticipants, error: fetchError } = await supabase
-            .from('match_participants')
-            .select('*')
-            .eq('match_id', matchId);
-
-          if (fetchError) {
-            console.error("Error fetching existing participants:", fetchError);
-            throw fetchError;
-          }
-
-          console.log("Found existing participants:", existingParticipants?.length || 0);
-          
-          const participantsToUpsert = [];
+          const participantsToInsert = [];
+          const positionsToUpdate = [];
           
           if (updates.player1) {
+            positionsToUpdate.push(1);
             if (updates.player1.name?.startsWith("no-opponent")) {
               // Handle "no opponent" placeholder
-              console.log("Adding player1 placeholder:", updates.player1.name);
-              participantsToUpsert.push({
+              console.log("Setting position 1 to placeholder:", updates.player1.name);
+              participantsToInsert.push({
                 match_id: matchId,
                 player_id: null,
                 position: 1,
@@ -1323,8 +1312,8 @@ export function TournamentBracket({
               // Handle real player
               const player1Data = players.find(p => p.name === updates.player1?.name);
               if (player1Data) {
-                console.log("Adding player1 participant:", player1Data.name, "ID:", player1Data.id);
-                participantsToUpsert.push({
+                console.log("Setting position 1 to player:", player1Data.name, "ID:", player1Data.id);
+                participantsToInsert.push({
                   match_id: matchId,
                   player_id: player1Data.id,
                   position: 1,
@@ -1334,16 +1323,16 @@ export function TournamentBracket({
                 });
               } else {
                 console.log("Could not find player1 data for:", updates.player1.name);
-                console.log("Available players:", players.map(p => p.name));
               }
             }
           }
           
           if (updates.player2) {
+            positionsToUpdate.push(2);
             if (updates.player2.name?.startsWith("no-opponent")) {
               // Handle "no opponent" placeholder
-              console.log("Adding player2 placeholder:", updates.player2.name);
-              participantsToUpsert.push({
+              console.log("Setting position 2 to placeholder:", updates.player2.name);
+              participantsToInsert.push({
                 match_id: matchId,
                 player_id: null,
                 position: 2,
@@ -1355,8 +1344,8 @@ export function TournamentBracket({
               // Handle real player
               const player2Data = players.find(p => p.name === updates.player2?.name);
               if (player2Data) {
-                console.log("Adding player2 participant:", player2Data.name, "ID:", player2Data.id);
-                participantsToUpsert.push({
+                console.log("Setting position 2 to player:", player2Data.name, "ID:", player2Data.id);
+                participantsToInsert.push({
                   match_id: matchId,
                   player_id: player2Data.id,
                   position: 2,
@@ -1366,37 +1355,38 @@ export function TournamentBracket({
                 });
               } else {
                 console.log("Could not find player2 data for:", updates.player2.name);
-                console.log("Available players:", players.map(p => p.name));
               }
             }
           }
 
-          // Only update participants if we have valid data to insert
-          if (participantsToUpsert.length > 0) {
-            console.log("Clearing existing participants...");
+          // Delete existing participants for the positions we're updating
+          if (positionsToUpdate.length > 0) {
+            console.log("Deleting existing participants for positions:", positionsToUpdate);
             const { error: deleteError } = await supabase
               .from('match_participants')
               .delete()
-              .eq('match_id', matchId);
+              .eq('match_id', matchId)
+              .in('position', positionsToUpdate);
 
             if (deleteError) {
               console.error("Error deleting existing participants:", deleteError);
               throw deleteError;
             }
+          }
 
-            console.log("Inserting", participantsToUpsert.length, "participants:", participantsToUpsert);
+          // Insert new participants
+          if (participantsToInsert.length > 0) {
+            console.log("Inserting", participantsToInsert.length, "participants:", participantsToInsert);
             const { error: participantError } = await supabase
               .from('match_participants')
-              .insert(participantsToUpsert);
+              .insert(participantsToInsert);
 
             if (participantError) {
               console.error("Participant insert error:", participantError);
-              console.error("Failed data:", participantsToUpsert);
+              console.error("Failed data:", participantsToInsert);
               throw participantError;
             }
             console.log("Successfully updated all participants");
-          } else {
-            console.log("No valid participants to insert - keeping existing participants");
           }
         } catch (participantError) {
           console.error("Error in participant update process:", participantError);
