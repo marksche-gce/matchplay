@@ -1765,7 +1765,7 @@ export function TournamentBracket({
     }
   };
 
-  // Complete reset function that clears ALL data and saves clean state to database
+  // Complete reset function that clears ALL data and saves clean bracket to database
   const resetAllSetup = async () => {
     try {
       console.log("=== RESETTING ALL SETUP ===");
@@ -1814,19 +1814,30 @@ export function TournamentBracket({
         })
         .eq('id', tournamentId);
       
+      console.log("Database cleared, now creating fresh bracket structure...");
+      
+      // Calculate tournament structure
+      const totalRounds = Math.ceil(Math.log2(players.length));
+      console.log(`Creating ${totalRounds} rounds for ${players.length} players`);
+      
+      // Create fresh bracket structure in database
+      await generateCompleteBracketStructure(totalRounds, Math.ceil(players.length / 2));
+      
+      // Generate fresh local bracket display
+      generateBracket();
+      
       // Reset local state
-      setBracketData([]);
       setSelectedMatch(null);
       setShowManualSetup(true);
       
-      // Trigger refresh to reload clean state
+      // Trigger refresh to reload from database
       onMatchUpdate([]);
       
-      console.log("=== RESET COMPLETE - DATABASE CLEANED ===");
+      console.log("=== RESET COMPLETE - FRESH BRACKET SAVED ===");
       
       toast({
         title: "Success",
-        description: "All tournament data has been reset and saved to database!"
+        description: "Tournament reset and fresh bracket structure saved to database!"
       });
       
     } catch (error) {
