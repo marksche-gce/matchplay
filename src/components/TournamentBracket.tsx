@@ -72,6 +72,7 @@ export function TournamentBracket({
   const [bracketData, setBracketData] = useState<BracketRound[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [showManualSetup, setShowManualSetup] = useState(true);
+  const [isAdvancingWinners, setIsAdvancingWinners] = useState(false); // Prevent multiple simultaneous executions
   const { toast } = useToast();
 
   // Function to get available players for a specific match (excluding already assigned players)
@@ -410,25 +411,34 @@ export function TournamentBracket({
   };
 
   const advanceAllWinners = async () => {
-    const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
-    const completedMatches = tournamentMatches.filter(m => m.status === "completed" && m.winner);
-    
-    console.log("advanceAllWinners called with", completedMatches.length, "completed matches");
-    completedMatches.forEach(match => {
-      console.log("Processing completed match:", match.id, "winner:", match.winner);
-    });
-    
-    if (completedMatches.length === 0) return;
-
-    // First, ensure next round matches exist before trying to advance winners
-    const rounds = [...new Set(completedMatches.map(m => m.round))];
-    for (const round of rounds) {
-      await createNextRoundMatches(round, tournamentId);
+    // Prevent multiple simultaneous executions
+    if (isAdvancingWinners) {
+      console.log("Already advancing winners, skipping...");
+      return;
     }
 
-    let updatedMatches = [...matches];
-    let hasChanges = false;
-    let successfulAdvancements = 0;
+    setIsAdvancingWinners(true);
+
+    try {
+      const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
+      const completedMatches = tournamentMatches.filter(m => m.status === "completed" && m.winner);
+      
+      console.log("advanceAllWinners called with", completedMatches.length, "completed matches");
+      completedMatches.forEach(match => {
+        console.log("Processing completed match:", match.id, "winner:", match.winner);
+      });
+      
+      if (completedMatches.length === 0) return;
+
+      // First, ensure next round matches exist before trying to advance winners
+      const rounds = [...new Set(completedMatches.map(m => m.round))];
+      for (const round of rounds) {
+        await createNextRoundMatches(round, tournamentId);
+      }
+
+      let updatedMatches = [...matches];
+      let hasChanges = false;
+      let successfulAdvancements = 0;
 
     // Process all completed matches to advance winners
     completedMatches.forEach(completedMatch => {
@@ -459,6 +469,16 @@ export function TournamentBracket({
       }
     } else {
       console.log("No changes to report to parent component");
+    }
+    } catch (error) {
+      console.error("Error in advanceAllWinners:", error);
+      toast({
+        title: "Error",
+        description: "Failed to advance winners. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsAdvancingWinners(false);
     }
   };
 
@@ -712,32 +732,57 @@ export function TournamentBracket({
 
       console.log("Advancing winner to match:", nextMatch.id, "at position:", position);
       
+      // First check if this player is already in this match at ANY position to prevent duplicates
+      const { data: existingPlayerInMatch, error: playerCheckError } = await supabase
+        .from('match_participants')
+        .select('*')
+        .eq('match_id', nextMatch.id)
+        .eq('player_id', winnerPlayer.id);
+
+      if (playerCheckError) {
+        console.error("Error checking for existing player in match:", playerCheckError);
+        throw playerCheckError;
+      }
+
+      if (existingPlayerInMatch && existingPlayerInMatch.length > 0) {
+        console.log(`Player ${winnerPlayer.name} is already in match ${nextMatch.id}, skipping advancement`);
+        return;
+      }
+      
       // Check if participant already exists at this position
       const { data: existingParticipant, error: checkError } = await supabase
         .from('match_participants')
         .select('*')
         .eq('match_id', nextMatch.id)
         .eq('position', position)
-        .single();
+        .maybeSingle(); // Use maybeSingle to avoid errors when no record found
 
-      if (checkError && checkError.code !== 'PGRST116') { // Not found is okay
+      if (checkError) {
+        console.error("Error checking existing participant:", checkError);
         throw checkError;
       }
 
       if (existingParticipant) {
-        // Update existing participant
-        console.log("Updating existing participant for position:", position);
-        const { error: updateError } = await supabase
-          .from('match_participants')
-          .update({
-            player_id: winnerPlayer.id,
-            score: null, // Reset score for new match
-            is_placeholder: false,
-            placeholder_name: null
-          })
-          .eq('id', existingParticipant.id);
+        // Update existing participant only if it's a placeholder or different player
+        if (existingParticipant.is_placeholder || existingParticipant.player_id !== winnerPlayer.id) {
+          console.log("Updating existing participant for position:", position);
+          const { error: updateError } = await supabase
+            .from('match_participants')
+            .update({
+              player_id: winnerPlayer.id,
+              score: null, // Reset score for new match
+              is_placeholder: false,
+              placeholder_name: null
+            })
+            .eq('id', existingParticipant.id);
 
-        if (updateError) throw updateError;
+          if (updateError) {
+            console.error("Error updating participant:", updateError);
+            throw updateError;
+          }
+        } else {
+          console.log(`Position ${position} already has the correct player, skipping update`);
+        }
       } else {
         // Create new participant
         console.log("Creating new participant for position:", position);
@@ -753,7 +798,15 @@ export function TournamentBracket({
             placeholder_name: null
           });
 
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error("Error inserting participant:", insertError);
+          // If it's a duplicate key error, just log and continue (race condition)
+          if (insertError.code === '23505') {
+            console.log("Duplicate key detected, player already advanced by another process");
+            return;
+          }
+          throw insertError;
+        }
       }
 
       console.log(`Winner ${winnerPlayer.name} successfully advanced to next match in database`);
