@@ -406,16 +406,24 @@ export function TournamentDashboard() {
             id: match.id,
             tournamentId: match.tournament_id,
             type: "singles",
-            player1: player1 ? {
+            player1: player1 ? (player1.players ? {
               name: player1.players.name,
               handicap: player1.players.handicap,
               score: player1.score
-            } : undefined,
-            player2: player2 ? {
+            } : {
+              name: "no-opponent-1", // Reconstruct no-opponent placeholder
+              handicap: 0,
+              score: player1.score
+            }) : undefined,
+            player2: player2 ? (player2.players ? {
               name: player2.players.name,
               handicap: player2.players.handicap,
               score: player2.score
-            } : undefined,
+            } : {
+              name: "no-opponent-2", // Reconstruct no-opponent placeholder
+              handicap: 0,
+              score: player2.score
+            }) : undefined,
             round: match.round,
             status: match.status as "scheduled" | "completed",
             date: new Date(match.match_date || new Date()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -1093,43 +1101,67 @@ export function TournamentDashboard() {
             
             // Handle player1
             if (updates.player1?.name) {
-              if (updates.player1.name !== "no-player" && !updates.player1.name.startsWith("no-opponent")) {
-                console.log("Looking for player1:", updates.player1.name);
-                const player1 = players.find(p => p.name === updates.player1.name);
-                if (player1) {
-                  console.log("Found player1:", player1);
+              if (updates.player1.name !== "no-player") {
+                if (!updates.player1.name.startsWith("no-opponent")) {
+                  // Real player
+                  console.log("Looking for player1:", updates.player1.name);
+                  const player1 = players.find(p => p.name === updates.player1.name);
+                  if (player1) {
+                    console.log("Found player1:", player1);
+                    participants.push({
+                      match_id: matchId,
+                      player_id: player1.id,
+                      position: 1,
+                      score: updates.player1.score || null
+                    });
+                  } else {
+                    console.log("Player1 not found in players list:", updates.player1.name);
+                  }
+                } else {
+                  // "no-opponent" placeholder - create a special participant entry with null player_id
+                  console.log("Creating placeholder participant for no-opponent player1:", updates.player1.name);
                   participants.push({
                     match_id: matchId,
-                    player_id: player1.id,
+                    player_id: null, // Use null for placeholder participants
                     position: 1,
-                    score: updates.player1.score || null
+                    score: null
                   });
-                } else {
-                  console.log("Player1 not found in players list:", updates.player1.name);
                 }
               } else {
-                console.log("Skipping player1 - no player or opponent placeholder selected");
+                console.log("Skipping player1 - no player selected");
               }
             }
             
             // Handle player2
             if (updates.player2?.name) {
-              if (updates.player2.name !== "no-player" && !updates.player2.name.startsWith("no-opponent")) {
-                console.log("Looking for player2:", updates.player2.name);
-                const player2 = players.find(p => p.name === updates.player2.name);
-                if (player2) {
-                  console.log("Found player2:", player2);
+              if (updates.player2.name !== "no-player") {
+                if (!updates.player2.name.startsWith("no-opponent")) {
+                  // Real player
+                  console.log("Looking for player2:", updates.player2.name);
+                  const player2 = players.find(p => p.name === updates.player2.name);
+                  if (player2) {
+                    console.log("Found player2:", player2);
+                    participants.push({
+                      match_id: matchId,
+                      player_id: player2.id,
+                      position: 2,
+                      score: updates.player2.score || null
+                    });
+                  } else {
+                    console.log("Player2 not found in players list:", updates.player2.name);
+                  }
+                } else {
+                  // "no-opponent" placeholder - create a special participant entry with null player_id
+                  console.log("Creating placeholder participant for no-opponent player2:", updates.player2.name);
                   participants.push({
                     match_id: matchId,
-                    player_id: player2.id,
+                    player_id: null, // Use null for placeholder participants  
                     position: 2,
-                    score: updates.player2.score || null
+                    score: null
                   });
-                } else {
-                  console.log("Player2 not found in players list:", updates.player2.name);
                 }
               } else {
-                console.log("Skipping player2 - no player or opponent placeholder selected");
+                console.log("Skipping player2 - no player selected");
               }
             }
           } else if (updates.type === "foursome" || updates.team1 || updates.team2) {
