@@ -8,6 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 
 import { EditMatchDialog } from "./EditMatchDialog";
 import { ManualMatchSetup } from "./ManualMatchSetup";
+import { TournamentBracketFlow } from "./TournamentBracketFlow";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -1582,193 +1583,159 @@ export function TournamentBracket({
   };
 
   const generateCompleteBracket = async () => {
+    await regenerateBracketFromScratch();
+  };
+
+  const regenerateBracketFromScratch = async () => {
     try {
-      console.log("=== GENERATING COMPLETE BRACKET ===");
+      console.log("=== REGENERATING BRACKET FROM SCRATCH ===");
       
-      // Get all Round 1 matches ordered by creation (bracket position)
-      const { data: round1Matches, error: round1Error } = await supabase
+      // First, clear all relationships and delete non-Round 1 matches via JavaScript
+      const { data: allMatches, error: fetchError } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('tournament_id', tournamentId);
+        
+      if (fetchError) {
+        console.error("Error fetching matches:", fetchError);
+        throw fetchError;
+      }
+      
+      // Clear all relationships first
+      for (const match of allMatches) {
+        if (match.next_match_id || match.previous_match_1_id || match.previous_match_2_id) {
+          const { error: updateError } = await supabase
+            .from('matches')
+            .update({
+              next_match_id: null,
+              previous_match_1_id: null,
+              previous_match_2_id: null
+            })
+            .eq('id', match.id);
+            
+          if (updateError) {
+            console.error("Error clearing relationships:", updateError);
+          }
+        }
+      }
+      
+      // Delete all non-Round 1 matches
+      const nonRound1Matches = allMatches.filter(m => m.round !== 'Round 1');
+      for (const match of nonRound1Matches) {
+        // Delete participants first
+        const { error: deleteParticipantsError } = await supabase
+          .from('match_participants')
+          .delete()
+          .eq('match_id', match.id);
+          
+        if (deleteParticipantsError) {
+          console.error("Error deleting participants:", deleteParticipantsError);
+        }
+        
+        // Delete match
+        const { error: deleteMatchError } = await supabase
+          .from('matches')
+          .delete()
+          .eq('id', match.id);
+          
+        if (deleteMatchError) {
+          console.error("Error deleting match:", deleteMatchError);
+        }
+      }
+      
+      // Get Round 1 matches in the correct order (by creation time)
+      const { data: roundOneMatches, error: roundOneError } = await supabase
         .from('matches')
         .select('*')
         .eq('tournament_id', tournamentId)
         .eq('round', 'Round 1')
         .order('created_at');
         
-      if (round1Error) {
-        console.error("Error getting Round 1 matches:", round1Error);
+      if (roundOneError) {
+        console.error("Error getting Round 1 matches:", roundOneError);
         return;
       }
       
-      console.log("Found", round1Matches?.length || 0, "Round 1 matches");
+      console.log("Found", roundOneMatches?.length || 0, "Round 1 matches");
       
-      if (!round1Matches || round1Matches.length === 0) {
+      if (!roundOneMatches || roundOneMatches.length === 0) {
         console.log("No Round 1 matches found, cannot generate bracket");
         return;
       }
       
       let totalCreated = 0;
+      let currentRoundMatches = roundOneMatches;
       
-      // Create complete tournament structure
+      // Generate each round progressively with correct pairing
       const rounds = [
-        { from: "Round 1", to: "Quarterfinals", sourceMatches: round1Matches },
+        { name: "Quarterfinals", sourceRound: "Round 1" },
+        { name: "Semifinals", sourceRound: "Quarterfinals" },
+        { name: "Final", sourceRound: "Semifinals" }
       ];
       
-      // Process each round
       for (const roundInfo of rounds) {
-        const neededMatches = Math.ceil(roundInfo.sourceMatches.length / 2);
+        const neededMatches = Math.ceil(currentRoundMatches.length / 2);
         
-        // Check existing matches for this round
-        const { data: existingMatches, error: existingError } = await supabase
-          .from('matches')
-          .select('*')
-          .eq('tournament_id', tournamentId)
-          .eq('round', roundInfo.to)
-          .order('created_at');
-          
-        if (existingError) {
-          console.error(`Error getting ${roundInfo.to} matches:`, existingError);
-          continue;
-        }
+        if (neededMatches === 0) break;
         
-        const existingCount = existingMatches?.length || 0;
-        const missingCount = neededMatches - existingCount;
+        console.log(`Creating ${neededMatches} matches for ${roundInfo.name}`);
+        console.log(`Source matches:`, currentRoundMatches.map((m, i) => `${i+1}: ${m.id}`));
         
-        console.log(`${roundInfo.to}: Need ${neededMatches}, have ${existingCount}, missing ${missingCount}`);
-        
-        if (missingCount > 0) {
-          const matchesToCreate = [];
-          for (let i = existingCount; i < neededMatches; i++) {
-            const startIndex = i * 2;
-            const prevMatch1 = roundInfo.sourceMatches[startIndex];
-            const prevMatch2 = roundInfo.sourceMatches[startIndex + 1];
-            
-            matchesToCreate.push({
-              tournament_id: tournamentId,
-              type: "singles",
-              round: roundInfo.to,
-              status: "scheduled",
-              previous_match_1_id: prevMatch1?.id || null,
-              previous_match_2_id: prevMatch2?.id || null
-            });
-          }
+        const matchesToCreate = [];
+        for (let i = 0; i < neededMatches; i++) {
+          const startIndex = i * 2;
+          const prevMatch1 = currentRoundMatches[startIndex];
+          const prevMatch2 = currentRoundMatches[startIndex + 1];
           
-          const { data: createdMatches, error: createError } = await supabase
-            .from('matches')
-            .insert(matchesToCreate)
-            .select();
-            
-          if (createError) {
-            console.error(`Error creating ${roundInfo.to} matches:`, createError);
-            throw createError;
-          }
+          console.log(`${roundInfo.name} match ${i + 1}: Winner of match ${startIndex + 1} vs Winner of match ${startIndex + 2}`);
           
-          console.log(`Successfully created ${createdMatches?.length} ${roundInfo.to} matches`);
-          totalCreated += createdMatches?.length || 0;
-          
-          // Add created matches to the next round's source
-          rounds.push({
-            from: roundInfo.to,
-            to: roundInfo.to === "Quarterfinals" ? "Semifinals" : "Final",
-            sourceMatches: [...(existingMatches || []), ...(createdMatches || [])]
+          matchesToCreate.push({
+            tournament_id: tournamentId,
+            type: "singles",
+            round: roundInfo.name,
+            status: "scheduled",
+            previous_match_1_id: prevMatch1?.id || null,
+            previous_match_2_id: prevMatch2?.id || null
           });
-        } else {
-          // Use existing matches for next round
-          if (existingMatches && existingMatches.length > 0) {
-            rounds.push({
-              from: roundInfo.to,
-              to: roundInfo.to === "Quarterfinals" ? "Semifinals" : "Final",
-              sourceMatches: existingMatches
-            });
-          }
         }
-      }
-      
-      // Now create Semifinals if needed (from Quarterfinals)
-      const { data: quarterfinalsMatches, error: qfError } = await supabase
-        .from('matches')
-        .select('*')
-        .eq('tournament_id', tournamentId)
-        .eq('round', 'Quarterfinals')
-        .order('created_at');
         
-      if (!qfError && quarterfinalsMatches && quarterfinalsMatches.length > 0) {
-        const semifinalsNeeded = Math.ceil(quarterfinalsMatches.length / 2);
-        
-        const { data: existingSemifinals, error: sfError } = await supabase
+        const { data: createdMatches, error: createError } = await supabase
           .from('matches')
-          .select('*')
-          .eq('tournament_id', tournamentId)
-          .eq('round', 'Semifinals')
-          .order('created_at');
+          .insert(matchesToCreate)
+          .select();
           
-        const existingSFCount = existingSemifinals?.length || 0;
-        const missingSFCount = semifinalsNeeded - existingSFCount;
-        
-        console.log(`Semifinals: Need ${semifinalsNeeded}, have ${existingSFCount}, missing ${missingSFCount}`);
-        
-        if (missingSFCount > 0) {
-          const sfMatchesToCreate = [];
-          for (let i = existingSFCount; i < semifinalsNeeded; i++) {
-            const startIndex = i * 2;
-            const prevMatch1 = quarterfinalsMatches[startIndex];
-            const prevMatch2 = quarterfinalsMatches[startIndex + 1];
-            
-            sfMatchesToCreate.push({
-              tournament_id: tournamentId,
-              type: "singles",
-              round: "Semifinals",
-              status: "scheduled",
-              previous_match_1_id: prevMatch1?.id || null,
-              previous_match_2_id: prevMatch2?.id || null
-            });
-          }
-          
-          const { data: createdSF, error: createSFError } = await supabase
-            .from('matches')
-            .insert(sfMatchesToCreate)
-            .select();
-            
-          if (createSFError) {
-            console.error("Error creating Semifinals matches:", createSFError);
-            throw createSFError;
-          }
-          
-          console.log(`Successfully created ${createdSF?.length} Semifinals matches`);
-          totalCreated += createdSF?.length || 0;
+        if (createError) {
+          console.error(`Error creating ${roundInfo.name} matches:`, createError);
+          throw createError;
         }
         
-        // Create Final if needed (from Semifinals)
-        const allSemifinals = [...(existingSemifinals || []), ...(missingSFCount > 0 ? [] : [])];
-        if (semifinalsNeeded >= 2) { // Only create Final if we have at least 2 Semifinals
-          const { data: existingFinal, error: finalError } = await supabase
-            .from('matches')
-            .select('*')
-            .eq('tournament_id', tournamentId)
-            .eq('round', 'Final')
-            .order('created_at');
-            
-          if (!finalError && (!existingFinal || existingFinal.length === 0)) {
-            const finalMatch = {
-              tournament_id: tournamentId,
-              type: "singles",
-              round: "Final",
-              status: "scheduled",
-              previous_match_1_id: null, // Will be set up by bracket relationships
-              previous_match_2_id: null
-            };
-            
-            const { data: createdFinal, error: createFinalError } = await supabase
+        console.log(`Successfully created ${createdMatches?.length} ${roundInfo.name} matches`);
+        totalCreated += createdMatches?.length || 0;
+        
+        // Update next_match_id for previous round matches
+        for (let i = 0; i < currentRoundMatches.length; i++) {
+          const nextMatchIndex = Math.floor(i / 2);
+          const nextMatch = createdMatches?.[nextMatchIndex];
+          
+          if (nextMatch) {
+            const { error: updateError } = await supabase
               .from('matches')
-              .insert([finalMatch])
-              .select();
+              .update({ next_match_id: nextMatch.id })
+              .eq('id', currentRoundMatches[i].id);
               
-            if (createFinalError) {
-              console.error("Error creating Final match:", createFinalError);
+            if (updateError) {
+              console.error("Error updating next_match_id:", updateError);
             } else {
-              console.log("Successfully created Final match");
-              totalCreated += 1;
+              console.log(`Set next_match_id for ${currentRoundMatches[i].id} to ${nextMatch.id}`);
             }
           }
         }
+        
+        // Set current round matches for next iteration
+        currentRoundMatches = createdMatches || [];
+        
+        // Stop if we only have one match left (Final)
+        if (currentRoundMatches.length <= 1) break;
       }
       
       if (totalCreated > 0) {
@@ -1776,21 +1743,21 @@ export function TournamentBracket({
         onMatchUpdate([...matches]);
         
         toast({
-          title: "Complete Bracket Generated",
-          description: `Created ${totalCreated} missing matches for complete tournament structure`,
+          title: "Bracket Regenerated",
+          description: `Successfully regenerated bracket with correct progression. Created ${totalCreated} matches.`,
         });
       } else {
         toast({
-          title: "Bracket Already Complete",
-          description: "All tournament rounds already exist",
+          title: "No Changes Needed",
+          description: "Bracket structure is already correct",
         });
       }
       
     } catch (error) {
-      console.error("Error generating complete bracket:", error);
+      console.error("Error regenerating bracket:", error);
       toast({
         title: "Error",
-        description: "Failed to generate complete bracket",
+        description: "Failed to regenerate bracket",
         variant: "destructive"
       });
     }
@@ -2032,6 +1999,29 @@ export function TournamentBracket({
             </div>
           </div>
         </CardHeader>
+      </Card>
+
+      {/* Visual Bracket Flow */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Trophy className="h-5 w-5" />
+            Bracket Visualization
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <TournamentBracketFlow
+            tournamentId={tournamentId}
+            matches={matches.filter(m => m.tournamentId === tournamentId)}
+            players={players}
+            onMatchSelect={(matchId) => {
+              const match = matches.find(m => m.id === matchId);
+              if (match) {
+                setSelectedMatch(match);
+              }
+            }}
+          />
+        </CardContent>
       </Card>
 
       {/* Bracket Display - Always show bracket structure */}
