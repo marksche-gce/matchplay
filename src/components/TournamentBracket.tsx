@@ -248,13 +248,43 @@ export function TournamentBracket({
     }
 
     console.log("Processing winner advancement for:", completedMatch.winner, "from match:", completedMatch.id);
+    console.log("Completed match player1:", completedMatch.player1);
+    console.log("Completed match player2:", completedMatch.player2);
 
-    // Find winner in completed match
-    const winnerPlayer = completedMatch.winner === completedMatch.player1?.name ? completedMatch.player1 : completedMatch.player2;
+    // Find winner in completed match - handle both real players and "no opponent" scenarios
+    let winnerPlayer;
+    
+    // First check if winner matches player1
+    if (completedMatch.player1?.name === completedMatch.winner) {
+      winnerPlayer = completedMatch.player1;
+    }
+    // Then check if winner matches player2
+    else if (completedMatch.player2?.name === completedMatch.winner) {
+      winnerPlayer = completedMatch.player2;
+    }
+    // If winner is a real player name but not found in participants, 
+    // this happens in "no opponent" scenarios where only the real player was saved
+    else if (completedMatch.winner && !completedMatch.winner.startsWith("no-opponent")) {
+      // Find the real player and use them as winner
+      const realPlayer = players.find(p => p.name === completedMatch.winner);
+      if (realPlayer) {
+        winnerPlayer = {
+          name: realPlayer.name,
+          handicap: realPlayer.handicap,
+          score: undefined
+        };
+        console.log("Winner found in players list for no-opponent scenario:", winnerPlayer);
+      }
+    }
+    
     if (!winnerPlayer) {
-      console.log("Winner player not found in completed match");
+      console.log("Winner player not found in completed match or players list");
+      console.log("Looking for winner:", completedMatch.winner);
+      console.log("Available players:", players.map(p => p.name));
       return currentMatches;
     }
+    
+    console.log("Winner player identified:", winnerPlayer);
 
     // Update both matches array and bracket display
     let updatedMatches = [...currentMatches];
