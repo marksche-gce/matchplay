@@ -11,7 +11,6 @@ import { useBracketValidation } from "@/hooks/useBracketValidation";
 interface Player {
   name: string;
   handicap: number;
-  score?: number;
 }
 
 interface Team {
@@ -72,8 +71,6 @@ export function EditMatchDialog({
   const [formData, setFormData] = useState({
     round: match?.round || "",
     status: match?.status || "scheduled",
-    player1Score: match?.player1?.score?.toString() || "",
-    player2Score: match?.player2?.score?.toString() || "",
     winner: match?.winner || "",
     player1Name: match?.player1?.name || "no-player",
     player2Name: match?.player2?.name || "no-player"
@@ -85,8 +82,6 @@ export function EditMatchDialog({
       setFormData({
         round: match.round || "",
         status: match.status || "scheduled",
-        player1Score: match.player1?.score?.toString() || "",
-        player2Score: match.player2?.score?.toString() || "",
         winner: match.winner || "",
         player1Name: match.player1?.name || "no-player",
         player2Name: match.player2?.name || "no-player"
@@ -196,8 +191,7 @@ export function EditMatchDialog({
           // This is a "no opponent" placeholder
           updates.player1 = {
             name: finalFormData.player1Name,
-            handicap: 0,
-            score: undefined
+            handicap: 0
           };
         } else {
           // This is a real player
@@ -205,8 +199,7 @@ export function EditMatchDialog({
           if (selectedPlayer1) {
             updates.player1 = {
               name: selectedPlayer1.name,
-              handicap: selectedPlayer1.handicap,
-              score: finalFormData.player1Score ? parseInt(finalFormData.player1Score) : undefined
+              handicap: selectedPlayer1.handicap
             };
           }
         }
@@ -220,8 +213,7 @@ export function EditMatchDialog({
           // This is a "no opponent" placeholder
           updates.player2 = {
             name: finalFormData.player2Name,
-            handicap: 0,
-            score: undefined
+            handicap: 0
           };
         } else {
           // This is a real player
@@ -229,8 +221,7 @@ export function EditMatchDialog({
           if (selectedPlayer2) {
             updates.player2 = {
               name: selectedPlayer2.name,
-              handicap: selectedPlayer2.handicap,
-              score: finalFormData.player2Score ? parseInt(finalFormData.player2Score) : undefined
+              handicap: selectedPlayer2.handicap
             };
           }
         }
@@ -436,44 +427,19 @@ export function EditMatchDialog({
                   <Label className="text-base font-semibold">Match Results</Label>
                   
                   {match.type === "singles" && (
-                    <>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-2">
-                          <Label htmlFor="player1Score">{formData.player1Name || "Player 1"} Score</Label>
-                          <Input
-                            id="player1Score"
-                            type="number"
-                            placeholder="Score"
-                            value={formData.player1Score}
-                            onChange={(e) => handleInputChange("player1Score", e.target.value)}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="player2Score">{formData.player2Name || "Player 2"} Score</Label>
-                          <Input
-                            id="player2Score"
-                            type="number"
-                            placeholder="Score"
-                            value={formData.player2Score}
-                            onChange={(e) => handleInputChange("player2Score", e.target.value)}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="winner">Winner</Label>
-                        <Select value={formData.winner} onValueChange={(value) => handleInputChange("winner", value)}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select winner" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-background border z-50">
-                            <SelectItem value="no-winner">(No winner yet)</SelectItem>
-                            {formData.player1Name && <SelectItem value={formData.player1Name}>{formData.player1Name}</SelectItem>}
-                            {formData.player2Name && <SelectItem value={formData.player2Name}>{formData.player2Name}</SelectItem>}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </>
+                    <div className="space-y-2">
+                      <Label htmlFor="winner">Winner</Label>
+                      <Select value={formData.winner} onValueChange={(value) => handleInputChange("winner", value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select winner" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background border z-50">
+                          <SelectItem value="no-winner">(No winner yet)</SelectItem>
+                          {formData.player1Name && <SelectItem value={formData.player1Name}>{formData.player1Name}</SelectItem>}
+                          {formData.player2Name && <SelectItem value={formData.player2Name}>{formData.player2Name}</SelectItem>}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   )}
                 </div>
               )}
