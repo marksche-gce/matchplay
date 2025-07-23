@@ -1023,8 +1023,10 @@ export function TournamentDashboard() {
         console.log("Updating match participants because players changed");
         
         try {
-          // Use a simpler approach: delete all and then insert new ones
-          // This avoids race conditions and complex retry logic
+          // Use a more robust approach: delete all and then insert new ones
+          // But first, let's add a small delay to ensure database consistency
+          console.log("About to delete existing participants for match:", matchId);
+          
           const { error: deleteError } = await supabase
             .from('match_participants')
             .delete()
@@ -1036,6 +1038,9 @@ export function TournamentDashboard() {
           }
 
           console.log("Successfully deleted existing participants");
+
+          // Add a small delay to ensure the delete operation is fully committed
+          await new Promise(resolve => setTimeout(resolve, 100));
 
           // Prepare new participants based on the current match type
           const participants = [];
@@ -1135,16 +1140,30 @@ export function TournamentDashboard() {
           if (participants.length > 0) {
             console.log("Attempting to insert participants:", participants);
             
-            const { error: participantsError } = await supabase
-              .from('match_participants')
-              .insert(participants);
-
-            if (participantsError) {
-              console.error("Error inserting participants:", participantsError);
-              throw new Error(`Failed to insert participants: ${participantsError.message}`);
+            // Insert participants one by one to handle potential conflicts better
+            for (const participant of participants) {
+              try {
+                const { error: insertError } = await supabase
+                  .from('match_participants')
+                  .insert(participant);
+                
+                if (insertError) {
+                  console.error("Error inserting participant:", participant, insertError);
+                  // If it's a duplicate key error, try to handle it gracefully
+                  if (insertError.code === '23505') {
+                    console.log("Participant already exists, skipping:", participant);
+                    continue; // Skip this participant and continue with the next
+                  } else {
+                    throw insertError;
+                  }
+                }
+                console.log("Successfully inserted participant:", participant);
+              } catch (error) {
+                console.error("Failed to insert participant:", participant, error);
+                throw error;
+              }
             }
-            
-            console.log("Successfully inserted participants:", participants);
+            console.log("Successfully inserted all participants");
           } else {
             console.log("No participants to insert - match has no valid players assigned");
           }
