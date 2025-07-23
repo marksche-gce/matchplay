@@ -1048,44 +1048,46 @@ export function TournamentDashboard() {
           if (updates.type === "singles" || (!updates.type && (updates.player1 || updates.player2))) {
             console.log("Processing singles match participants");
             
-            if (updates.player1?.name && 
-                updates.player1.name !== "no-player" && 
-                !updates.player1.name.startsWith("no-opponent")) {
-              console.log("Looking for player1:", updates.player1.name);
-              const player1 = players.find(p => p.name === updates.player1?.name);
-              if (player1) {
-                console.log("Found player1:", player1);
-                participants.push({
-                  match_id: matchId,
-                  player_id: player1.id,
-                  position: 1,
-                  score: updates.player1.score || null
-                });
+            // Handle player1
+            if (updates.player1?.name) {
+              if (updates.player1.name !== "no-player" && !updates.player1.name.startsWith("no-opponent")) {
+                console.log("Looking for player1:", updates.player1.name);
+                const player1 = players.find(p => p.name === updates.player1.name);
+                if (player1) {
+                  console.log("Found player1:", player1);
+                  participants.push({
+                    match_id: matchId,
+                    player_id: player1.id,
+                    position: 1,
+                    score: updates.player1.score || null
+                  });
+                } else {
+                  console.log("Player1 not found in players list:", updates.player1.name);
+                }
               } else {
-                console.log("Player1 not found in players list:", updates.player1.name);
+                console.log("Skipping player1 - no player or opponent placeholder selected");
               }
-            } else {
-              console.log("Skipping player1 - no player or opponent placeholder selected");
             }
             
-            if (updates.player2?.name && 
-                updates.player2.name !== "no-player" && 
-                !updates.player2.name.startsWith("no-opponent")) {
-              console.log("Looking for player2:", updates.player2.name);
-              const player2 = players.find(p => p.name === updates.player2?.name);
-              if (player2) {
-                console.log("Found player2:", player2);
-                participants.push({
-                  match_id: matchId,
-                  player_id: player2.id,
-                  position: 2,
-                  score: updates.player2.score || null
-                });
+            // Handle player2
+            if (updates.player2?.name) {
+              if (updates.player2.name !== "no-player" && !updates.player2.name.startsWith("no-opponent")) {
+                console.log("Looking for player2:", updates.player2.name);
+                const player2 = players.find(p => p.name === updates.player2.name);
+                if (player2) {
+                  console.log("Found player2:", player2);
+                  participants.push({
+                    match_id: matchId,
+                    player_id: player2.id,
+                    position: 2,
+                    score: updates.player2.score || null
+                  });
+                } else {
+                  console.log("Player2 not found in players list:", updates.player2.name);
+                }
               } else {
-                console.log("Player2 not found in players list:", updates.player2.name);
+                console.log("Skipping player2 - no player or opponent placeholder selected");
               }
-            } else {
-              console.log("Skipping player2 - no player or opponent placeholder selected");
             }
           } else if (updates.type === "foursome" || updates.team1 || updates.team2) {
             // Handle foursome participants
