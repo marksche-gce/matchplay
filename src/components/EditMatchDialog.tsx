@@ -371,11 +371,6 @@ export function EditMatchDialog({
                         </SelectTrigger>
                         <SelectContent className="bg-background border z-50">
                           <SelectItem value="no-player">No Player</SelectItem>
-                          {noOpponentOptions.map((option) => (
-                            <SelectItem key={`player1-${option.value}`} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
                           {(allPlayers.length > 0 ? allPlayers : availablePlayers)
                             .filter(player => formData.player2Name !== "no-opponent" ? player.name !== formData.player2Name : true)
                             .sort((a, b) => a.handicap - b.handicap)
@@ -384,6 +379,11 @@ export function EditMatchDialog({
                                 {player.name} (HC: {player.handicap})
                               </SelectItem>
                             ))}
+                          {noOpponentOptions.map((option) => (
+                            <SelectItem key={`player1-${option.value}`} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -396,11 +396,6 @@ export function EditMatchDialog({
                         </SelectTrigger>
                          <SelectContent className="bg-background border z-50">
                            <SelectItem value="no-player">No Player</SelectItem>
-                           {noOpponentOptions.map((option) => (
-                             <SelectItem key={option.value} value={option.value}>
-                               {option.label}
-                             </SelectItem>
-                           ))}
                            {(allPlayers.length > 0 ? allPlayers : availablePlayers)
                              .filter(player => formData.player1Name !== "no-player" ? player.name !== formData.player1Name : true)
                              .sort((a, b) => a.handicap - b.handicap)
@@ -409,6 +404,11 @@ export function EditMatchDialog({
                                  {player.name} (HC: {player.handicap})
                                </SelectItem>
                              ))}
+                           {noOpponentOptions.map((option) => (
+                             <SelectItem key={option.value} value={option.value}>
+                               {option.label}
+                             </SelectItem>
+                           ))}
                          </SelectContent>
                       </Select>
                     </div>
