@@ -701,11 +701,21 @@ export function TournamentBracket({
         console.log(`Setting up relationships: ${currentRound} -> ${nextRound}`);
         console.log(`Current round matches: ${currentMatches.length}, Next round matches: ${nextMatches.length}`);
         
-        // Each pair of current round matches feeds into one next round match
+        // For each next round match, find the correct pair of previous matches
         for (let j = 0; j < nextMatches.length; j++) {
           const nextMatch = nextMatches[j];
-          const prevMatch1 = currentMatches[j * 2];
-          const prevMatch2 = currentMatches[j * 2 + 1];
+          
+          // Skip if relationships already exist
+          if (nextMatch.previous_match_1_id && nextMatch.previous_match_2_id) {
+            console.log(`Match ${nextMatch.id} already has relationships set up`);
+            continue;
+          }
+          
+          // For tournament bracket, each next match gets fed by 2 previous matches
+          // We need to properly pair them based on bracket position
+          const startIndex = j * 2;
+          const prevMatch1 = currentMatches[startIndex];
+          const prevMatch2 = currentMatches[startIndex + 1];
           
           if (prevMatch1 && prevMatch2) {
             console.log(`Linking ${prevMatch1.id} and ${prevMatch2.id} to ${nextMatch.id}`);
@@ -723,6 +733,46 @@ export function TournamentBracket({
               console.error("Error updating match relationships:", updateError);
             } else {
               console.log(`Successfully linked matches to ${nextMatch.id}`);
+            }
+          } else if (prevMatch1) {
+            // If only one previous match, set it as previous_match_1_id
+            console.log(`Linking ${prevMatch1.id} to ${nextMatch.id} (single match)`);
+            
+            const { error: updateError } = await supabase
+              .from('matches')
+              .update({
+                previous_match_1_id: prevMatch1.id
+              })
+              .eq('id', nextMatch.id);
+              
+            if (updateError) {
+              console.error("Error updating single match relationship:", updateError);
+            } else {
+              console.log(`Successfully linked single match to ${nextMatch.id}`);
+            }
+          }
+        }
+        
+        // Additionally, update each current round match with next_match_id
+        for (let j = 0; j < currentMatches.length; j++) {
+          const currentMatch = currentMatches[j];
+          const nextMatchIndex = Math.floor(j / 2);
+          const nextMatch = nextMatches[nextMatchIndex];
+          
+          if (nextMatch && !currentMatch.next_match_id) {
+            console.log(`Setting next_match_id for ${currentMatch.id} to ${nextMatch.id}`);
+            
+            const { error: updateError } = await supabase
+              .from('matches')
+              .update({
+                next_match_id: nextMatch.id
+              })
+              .eq('id', currentMatch.id);
+              
+            if (updateError) {
+              console.error("Error updating next_match_id:", updateError);
+            } else {
+              console.log(`Successfully set next_match_id for ${currentMatch.id}`);
             }
           }
         }
