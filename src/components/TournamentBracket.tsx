@@ -1707,7 +1707,22 @@ export function TournamentBracket({
     try {
       console.log("=== DELETING ALL MATCHES ===");
       
-      // First, get all match IDs for this tournament
+      // Step 1: Clear all match relationships first to avoid foreign key constraints
+      const { error: clearRelationshipsError } = await supabase
+        .from('matches')
+        .update({
+          next_match_id: null,
+          previous_match_1_id: null,
+          previous_match_2_id: null
+        })
+        .eq('tournament_id', tournamentId);
+        
+      if (clearRelationshipsError) {
+        console.error("Error clearing relationships:", clearRelationshipsError);
+        throw clearRelationshipsError;
+      }
+      
+      // Step 2: Get all match IDs for this tournament
       const { data: tournamentMatches, error: fetchError } = await supabase
         .from('matches')
         .select('id')
@@ -1719,8 +1734,9 @@ export function TournamentBracket({
       }
       
       const matchIds = tournamentMatches?.map(m => m.id) || [];
+      console.log(`Found ${matchIds.length} matches to delete`);
       
-      // Delete all match participants first
+      // Step 3: Delete all match participants first
       if (matchIds.length > 0) {
         const { error: deleteParticipantsError } = await supabase
           .from('match_participants')
@@ -1729,10 +1745,13 @@ export function TournamentBracket({
         
         if (deleteParticipantsError) {
           console.error("Error deleting participants:", deleteParticipantsError);
+          // Don't throw, continue with match deletion
+        } else {
+          console.log("Successfully deleted match participants");
         }
       }
       
-      // Delete all matches for this tournament
+      // Step 4: Delete all matches for this tournament
       const { data: deletedMatches, error: deleteMatchesError } = await supabase
         .from('matches')
         .delete()
@@ -1744,7 +1763,9 @@ export function TournamentBracket({
         throw deleteMatchesError;
       }
       
-      // Update local state
+      console.log(`Successfully deleted ${deletedMatches?.length || 0} matches`);
+      
+      // Step 5: Update local state
       const remainingMatches = matches.filter(m => m.tournamentId !== tournamentId);
       onMatchUpdate(remainingMatches);
       setBracketData([]);
@@ -1759,7 +1780,7 @@ export function TournamentBracket({
       console.error("Error deleting matches:", error);
       toast({
         title: "Error",
-        description: "Failed to delete matches from database.",
+        description: `Failed to delete matches from database: ${error.message || 'Unknown error'}`,
         variant: "destructive"
       });
     }
