@@ -378,8 +378,23 @@ export function TournamentDashboard() {
         if (match.type === 'singles') {
           const player1 = participants.find((p: any) => p.position === 1);
           const player2 = participants.find((p: any) => p.position === 2);
+          
           // Fix winner lookup - use player_id from match_participants table
-          const winner = match.winner_id ? participants.find((p: any) => p.player_id === match.winner_id)?.players?.name : undefined;
+          let winner = match.winner_id ? participants.find((p: any) => p.player_id === match.winner_id)?.players?.name : undefined;
+          
+          // If match is completed but has no winner, determine winner automatically
+          if (match.status === 'completed' && !winner) {
+            // For bye matches (only one participant), that participant is the winner
+            if (participants.length === 1) {
+              winner = participants[0].players?.name;
+              console.log("Auto-determined winner for bye match:", winner);
+            }
+            // For matches with two participants but no winner set, we can't determine winner automatically
+            else if (participants.length === 2) {
+              console.log("Completed match with two participants but no winner - data inconsistency");
+              // Leave winner as undefined - this is a data issue that needs manual correction
+            }
+          }
           
           console.log("Singles match winner lookup:", {
             winner_id: match.winner_id,
