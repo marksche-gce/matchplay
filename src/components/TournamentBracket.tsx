@@ -162,7 +162,7 @@ export function TournamentBracket({
     const matchesToUse = databaseMatches.length > 0 ? databaseMatches : generatedMatches;
     console.log("Using matches:", databaseMatches.length > 0 ? "database" : "generated", "count:", matchesToUse.length);
     
-    // Group existing matches by round
+    // Group existing matches by round and sort them consistently
     const roundsMap = new Map<string, Match[]>();
     matchesToUse.forEach(match => {
       const roundName = match.round;
@@ -170,6 +170,14 @@ export function TournamentBracket({
         roundsMap.set(roundName, []);
       }
       roundsMap.get(roundName)!.push(match);
+    });
+
+    // Sort matches within each round for consistent positioning
+    roundsMap.forEach((matches, roundName) => {
+      matches.sort((a, b) => {
+        // Sort by ID for consistent ordering (database UUIDs will maintain creation order)
+        return a.id.localeCompare(b.id);
+      });
     });
 
     // Create bracket structure with proper ordering - always show all rounds with expected matches
@@ -191,7 +199,7 @@ export function TournamentBracket({
       const expectedMatches = Math.pow(2, Math.max(0, totalRounds - (index + 1)));
       const allMatches: Match[] = [];
       
-      // Add existing matches
+      // Add existing matches (already sorted consistently)
       allMatches.push(...existingMatches);
       
       // Fill remaining slots with placeholder matches that show source connections
