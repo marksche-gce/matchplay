@@ -1172,11 +1172,16 @@ export function TournamentBracket({
                             
                             <div className={`p-2 rounded border ${match.winner === match.player2?.name ? 'bg-primary/10 border-primary' : 'bg-muted/50'}`}>
                               <div className="text-sm font-medium">
-                                {match.player2?.name || "TBD"}
+                                {match.player2?.name || (match.player1?.name && !match.player2 ? "No Opponent" : "TBD")}
                               </div>
                               {match.player2?.handicap !== undefined && (
                                 <div className="text-xs text-muted-foreground">
                                   HC: {match.player2.handicap}
+                                </div>
+                              )}
+                              {match.player1?.name && !match.player2 && (
+                                <div className="text-xs text-muted-foreground italic">
+                                  (Free Pass)
                                 </div>
                               )}
                             </div>
