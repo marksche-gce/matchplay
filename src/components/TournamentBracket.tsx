@@ -1814,23 +1814,14 @@ export function TournamentBracket({
         })
         .eq('id', tournamentId);
       
-      console.log("Database cleared, now creating fresh bracket structure...");
+      console.log("Database cleared completely - no new bracket structure created");
       
-      // Calculate tournament structure
-      const totalRounds = Math.ceil(Math.log2(players.length));
-      console.log(`Creating ${totalRounds} rounds for ${players.length} players`);
-      
-      // Create fresh bracket structure in database
-      await generateCompleteBracketStructure(totalRounds, Math.ceil(players.length / 2));
-      
-      // Generate fresh local bracket display
-      generateBracket();
-      
-      // Reset local state
+      // Reset local state to completely empty
+      setBracketData([]);
       setSelectedMatch(null);
       setShowManualSetup(true);
       
-      // Trigger refresh to reload from database
+      // Trigger refresh to reload from database (should be empty now)
       onMatchUpdate([]);
       
       console.log("=== RESET COMPLETE - FRESH BRACKET SAVED ===");
