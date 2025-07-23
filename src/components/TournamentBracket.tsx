@@ -1306,102 +1306,149 @@ export function TournamentBracket({
         console.log("Updating player assignments");
         
         try {
-          const participantsToInsert = [];
-          const positionsToUpdate = [];
-          
+          // Get existing participants first to understand current state
+          console.log("=== FETCHING EXISTING PARTICIPANTS ===");
+          const { data: existingParticipants, error: fetchError } = await supabase
+            .from('match_participants')
+            .select('*')
+            .eq('match_id', matchId)
+            .order('position');
+
+          if (fetchError) {
+            console.error("Error fetching existing participants:", fetchError);
+            throw fetchError;
+          }
+
+          console.log("Existing participants:", existingParticipants);
+
+          // Update participants one by one using direct UPDATE queries
           if (updates.player1) {
-            positionsToUpdate.push(1);
+            console.log("=== UPDATING POSITION 1 ===");
+            let participant1Data;
+            
             if (updates.player1.name?.startsWith("no-opponent")) {
               // Handle "no opponent" placeholder
               console.log("Setting position 1 to placeholder:", updates.player1.name);
-              participantsToInsert.push({
-                match_id: matchId,
+              participant1Data = {
                 player_id: null,
-                position: 1,
                 score: null,
                 is_placeholder: true,
                 placeholder_name: updates.player1.name
-              });
+              };
             } else if (updates.player1.name && !updates.player1.name.startsWith("no-player")) {
               // Handle real player
               const player1Data = players.find(p => p.name === updates.player1?.name);
               if (player1Data) {
                 console.log("Setting position 1 to player:", player1Data.name, "ID:", player1Data.id);
-                participantsToInsert.push({
-                  match_id: matchId,
+                participant1Data = {
                   player_id: player1Data.id,
-                  position: 1,
                   score: updates.player1.score || null,
                   is_placeholder: false,
                   placeholder_name: null
-                });
+                };
               } else {
                 console.log("Could not find player1 data for:", updates.player1.name);
+              }
+            }
+
+            if (participant1Data) {
+              // Check if position 1 participant exists
+              const position1Exists = existingParticipants?.some(p => p.position === 1);
+              
+              if (position1Exists) {
+                console.log("Updating existing position 1 participant");
+                const { error: updateError } = await supabase
+                  .from('match_participants')
+                  .update(participant1Data)
+                  .eq('match_id', matchId)
+                  .eq('position', 1);
+                  
+                if (updateError) {
+                  console.error("Error updating position 1 participant:", updateError);
+                  throw updateError;
+                }
+              } else {
+                console.log("Inserting new position 1 participant");
+                const { error: insertError } = await supabase
+                  .from('match_participants')
+                  .insert({
+                    match_id: matchId,
+                    position: 1,
+                    ...participant1Data
+                  });
+                  
+                if (insertError) {
+                  console.error("Error inserting position 1 participant:", insertError);
+                  throw insertError;
+                }
               }
             }
           }
           
           if (updates.player2) {
-            positionsToUpdate.push(2);
+            console.log("=== UPDATING POSITION 2 ===");
+            let participant2Data;
+            
             if (updates.player2.name?.startsWith("no-opponent")) {
               // Handle "no opponent" placeholder
               console.log("Setting position 2 to placeholder:", updates.player2.name);
-              participantsToInsert.push({
-                match_id: matchId,
+              participant2Data = {
                 player_id: null,
-                position: 2,
                 score: null,
                 is_placeholder: true,
                 placeholder_name: updates.player2.name
-              });
+              };
             } else if (updates.player2.name && !updates.player2.name.startsWith("no-player")) {
               // Handle real player
               const player2Data = players.find(p => p.name === updates.player2?.name);
               if (player2Data) {
                 console.log("Setting position 2 to player:", player2Data.name, "ID:", player2Data.id);
-                participantsToInsert.push({
-                  match_id: matchId,
+                participant2Data = {
                   player_id: player2Data.id,
-                  position: 2,
                   score: updates.player2.score || null,
                   is_placeholder: false,
                   placeholder_name: null
-                });
+                };
               } else {
                 console.log("Could not find player2 data for:", updates.player2.name);
               }
             }
-          }
 
-          // Delete existing participants for the positions we're updating
-          if (positionsToUpdate.length > 0) {
-            console.log("Deleting existing participants for positions:", positionsToUpdate);
-            const { error: deleteError } = await supabase
-              .from('match_participants')
-              .delete()
-              .eq('match_id', matchId)
-              .in('position', positionsToUpdate);
-
-            if (deleteError) {
-              console.error("Error deleting existing participants:", deleteError);
-              throw deleteError;
+            if (participant2Data) {
+              // Check if position 2 participant exists
+              const position2Exists = existingParticipants?.some(p => p.position === 2);
+              
+              if (position2Exists) {
+                console.log("Updating existing position 2 participant");
+                const { error: updateError } = await supabase
+                  .from('match_participants')
+                  .update(participant2Data)
+                  .eq('match_id', matchId)
+                  .eq('position', 2);
+                  
+                if (updateError) {
+                  console.error("Error updating position 2 participant:", updateError);
+                  throw updateError;
+                }
+              } else {
+                console.log("Inserting new position 2 participant");
+                const { error: insertError } = await supabase
+                  .from('match_participants')
+                  .insert({
+                    match_id: matchId,
+                    position: 2,
+                    ...participant2Data
+                  });
+                  
+                if (insertError) {
+                  console.error("Error inserting position 2 participant:", insertError);
+                  throw insertError;
+                }
+              }
             }
           }
 
-          // Insert new participants
-          if (participantsToInsert.length > 0) {
-            console.log("Inserting", participantsToInsert.length, "participants:", participantsToInsert);
-            const { error: participantError } = await supabase
-              .from('match_participants')
-              .insert(participantsToInsert);
-
-            if (participantError) {
-              console.error("Participant insert error:", participantError);
-              console.error("Failed data:", participantsToInsert);
-              throw participantError;
-            }
-            console.log("Successfully updated all participants");
-          }
+          console.log("=== PARTICIPANT UPDATES COMPLETED SUCCESSFULLY ===");
         } catch (participantError) {
           console.error("Error in participant update process:", participantError);
           throw participantError;
