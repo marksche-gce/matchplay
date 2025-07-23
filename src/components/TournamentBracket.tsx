@@ -1701,18 +1701,68 @@ export function TournamentBracket({
     }
   };
 
-  const deleteAllMatches = () => {
-    const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
-    const remainingMatches = matches.filter(m => m.tournamentId !== tournamentId);
+  const deleteAllMatches = async () => {
+    if (!tournamentId) return;
     
-    onMatchUpdate(remainingMatches);
-    setBracketData([]);
-    
-    toast({
-      title: "All Matches Deleted",
-      description: `${tournamentMatches.length} matches have been deleted from the tournament.`,
-      variant: "destructive"
-    });
+    try {
+      console.log("=== DELETING ALL MATCHES ===");
+      
+      // First, get all match IDs for this tournament
+      const { data: tournamentMatches, error: fetchError } = await supabase
+        .from('matches')
+        .select('id')
+        .eq('tournament_id', tournamentId);
+        
+      if (fetchError) {
+        console.error("Error fetching match IDs:", fetchError);
+        throw fetchError;
+      }
+      
+      const matchIds = tournamentMatches?.map(m => m.id) || [];
+      
+      // Delete all match participants first
+      if (matchIds.length > 0) {
+        const { error: deleteParticipantsError } = await supabase
+          .from('match_participants')
+          .delete()
+          .in('match_id', matchIds);
+        
+        if (deleteParticipantsError) {
+          console.error("Error deleting participants:", deleteParticipantsError);
+        }
+      }
+      
+      // Delete all matches for this tournament
+      const { data: deletedMatches, error: deleteMatchesError } = await supabase
+        .from('matches')
+        .delete()
+        .eq('tournament_id', tournamentId)
+        .select();
+        
+      if (deleteMatchesError) {
+        console.error("Error deleting matches:", deleteMatchesError);
+        throw deleteMatchesError;
+      }
+      
+      // Update local state
+      const remainingMatches = matches.filter(m => m.tournamentId !== tournamentId);
+      onMatchUpdate(remainingMatches);
+      setBracketData([]);
+      
+      toast({
+        title: "All Matches Deleted",
+        description: `Successfully deleted ${deletedMatches?.length || 0} matches from the database.`,
+        variant: "destructive"
+      });
+      
+    } catch (error) {
+      console.error("Error deleting matches:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete matches from database.",
+        variant: "destructive"
+      });
+    }
   };
 
 
