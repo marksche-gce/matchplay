@@ -486,9 +486,12 @@ export function TournamentBracket({
 
   const progressWinnerToDatabase = async (completedMatch: Match, winnerPlayer: { id: string; name: string; handicap: number }) => {
     try {
-      console.log("progressWinnerToDatabase: Looking for next match for completed match:", completedMatch.id);
+      console.log("=== PROGRESS WINNER TO DATABASE ===");
+      console.log("Completed match:", completedMatch.id, "Round:", completedMatch.round);
+      console.log("Winner player:", winnerPlayer.name, "ID:", winnerPlayer.id);
       
       // First try to find next match using bracket relationships
+      console.log("Looking for next match using database relationships...");
       const { data: nextMatches, error: nextMatchError } = await supabase
         .from('matches')
         .select('*')
@@ -501,69 +504,62 @@ export function TournamentBracket({
 
       console.log("Found next matches from database:", nextMatches?.length || 0);
       
-      // If no matches found in database with relationships, try to find from bracket data
+      // If no matches found in database with relationships, try alternative approach
       let nextMatch = null;
+      let position = 1;
+      
       if (nextMatches && nextMatches.length > 0) {
         nextMatch = nextMatches[0];
-        console.log("Using next match from database:", nextMatch.id);
+        position = nextMatch.previous_match_1_id === completedMatch.id ? 1 : 2;
+        console.log("Using next match from database:", nextMatch.id, "Position:", position);
       } else {
-        // Find next match from bracket data as fallback
-        console.log("No database relationships found, searching bracket data...");
-        for (const round of bracketData) {
-          for (const match of round.matches) {
-            if (match.previousMatch1Id === completedMatch.id || match.previousMatch2Id === completedMatch.id) {
-              // Check if this is a real database match (has UUID)
-              if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(match.id)) {
-                // Fetch the actual match from database
-                const { data: dbMatch, error: fetchError } = await supabase
-                  .from('matches')
-                  .select('*')
-                  .eq('id', match.id)
-                  .single();
-                
-                if (!fetchError && dbMatch) {
-                  nextMatch = dbMatch;
-                  console.log("Found next match from bracket data:", nextMatch.id);
-                  break;
-                }
-              }
-            }
+        // Try to find next match by round logic - look for matches in the next round
+        console.log("No database relationships found, trying round-based logic...");
+        
+        // Get the current round number and find the next round
+        const roundMapping = {
+          "Round 1": "Quarterfinals",
+          "Quarterfinals": "Semifinals", 
+          "Semifinals": "Final"
+        };
+        
+        const nextRound = roundMapping[completedMatch.round];
+        console.log("Looking for next round:", nextRound);
+        
+        if (nextRound) {
+          const { data: nextRoundMatches, error: nextRoundError } = await supabase
+            .from('matches')
+            .select('*')
+            .eq('tournament_id', tournamentId)
+            .eq('round', nextRound);
+            
+          if (!nextRoundError && nextRoundMatches && nextRoundMatches.length > 0) {
+            // For now, use the first available match in the next round
+            // In a real implementation, you'd want more sophisticated logic here
+            nextMatch = nextRoundMatches[0];
+            
+            // Check if position 1 is already taken
+            const { data: existingP1 } = await supabase
+              .from('match_participants')
+              .select('*')
+              .eq('match_id', nextMatch.id)
+              .eq('position', 1)
+              .single();
+              
+            position = existingP1 ? 2 : 1;
+            console.log("Using next round match:", nextMatch.id, "Position:", position);
           }
-          if (nextMatch) break;
         }
       }
 
       if (!nextMatch) {
-        console.log("No next match found for winner advancement");
+        console.log("No next match found for winner advancement - might be final match");
         return;
       }
 
-      // Determine which position the winner should be placed in
-      let position = 1;
+      console.log("Advancing winner to match:", nextMatch.id, "at position:", position);
       
-      // Check bracket data to determine correct position
-      const bracketMatch = bracketData
-        .flatMap(round => round.matches)
-        .find(m => m.id === nextMatch.id);
-        
-      if (bracketMatch) {
-        if (bracketMatch.previousMatch1Id === completedMatch.id) {
-          position = 1;
-        } else if (bracketMatch.previousMatch2Id === completedMatch.id) {
-          position = 2;
-        }
-      } else {
-        // Fallback to database relationships
-        if (nextMatch.previous_match_1_id === completedMatch.id) {
-          position = 1;
-        } else if (nextMatch.previous_match_2_id === completedMatch.id) {
-          position = 2;
-        }
-      }
-      
-      console.log("Advancing winner to position:", position, "in match:", nextMatch.id);
-      
-      // Check if participant already exists
+      // Check if participant already exists at this position
       const { data: existingParticipant, error: checkError } = await supabase
         .from('match_participants')
         .select('*')
@@ -582,7 +578,9 @@ export function TournamentBracket({
           .from('match_participants')
           .update({
             player_id: winnerPlayer.id,
-            score: null // Reset score for new match
+            score: null, // Reset score for new match
+            is_placeholder: false,
+            placeholder_name: null
           })
           .eq('id', existingParticipant.id);
 
@@ -597,13 +595,16 @@ export function TournamentBracket({
             player_id: winnerPlayer.id,
             position: position,
             team_number: null,
-            score: null
+            score: null,
+            is_placeholder: false,
+            placeholder_name: null
           });
 
         if (insertError) throw insertError;
       }
 
       console.log(`Winner ${winnerPlayer.name} successfully advanced to next match in database`);
+      console.log("=== END PROGRESS WINNER TO DATABASE ===");
     } catch (error) {
       console.error('Error progressing winner to database:', error);
       throw error;
@@ -619,13 +620,32 @@ export function TournamentBracket({
     });
 
     try {
+      const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
+      const completedMatches = tournamentMatches.filter(m => m.status === "completed" && m.winner);
+      
+      console.log("Total tournament matches:", tournamentMatches.length);
+      console.log("Completed matches with winners:", completedMatches.length);
+      console.log("Completed matches:", completedMatches.map(m => ({
+        id: m.id,
+        round: m.round,
+        winner: m.winner,
+        player1: m.player1?.name,
+        player2: m.player2?.name
+      })));
+
+      // First set up bracket relationships if they're missing
+      console.log("Setting up bracket relationships...");
+      await setupBracketRelationships();
+
       // Regenerate bracket to ensure latest data
       generateBracket();
       
       // Process all completed matches to advance winners
+      console.log("Calling advanceAllWinners...");
       advanceAllWinners();
       
       // Process bye matches (auto-advance players with no opponents)
+      console.log("Calling processAutoAdvanceByes...");
       await processAutoAdvanceByes();
       
       toast({
@@ -637,12 +657,81 @@ export function TournamentBracket({
       console.error('Error updating matches:', error);
       toast({
         title: "Error",
-        description: "Failed to update matches. Please try again.",
+        description: `Failed to update matches: ${error.message}`,
         variant: "destructive"
       });
     }
     
     console.log("=== UPDATE MATCHES COMPLETE ===");
+  };
+
+  const setupBracketRelationships = async () => {
+    console.log("=== SETTING UP BRACKET RELATIONSHIPS ===");
+    try {
+      // Get all matches for this tournament
+      const { data: allMatches, error } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('tournament_id', tournamentId)
+        .order('round');
+
+      if (error) throw error;
+
+      console.log("Found tournament matches:", allMatches.length);
+
+      // Group matches by round
+      const matchesByRound = allMatches.reduce((acc, match) => {
+        if (!acc[match.round]) acc[match.round] = [];
+        acc[match.round].push(match);
+        return acc;
+      }, {});
+
+      console.log("Matches by round:", Object.keys(matchesByRound));
+
+      // Set up relationships between rounds
+      const roundOrder = ["Round 1", "Quarterfinals", "Semifinals", "Final"];
+      
+      for (let i = 0; i < roundOrder.length - 1; i++) {
+        const currentRound = roundOrder[i];
+        const nextRound = roundOrder[i + 1];
+        
+        const currentMatches = matchesByRound[currentRound] || [];
+        const nextMatches = matchesByRound[nextRound] || [];
+        
+        console.log(`Setting up relationships: ${currentRound} -> ${nextRound}`);
+        console.log(`Current round matches: ${currentMatches.length}, Next round matches: ${nextMatches.length}`);
+        
+        // Each pair of current round matches feeds into one next round match
+        for (let j = 0; j < nextMatches.length; j++) {
+          const nextMatch = nextMatches[j];
+          const prevMatch1 = currentMatches[j * 2];
+          const prevMatch2 = currentMatches[j * 2 + 1];
+          
+          if (prevMatch1 && prevMatch2) {
+            console.log(`Linking ${prevMatch1.id} and ${prevMatch2.id} to ${nextMatch.id}`);
+            
+            // Update the next match with previous match references
+            const { error: updateError } = await supabase
+              .from('matches')
+              .update({
+                previous_match_1_id: prevMatch1.id,
+                previous_match_2_id: prevMatch2.id
+              })
+              .eq('id', nextMatch.id);
+              
+            if (updateError) {
+              console.error("Error updating match relationships:", updateError);
+            } else {
+              console.log(`Successfully linked matches to ${nextMatch.id}`);
+            }
+          }
+        }
+      }
+      
+      console.log("=== BRACKET RELATIONSHIPS SETUP COMPLETE ===");
+    } catch (error) {
+      console.error('Error setting up bracket relationships:', error);
+    }
   };
 
   const handleMatchUpdate = async (matchId: string, updates: Partial<Match>) => {
