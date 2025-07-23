@@ -402,10 +402,12 @@ export function TournamentBracket({
 
   const processAutoAdvanceByes = async () => {
     const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
+    
+    // Find bye matches: either no player2 OR player2 is a "no-opponent" placeholder
     const byeMatches = tournamentMatches.filter(m => 
       m.status === "scheduled" && 
       m.player1 && 
-      !m.player2 && // Only one player in the match
+      (!m.player2 || m.player2.name?.startsWith("no-opponent")) && // No player2 OR "no-opponent" placeholder
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(m.id) // Only real database matches
     );
 
