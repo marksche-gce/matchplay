@@ -114,16 +114,40 @@ export function EditMatchDialog({
     console.log("Match being updated:", match);
     console.log("Available players passed to dialog:", allPlayers.length > 0 ? allPlayers : availablePlayers);
     
+    // Apply auto-winner logic before creating updates
+    const finalFormData = { ...formData };
+    const player1IsNoPlayer = finalFormData.player1Name === "no-player" || finalFormData.player1Name?.startsWith("no-opponent");
+    const player2IsNoPlayer = finalFormData.player2Name === "no-player" || finalFormData.player2Name?.startsWith("no-opponent");
+    
+    console.log("=== SUBMIT AUTO-WINNER CHECK ===");
+    console.log("Player 1:", finalFormData.player1Name, "is no player:", player1IsNoPlayer);
+    console.log("Player 2:", finalFormData.player2Name, "is no player:", player2IsNoPlayer);
+    
+    if (player1IsNoPlayer && !player2IsNoPlayer && finalFormData.player2Name) {
+      // Player 1 has no opponent, Player 2 wins automatically
+      console.log("SUBMIT: Player 2 wins automatically -", finalFormData.player2Name);
+      finalFormData.status = "completed";
+      finalFormData.winner = finalFormData.player2Name;
+    } else if (player2IsNoPlayer && !player1IsNoPlayer && finalFormData.player1Name) {
+      // Player 2 has no opponent, Player 1 wins automatically
+      console.log("SUBMIT: Player 1 wins automatically -", finalFormData.player1Name);
+      finalFormData.status = "completed";
+      finalFormData.winner = finalFormData.player1Name;
+    }
+    
+    console.log("Final form data before creating updates:", finalFormData);
+    console.log("=== END SUBMIT AUTO-WINNER ===");
+    
     const updates: Partial<Match> = {
-      round: formData.round,
-      status: formData.status as Match["status"]
+      round: finalFormData.round,
+      status: finalFormData.status as Match["status"]
     };
 
     // Handle winner selection properly
-    if (formData.status === "completed") {
-      if (formData.winner && formData.winner !== "no-winner") {
-        updates.winner = formData.winner;
-        console.log("Setting winner to:", formData.winner);
+    if (finalFormData.status === "completed") {
+      if (finalFormData.winner && finalFormData.winner !== "no-winner") {
+        updates.winner = finalFormData.winner;
+        console.log("Setting winner to:", finalFormData.winner);
       } else {
         updates.winner = undefined;
         console.log("No winner selected or explicitly set to no-winner");
@@ -140,30 +164,30 @@ export function EditMatchDialog({
       // Use allPlayers if available, otherwise fallback to availablePlayers
       const playersToSearch = allPlayers.length > 0 ? allPlayers : availablePlayers;
       
-      const selectedPlayer1 = playersToSearch.find(p => p.name === formData.player1Name);
-      const selectedPlayer2 = playersToSearch.find(p => p.name === formData.player2Name);
+      const selectedPlayer1 = playersToSearch.find(p => p.name === finalFormData.player1Name);
+      const selectedPlayer2 = playersToSearch.find(p => p.name === finalFormData.player2Name);
       
       // Handle "no-opponent" assignments properly for player1
       updates.player1 = selectedPlayer1 ? {
         name: selectedPlayer1.name,
         handicap: selectedPlayer1.handicap,
-        score: formData.player1Score ? parseInt(formData.player1Score) : undefined
-      } : formData.player1Name && formData.player1Name.startsWith("no-opponent") ? {
-        name: formData.player1Name,
+        score: finalFormData.player1Score ? parseInt(finalFormData.player1Score) : undefined
+      } : finalFormData.player1Name && finalFormData.player1Name.startsWith("no-opponent") ? {
+        name: finalFormData.player1Name,
         handicap: 0,
         score: undefined
-      } : (formData.player1Name && formData.player1Name !== "no-player" ? match.player1 : undefined);
+      } : (finalFormData.player1Name && finalFormData.player1Name !== "no-player" ? match.player1 : undefined);
       
       // Handle "no-opponent" assignments properly
       updates.player2 = selectedPlayer2 ? {
         name: selectedPlayer2.name,
         handicap: selectedPlayer2.handicap,
-        score: formData.player2Score ? parseInt(formData.player2Score) : undefined
-      } : formData.player2Name && formData.player2Name.startsWith("no-opponent") ? {
-        name: formData.player2Name,
+        score: finalFormData.player2Score ? parseInt(finalFormData.player2Score) : undefined
+      } : finalFormData.player2Name && finalFormData.player2Name.startsWith("no-opponent") ? {
+        name: finalFormData.player2Name,
         handicap: 0,
         score: undefined
-      } : (formData.player2Name && formData.player2Name !== "no-player" ? match.player2 : undefined);
+      } : (finalFormData.player2Name && finalFormData.player2Name !== "no-player" ? match.player2 : undefined);
       
       // Update the validation match
       updatedMatch.player1 = updates.player1;
