@@ -1765,7 +1765,7 @@ export function TournamentBracket({
     }
   };
 
-  // Complete reset function that clears ALL data
+  // Complete reset function that clears ALL data and saves clean state to database
   const resetAllSetup = async () => {
     try {
       console.log("=== RESETTING ALL SETUP ===");
@@ -1805,17 +1805,28 @@ export function TournamentBracket({
         throw deleteMatchesError;
       }
       
+      // Update tournament status to ensure clean state
+      await supabase
+        .from('tournaments')
+        .update({ 
+          status: 'upcoming',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', tournamentId);
+      
       // Reset local state
       setBracketData([]);
       setSelectedMatch(null);
       setShowManualSetup(true);
       
-      // Trigger refresh
+      // Trigger refresh to reload clean state
       onMatchUpdate([]);
+      
+      console.log("=== RESET COMPLETE - DATABASE CLEANED ===");
       
       toast({
         title: "Success",
-        description: "All tournament data has been reset successfully!"
+        description: "All tournament data has been reset and saved to database!"
       });
       
     } catch (error) {
