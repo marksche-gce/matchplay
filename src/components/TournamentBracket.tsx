@@ -452,72 +452,77 @@ export function TournamentBracket({
   const processAutoAdvanceByes = async () => {
     const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
     
-    // Find bye matches: either no player2 OR player2 is a "no-opponent" placeholder
-    const byeMatches = tournamentMatches.filter(m => 
-      m.status === "scheduled" && 
-      m.player1 && 
-      (!m.player2 || m.player2.name?.startsWith("no-opponent")) && // No player2 OR "no-opponent" placeholder
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(m.id) // Only real database matches
-    );
+    // Find bye matches: completed matches with only one real participant that should auto-advance
+    const byeMatches = tournamentMatches.filter(m => {
+      if (m.status !== "completed" || !m.player1 || !m.player2) return false;
+      
+      // Check if one participant is a placeholder (no opponent)
+      const player1IsPlaceholder = m.player1.name?.startsWith("no-opponent");
+      const player2IsPlaceholder = m.player2.name?.startsWith("no-opponent");
+      
+      // This is a bye match if one player is real and the other is a placeholder
+      return (player1IsPlaceholder && !player2IsPlaceholder) || 
+             (!player1IsPlaceholder && player2IsPlaceholder);
+    });
 
     if (byeMatches.length === 0) return;
 
-    console.log(`Processing ${byeMatches.length} bye matches`);
+    console.log(`Processing ${byeMatches.length} bye matches for auto-advancement`);
 
     let updatedMatches = [...matches];
     let hasChanges = false;
 
     for (const byeMatch of byeMatches) {
-      console.log(`Auto-advancing ${byeMatch.player1?.name} from bye match ${byeMatch.id}`);
+      // Determine the winner (the real player, not the placeholder)
+      const player1IsPlaceholder = byeMatch.player1?.name?.startsWith("no-opponent");
+      const player2IsPlaceholder = byeMatch.player2?.name?.startsWith("no-opponent");
+      
+      let realWinner;
+      if (player1IsPlaceholder && !player2IsPlaceholder) {
+        realWinner = byeMatch.player2?.name;
+      } else if (!player1IsPlaceholder && player2IsPlaceholder) {
+        realWinner = byeMatch.player1?.name;
+      }
+      
+      if (!realWinner) continue;
+      
+      console.log(`Auto-advancing ${realWinner} from bye match ${byeMatch.id}`);
       
       try {
-        // Complete the bye match with the single player as winner
-        const completedByeMatch = {
-          ...byeMatch,
-          status: "completed" as const,
-          winner: byeMatch.player1?.name
-        };
+        // Update the winner in the database if not already set
+        if (!byeMatch.winner || byeMatch.winner !== realWinner) {
+          const winnerPlayer = players.find(p => p.name === realWinner);
+          if (winnerPlayer) {
+            const { error: updateError } = await supabase
+              .from('matches')
+              .update({
+                winner_id: winnerPlayer.id
+              })
+              .eq('id', byeMatch.id);
 
-        // Update match in database
-        const winnerPlayer = players.find(p => p.name === byeMatch.player1?.name);
-        if (winnerPlayer) {
-          const { error: updateError } = await supabase
-            .from('matches')
-            .update({
-              status: 'completed',
-              winner_id: winnerPlayer.id
-            })
-            .eq('id', byeMatch.id);
-
-          if (updateError) throw updateError;
-
-          // Progress winner to next match in database
-          await progressWinnerToDatabase(completedByeMatch, winnerPlayer);
+            if (updateError) {
+              console.error("Error updating bye match winner:", updateError);
+              continue;
+            }
+            
+            console.log(`Updated bye match ${byeMatch.id} with winner ${realWinner}`);
+            
+            // Update local state
+            const updatedByeMatch = { ...byeMatch, winner: realWinner };
+            updatedMatches = updatedMatches.map(m => 
+              m.id === byeMatch.id ? updatedByeMatch : m
+            );
+            hasChanges = true;
+          }
         }
-
-        // Update the match in the local array
-        const matchIndex = updatedMatches.findIndex(m => m.id === byeMatch.id);
-        if (matchIndex !== -1) {
-          updatedMatches[matchIndex] = completedByeMatch;
-          hasChanges = true;
-
-          // Progress the winner immediately in UI
-          updatedMatches = progressWinnerImmediately(updatedMatches, completedByeMatch);
-        }
-
       } catch (error) {
         console.error(`Error processing bye match ${byeMatch.id}:`, error);
-        // Continue with other bye matches even if one fails
       }
     }
 
     if (hasChanges) {
+      console.log("Auto-bye processing completed, updating matches");
       onMatchUpdate(updatedMatches);
-      
-      toast({
-        title: "Bye Matches Auto-Advanced",
-        description: `${byeMatches.length} players with free passes have been advanced to the next round.`,
-      });
     }
   };
 

@@ -392,13 +392,14 @@ export function TournamentDashboard() {
           
           // If match is completed but has no winner, determine winner automatically
           if (match.status === 'completed' && !winner) {
-            // For bye matches (only one participant), that participant is the winner
-            if (participants.length === 1) {
-              winner = participants[0].players?.name;
+            // For bye matches (only one real participant), that participant is the winner
+            const realParticipants = participants.filter((p: any) => !p.is_placeholder);
+            if (realParticipants.length === 1) {
+              winner = realParticipants[0].players?.name;
               console.log("Auto-determined winner for bye match:", winner);
             }
             // For matches with two participants but no winner set, we can't determine winner automatically
-            else if (participants.length === 2) {
+            else if (realParticipants.length === 2) {
               console.log("Completed match with two participants but no winner - data inconsistency");
               // Leave winner as undefined - this is a data issue that needs manual correction
             }
