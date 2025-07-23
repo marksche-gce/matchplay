@@ -851,30 +851,56 @@ export function TournamentBracket({
         const newMatchId = createdMatch.id;
         console.log("Created new database match with ID:", newMatchId);
 
-        // Now insert match participants
+        // Now insert match participants including placeholders
         const participants = [];
         if (updates.player1) {
-          if (updates.player1.name && !updates.player1.name.startsWith("no-opponent") && !updates.player1.name.startsWith("no-player")) {
+          if (updates.player1.name?.startsWith("no-opponent")) {
+            // Handle "no opponent" placeholder
+            participants.push({
+              match_id: newMatchId,
+              player_id: null,
+              position: 1,
+              score: null,
+              is_placeholder: true,
+              placeholder_name: updates.player1.name
+            });
+          } else if (updates.player1.name && !updates.player1.name.startsWith("no-player")) {
+            // Handle real player
             const player1Data = players.find(p => p.name === updates.player1.name);
             if (player1Data) {
               participants.push({
                 match_id: newMatchId,
                 player_id: player1Data.id,
                 position: 1,
-                score: updates.player1.score
+                score: updates.player1.score,
+                is_placeholder: false,
+                placeholder_name: null
               });
             }
           }
         }
         if (updates.player2) {
-          if (updates.player2.name && !updates.player2.name.startsWith("no-opponent") && !updates.player2.name.startsWith("no-player")) {
+          if (updates.player2.name?.startsWith("no-opponent")) {
+            // Handle "no opponent" placeholder
+            participants.push({
+              match_id: newMatchId,
+              player_id: null,
+              position: 2,
+              score: null,
+              is_placeholder: true,
+              placeholder_name: updates.player2.name
+            });
+          } else if (updates.player2.name && !updates.player2.name.startsWith("no-player")) {
+            // Handle real player
             const player2Data = players.find(p => p.name === updates.player2.name);
             if (player2Data) {
               participants.push({
                 match_id: newMatchId,
                 player_id: player2Data.id,
                 position: 2,
-                score: updates.player2.score
+                score: updates.player2.score,
+                is_placeholder: false,
+                placeholder_name: null
               });
             }
           }
@@ -1013,8 +1039,19 @@ export function TournamentBracket({
         const participantsToUpsert = [];
         
         if (updates.player1) {
-          // Handle "no opponent" cases - don't try to find player data for these
-          if (updates.player1.name && !updates.player1.name.startsWith("no-opponent") && !updates.player1.name.startsWith("no-player")) {
+          if (updates.player1.name?.startsWith("no-opponent")) {
+            // Handle "no opponent" placeholder
+            console.log("Adding player1 placeholder:", updates.player1.name);
+            participantsToUpsert.push({
+              match_id: matchId,
+              player_id: null,
+              position: 1,
+              score: null,
+              is_placeholder: true,
+              placeholder_name: updates.player1.name
+            });
+          } else if (updates.player1.name && !updates.player1.name.startsWith("no-player")) {
+            // Handle real player
             const player1Data = players.find(p => p.name === updates.player1?.name);
             if (player1Data) {
               console.log("Adding player1 participant:", player1Data.name, "ID:", player1Data.id);
@@ -1024,20 +1061,28 @@ export function TournamentBracket({
                 position: 1,
                 score: updates.player1.score,
                 is_placeholder: false,
-                placeholder_name: null,
-                team_number: null
+                placeholder_name: null
               });
             } else {
               console.log("Could not find player1 data for:", updates.player1.name);
             }
-          } else {
-            console.log("Skipping database insert for no-opponent player1:", updates.player1.name);
           }
         }
         
         if (updates.player2) {
-          // Handle "no opponent" cases - don't try to find player data for these
-          if (updates.player2.name && !updates.player2.name.startsWith("no-opponent") && !updates.player2.name.startsWith("no-player")) {
+          if (updates.player2.name?.startsWith("no-opponent")) {
+            // Handle "no opponent" placeholder
+            console.log("Adding player2 placeholder:", updates.player2.name);
+            participantsToUpsert.push({
+              match_id: matchId,
+              player_id: null,
+              position: 2,
+              score: null,
+              is_placeholder: true,
+              placeholder_name: updates.player2.name
+            });
+          } else if (updates.player2.name && !updates.player2.name.startsWith("no-player")) {
+            // Handle real player
             const player2Data = players.find(p => p.name === updates.player2?.name);
             if (player2Data) {
               console.log("Adding player2 participant:", player2Data.name, "ID:", player2Data.id);
@@ -1047,35 +1092,28 @@ export function TournamentBracket({
                 position: 2,
                 score: updates.player2.score,
                 is_placeholder: false,
-                placeholder_name: null,
-                team_number: null
+                placeholder_name: null
               });
             } else {
               console.log("Could not find player2 data for:", updates.player2.name);
             }
-          } else {
-            console.log("Skipping database insert for no-opponent player2:", updates.player2.name);
           }
         }
 
-        // First clear existing participants, then insert new ones
+        // Always clear and re-insert participants to ensure consistency
+        console.log("Clearing existing participants...");
+        const { error: deleteError } = await supabase
+          .from('match_participants')
+          .delete()
+          .eq('match_id', matchId);
+
+        if (deleteError) {
+          console.error("Error deleting existing participants:", deleteError);
+          throw deleteError;
+        }
+
+        // Insert new participants (including placeholders)
         if (participantsToUpsert.length > 0) {
-          // Delete existing participants first
-          console.log("Clearing existing participants...");
-          const { error: deleteError } = await supabase
-            .from('match_participants')
-            .delete()
-            .eq('match_id', matchId);
-
-          if (deleteError) {
-            console.error("Error deleting existing participants:", deleteError);
-            throw deleteError;
-          }
-
-          // Small delay to ensure deletion is processed
-          await new Promise(resolve => setTimeout(resolve, 200));
-
-          // Insert new participants
           console.log("Inserting", participantsToUpsert.length, "participants...");
           const { error: participantError } = await supabase
             .from('match_participants')
@@ -1087,7 +1125,7 @@ export function TournamentBracket({
           }
           console.log("Successfully inserted all participants");
         } else {
-          console.log("No participants to insert (all were no-opponent entries)");
+          console.log("No participants to insert");
         }
       }
 
