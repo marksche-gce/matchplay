@@ -132,10 +132,17 @@ export function TournamentBracket({
       
       if (databaseMatches.length > 0) {
         setShowManualSetup(false);
-        console.log("Calling advanceAllWinners...");
-        advanceAllWinners();
-        console.log("Calling processAutoAdvanceByes...");
-        processAutoAdvanceByes();
+        
+        // Ensure bracket relationships are set up before processing winners
+        console.log("Setting up bracket relationships...");
+        setupBracketRelationships().then(() => {
+          console.log("Bracket relationships set up, calling advanceAllWinners...");
+          advanceAllWinners();
+          console.log("Calling processAutoAdvanceByes...");
+          processAutoAdvanceByes();
+        }).catch(error => {
+          console.error("Failed to setup bracket relationships:", error);
+        });
       } else {
         setShowManualSetup(true);
       }
@@ -1525,6 +1532,14 @@ export function TournamentBracket({
               >
                 <RefreshCw className="h-4 w-4" />
                 Update Matches
+              </Button>
+              <Button
+                onClick={() => setupBracketRelationships()}
+                variant="outline"
+                className="gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Setup Relationships
               </Button>
             </div>
           </div>
