@@ -916,6 +916,8 @@ export function TournamentDashboard() {
     if (!selectedTournament) return;
     
     try {
+      console.log("🗑️ Starting complete match reset for tournament:", selectedTournament);
+      
       // Get all match IDs for this tournament first
       const { data: tournamentMatches, error: fetchError } = await supabase
         .from('matches')
@@ -925,42 +927,60 @@ export function TournamentDashboard() {
       if (fetchError) throw fetchError;
 
       const matchIds = tournamentMatches?.map(m => m.id) || [];
+      console.log("Found matches to delete:", matchIds.length, matchIds);
 
       if (matchIds.length > 0) {
-        // Delete match participants first
+        // Delete match participants first - delete all participants for this tournament
+        console.log("Deleting all match participants...");
         const { error: participantError } = await supabase
           .from('match_participants')
           .delete()
           .in('match_id', matchIds);
 
-        if (participantError) throw participantError;
+        if (participantError) {
+          console.error("Error deleting participants:", participantError);
+          throw participantError;
+        }
+        console.log("✅ Successfully deleted all match participants");
 
-        // Delete matches
+        // Small delay to ensure foreign key constraints are handled
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        // Delete all matches for this tournament
+        console.log("Deleting all matches...");
         const { error: matchError } = await supabase
           .from('matches')
           .delete()
           .eq('tournament_id', selectedTournament);
 
-        if (matchError) throw matchError;
+        if (matchError) {
+          console.error("Error deleting matches:", matchError);
+          throw matchError;
+        }
+        console.log("✅ Successfully deleted all matches");
+      } else {
+        console.log("No matches found to delete");
       }
 
       // Clear local state
       setMatches([]);
+      console.log("✅ Cleared local match state");
 
       toast({
         title: "All Matches Reset",
-        description: `Successfully deleted ${matchIds.length} matches and all participants.`,
+        description: `Successfully deleted ${matchIds.length} matches and all participants from database.`,
         variant: "destructive"
       });
 
-      // Refresh the matches list
+      // Refresh the matches list to confirm deletion
       await fetchMatches();
+      console.log("🗑️ Match reset complete");
       
     } catch (error) {
-      console.error('Error resetting matches:', error);
+      console.error('🚨 Error resetting matches:', error);
       toast({
         title: "Error",
-        description: "Failed to reset matches. Please try again.",
+        description: `Failed to reset matches: ${error.message || error}`,
         variant: "destructive"
       });
     }
