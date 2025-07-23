@@ -1585,7 +1585,7 @@ export function TournamentBracket({
     try {
       console.log("=== GENERATING COMPLETE BRACKET ===");
       
-      // Get all Round 1 matches
+      // Get all Round 1 matches ordered by creation (bracket position)
       const { data: round1Matches, error: round1Error } = await supabase
         .from('matches')
         .select('*')
