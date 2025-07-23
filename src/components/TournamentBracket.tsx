@@ -135,11 +135,11 @@ export function TournamentBracket({
         
         // Ensure bracket relationships are set up before processing winners
         console.log("Setting up bracket relationships...");
-        setupBracketRelationships().then(() => {
+        setupBracketRelationships().then(async () => {
           console.log("Bracket relationships set up, calling advanceAllWinners...");
-          advanceAllWinners();
+          await advanceAllWinners();
           console.log("Calling processAutoAdvanceByes...");
-          processAutoAdvanceByes();
+          await processAutoAdvanceByes();
         }).catch(error => {
           console.error("Failed to setup bracket relationships:", error);
         });
@@ -409,7 +409,7 @@ export function TournamentBracket({
     return currentMatches;
   };
 
-  const advanceAllWinners = () => {
+  const advanceAllWinners = async () => {
     const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
     const completedMatches = tournamentMatches.filter(m => m.status === "completed" && m.winner);
     
@@ -419,6 +419,12 @@ export function TournamentBracket({
     });
     
     if (completedMatches.length === 0) return;
+
+    // First, ensure next round matches exist before trying to advance winners
+    const rounds = [...new Set(completedMatches.map(m => m.round))];
+    for (const round of rounds) {
+      await createNextRoundMatches(round, tournamentId);
+    }
 
     let updatedMatches = [...matches];
     let hasChanges = false;
@@ -545,6 +551,92 @@ export function TournamentBracket({
     return false;
   };
 
+  const createNextRoundMatches = async (currentRound: string, tournamentId: string) => {
+    console.log("=== CREATING NEXT ROUND MATCHES ===");
+    console.log("Current round:", currentRound);
+    
+    const roundMapping = {
+      "Round 1": "Quarterfinals",
+      "Quarterfinals": "Semifinals", 
+      "Semifinals": "Final"
+    };
+    
+    const nextRound = roundMapping[currentRound];
+    if (!nextRound) {
+      console.log("No next round for:", currentRound);
+      return;
+    }
+    
+    console.log("Creating matches for next round:", nextRound);
+    
+    // Check if next round matches already exist
+    const { data: existingMatches, error: checkError } = await supabase
+      .from('matches')
+      .select('*')
+      .eq('tournament_id', tournamentId)
+      .eq('round', nextRound);
+      
+    if (checkError) {
+      console.error("Error checking existing matches:", checkError);
+      return;
+    }
+    
+    if (existingMatches && existingMatches.length > 0) {
+      console.log("Next round matches already exist:", existingMatches.length);
+      return;
+    }
+    
+    // Get current round matches to determine how many next round matches to create
+    const { data: currentMatches, error: currentError } = await supabase
+      .from('matches')
+      .select('*')
+      .eq('tournament_id', tournamentId)
+      .eq('round', currentRound)
+      .order('created_at');
+      
+    if (currentError) {
+      console.error("Error getting current round matches:", currentError);
+      return;
+    }
+    
+    const nextRoundMatchCount = Math.ceil((currentMatches?.length || 0) / 2);
+    console.log("Creating", nextRoundMatchCount, "matches for", nextRound);
+    
+    // Create next round matches
+    const matchesToCreate = [];
+    for (let i = 0; i < nextRoundMatchCount; i++) {
+      const startIndex = i * 2;
+      const prevMatch1 = currentMatches?.[startIndex];
+      const prevMatch2 = currentMatches?.[startIndex + 1];
+      
+      matchesToCreate.push({
+        tournament_id: tournamentId,
+        type: "singles",
+        round: nextRound,
+        status: "scheduled",
+        previous_match_1_id: prevMatch1?.id || null,
+        previous_match_2_id: prevMatch2?.id || null
+      });
+    }
+    
+    if (matchesToCreate.length > 0) {
+      const { data: createdMatches, error: createError } = await supabase
+        .from('matches')
+        .insert(matchesToCreate)
+        .select();
+        
+      if (createError) {
+        console.error("Error creating next round matches:", createError);
+      } else {
+        console.log("Successfully created", createdMatches?.length, "next round matches");
+        
+        // Update bracket relationships for the newly created matches
+        await setupBracketRelationships();
+      }
+    }
+    
+    console.log("=== NEXT ROUND MATCHES CREATION COMPLETE ===");
+  };
   const progressWinnerToDatabase = async (completedMatch: Match, winnerPlayer: { id: string; name: string; handicap: number }) => {
     try {
       console.log("=== PROGRESS WINNER TO DATABASE ===");
@@ -703,7 +795,7 @@ export function TournamentBracket({
       
       // Process all completed matches to advance winners
       console.log("Calling advanceAllWinners...");
-      advanceAllWinners();
+      await advanceAllWinners();
       
       // Process bye matches (auto-advance players with no opponents)
       console.log("Calling processAutoAdvanceByes...");
