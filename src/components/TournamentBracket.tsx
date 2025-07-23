@@ -740,7 +740,8 @@ export function TournamentBracket({
         console.log("Match index in round:", matchIndex);
         
         const advancement = getAdvancementMapping(matchIndex, currentRoundMatches?.length || 0);
-        console.log("Advancement mapping:", advancement);
+        console.log("Advancement mapping for match", matchIndex + 1, ":", advancement);
+        console.log("This means: Match", matchIndex + 1, "winner goes to Round 2 Match", advancement.nextMatchIndex + 1, "Position", advancement.position);
         
         // Get next round matches
         const roundMapping = {
