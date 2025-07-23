@@ -135,15 +135,20 @@ export function TournamentBracket({
         setShowManualSetup(false);
         
         // Ensure bracket relationships are set up before processing winners
-        console.log("Setting up bracket relationships...");
-        setupBracketRelationships().then(async () => {
-          console.log("Bracket relationships set up, calling advanceAllWinners...");
-          await advanceAllWinners();
-          console.log("Calling processAutoAdvanceByes...");
-          await processAutoAdvanceByes();
-        }).catch(error => {
-          console.error("Failed to setup bracket relationships:", error);
-        });
+        // But only if we're not already advancing winners to prevent loops
+        if (!isAdvancingWinners) {
+          console.log("Setting up bracket relationships...");
+          setupBracketRelationships().then(async () => {
+            console.log("Bracket relationships set up, calling advanceAllWinners...");
+            await advanceAllWinners();
+            console.log("Calling processAutoAdvanceByes...");
+            await processAutoAdvanceByes();
+          }).catch(error => {
+            console.error("Failed to setup bracket relationships:", error);
+          });
+        } else {
+          console.log("Already advancing winners, skipping automatic advancement in useEffect");
+        }
       } else {
         setShowManualSetup(true);
       }
@@ -452,8 +457,9 @@ export function TournamentBracket({
     });
 
     if (hasChanges) {
-      console.log("Calling onMatchUpdate with", updatedMatches.length, "updated matches");
-      onMatchUpdate(updatedMatches);
+      console.log("Changes detected in advanceAllWinners, but NOT calling onMatchUpdate to prevent loops");
+      // DO NOT call onMatchUpdate here as it triggers the useEffect again and creates an endless loop
+      // The bracket display is already updated via setBracketData in progressWinnerImmediately
       
       // Show single consolidated toast instead of multiple
       if (successfulAdvancements > 0) {
