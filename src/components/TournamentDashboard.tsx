@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { TournamentHeader } from "./TournamentHeader";
 import { PlayerCard } from "./PlayerCard";
-import { MatchCard } from "./MatchCard";
 import { CreateMatchDialog } from "./CreateMatchDialog";
 import { EditMatchDialog } from "./EditMatchDialog";
 import { CreateTournamentDialog } from "./CreateTournamentDialog";
@@ -1788,13 +1787,12 @@ export function TournamentDashboard() {
             <TabsList className="bg-background/80 backdrop-blur-sm shadow-card">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="players">Players</TabsTrigger>
-              <TabsTrigger value="matches">Matches</TabsTrigger>
               <TabsTrigger value="schedule">Schedule</TabsTrigger>
+              <TabsTrigger value="bracket">Bracket</TabsTrigger>
               <TabsTrigger value="settings">
                 <Settings className="h-4 w-4 mr-2" />
                 Settings
               </TabsTrigger>
-              <TabsTrigger value="bracket">Bracket</TabsTrigger>
             </TabsList>
             
             <div className="flex gap-2">
@@ -1809,39 +1807,21 @@ export function TournamentDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="shadow-card">
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Recent Matches</CardTitle>
-                  </div>
+                  <CardTitle>Tournament Progress</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {tournamentMatches.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                      <p className="text-muted-foreground">No matches scheduled yet</p>
-                    </div>
-                  ) : (
-                  tournamentMatches.slice(0, 3).map(match => (
-                      <EditMatchDialog
-                        key={match.id}
-                        match={match}
-                        onMatchUpdate={handleEditMatch}
-                        availablePlayers={getAvailablePlayersForMatch(match.id)}
-                        tournamentStartDate={currentTournament?.start_date}
-                        tournamentEndDate={currentTournament?.end_date}
-                        maxPlayers={currentTournament?.max_players || 32}
-                        registeredPlayers={tournamentPlayers.length}
-                        trigger={
-                          <div className="cursor-pointer">
-                            <MatchCard 
-                              match={match}
-                              onScoreUpdate={() => console.log("Complete match", match.id)}
-                              onViewDetails={() => console.log("View details for", match.id)}
-                            />
-                          </div>
-                        }
-                      />
-                    ))
-                  )}
+                  <div className="text-center py-8">
+                    <Trophy className="h-12 w-12 text-primary mx-auto mb-3" />
+                    <p className="text-lg font-semibold">Use the Bracket tab to manage all matches</p>
+                    <p className="text-muted-foreground">Complete tournament bracket with match editing</p>
+                    <Button 
+                      variant="premium" 
+                      className="mt-4"
+                      onClick={() => setActiveTab("bracket")}
+                    >
+                      View Bracket
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
               
@@ -1904,75 +1884,6 @@ export function TournamentDashboard() {
             </div>
           </TabsContent>
 
-          <TabsContent value="matches" className="space-y-6">
-            {tournamentMatches.length === 0 ? (
-              <div className="text-center py-8">
-                <Trophy className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-xl font-semibold mb-2">No Matches Scheduled</h3>
-                <p className="text-muted-foreground mb-4">Schedule matches to start the tournament</p>
-                <div className="flex gap-2 justify-center">
-                  <CreateMatchDialog
-                    tournamentId={selectedTournament}
-                    availablePlayers={tournamentPlayers}
-                    onMatchCreate={handleCreateMatch}
-                    tournamentStartDate={currentTournament?.start_date}
-                    tournamentEndDate={currentTournament?.end_date}
-                    trigger={
-                      <Button variant="fairway">
-                        <Calendar className="h-4 w-4 mr-2" />
-                        Schedule First Match
-                      </Button>
-                    }
-                  />
-                </div>
-              </div>
-            ) : (
-              <>
-                {/* Add Match Button */}
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold">Tournament Matches</h3>
-                  <CreateMatchDialog
-                    tournamentId={selectedTournament}
-                    availablePlayers={tournamentPlayers}
-                    onMatchCreate={handleCreateMatch}
-                    tournamentStartDate={currentTournament?.start_date}
-                    tournamentEndDate={currentTournament?.end_date}
-                    trigger={
-                      <Button variant="outline">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Match
-                      </Button>
-                    }
-                  />
-                </div>
-                
-                {/* Matches Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {tournamentMatches.map(match => (
-                    <EditMatchDialog
-                      key={match.id}
-                      match={match}
-                      onMatchUpdate={handleEditMatch}
-                      availablePlayers={getAvailablePlayersForMatch(match.id)}
-                      tournamentStartDate={currentTournament?.start_date}
-                      tournamentEndDate={currentTournament?.end_date}
-                      maxPlayers={currentTournament?.max_players || 32}
-                      registeredPlayers={tournamentPlayers.length}
-                      trigger={
-                        <div className="cursor-pointer">
-                          <MatchCard 
-                            match={match}
-                            onScoreUpdate={() => console.log("Complete match", match.id)}
-                            onViewDetails={() => console.log("View details for", match.id)}
-                          />
-                        </div>
-                      }
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-          </TabsContent>
 
           <TabsContent value="schedule" className="space-y-6">
             <Card className="shadow-card">
