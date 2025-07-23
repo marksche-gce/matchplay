@@ -2117,7 +2117,7 @@ export function TournamentBracket({
                 Save Setup 1. Round
               </Button>
               <Button
-                onClick={resetAllSetup}
+                onClick={() => resetAllSetup()}
                 variant="destructive"
                 className="gap-2"
               >
