@@ -112,15 +112,8 @@ export function useBracketValidation() {
         const hasPlayer2 = match.player2 && !match.player2.name.startsWith("no-opponent");
         
         if (hasPlayer1 && hasPlayer2) {
-          // Both players present - require both scores
-          if (match.player1?.score === undefined || match.player2?.score === undefined) {
-            toast({
-              title: "Missing Scores",
-              description: "Both player scores must be provided to complete the match.",
-              variant: "destructive"
-            });
-            return false;
-          }
+          // Both players present - scores are optional for completing the match
+          return true;
         } else if (hasPlayer1 || hasPlayer2) {
           // Bye scenario - automatically advance the present player
           return true;
