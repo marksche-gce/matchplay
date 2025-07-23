@@ -1007,54 +1007,25 @@ export function TournamentBracket({
       if (updates.player1 || updates.player2) {
         console.log("Updating player assignments");
         
-        // Delete existing participants for this match
-        console.log("Deleting existing participants for match:", matchId);
-        const { error: deleteError } = await supabase
-          .from('match_participants')
-          .delete()
-          .eq('match_id', matchId);
-
-        if (deleteError) {
-          console.error("Error deleting existing participants:", deleteError);
-          throw deleteError;
-        }
-
-        // Wait longer and verify deletion completed
-        console.log("Waiting for deletion to complete...");
-        await new Promise(resolve => setTimeout(resolve, 800));
+        // Use upsert approach instead of delete/insert to avoid race conditions
+        console.log("Managing participants with upsert approach...");
         
-        // Verify deletion completed by checking if any participants still exist
-        const { data: remainingParticipants, error: checkError } = await supabase
-          .from('match_participants')
-          .select('id')
-          .eq('match_id', matchId);
-          
-        if (checkError) {
-          console.error("Error checking remaining participants:", checkError);
-          throw checkError;
-        }
+        const participantsToUpsert = [];
         
-        if (remainingParticipants && remainingParticipants.length > 0) {
-          console.log("Still have", remainingParticipants.length, "participants, waiting longer...");
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-        
-        console.log("Deletion verified complete, proceeding with insert...");
-
-        // Insert new participants
-        console.log("Preparing to insert participants...");
-        const participants = [];
         if (updates.player1) {
           // Handle "no opponent" cases - don't try to find player data for these
           if (updates.player1.name && !updates.player1.name.startsWith("no-opponent") && !updates.player1.name.startsWith("no-player")) {
             const player1Data = players.find(p => p.name === updates.player1?.name);
             if (player1Data) {
               console.log("Adding player1 participant:", player1Data.name, "ID:", player1Data.id);
-              participants.push({
+              participantsToUpsert.push({
                 match_id: matchId,
                 player_id: player1Data.id,
                 position: 1,
-                score: updates.player1.score
+                score: updates.player1.score,
+                is_placeholder: false,
+                placeholder_name: null,
+                team_number: null
               });
             } else {
               console.log("Could not find player1 data for:", updates.player1.name);
@@ -1063,17 +1034,21 @@ export function TournamentBracket({
             console.log("Skipping database insert for no-opponent player1:", updates.player1.name);
           }
         }
+        
         if (updates.player2) {
           // Handle "no opponent" cases - don't try to find player data for these
           if (updates.player2.name && !updates.player2.name.startsWith("no-opponent") && !updates.player2.name.startsWith("no-player")) {
             const player2Data = players.find(p => p.name === updates.player2?.name);
             if (player2Data) {
               console.log("Adding player2 participant:", player2Data.name, "ID:", player2Data.id);
-              participants.push({
+              participantsToUpsert.push({
                 match_id: matchId,
                 player_id: player2Data.id,
                 position: 2,
-                score: updates.player2.score
+                score: updates.player2.score,
+                is_placeholder: false,
+                placeholder_name: null,
+                team_number: null
               });
             } else {
               console.log("Could not find player2 data for:", updates.player2.name);
@@ -1083,12 +1058,28 @@ export function TournamentBracket({
           }
         }
 
-        console.log("Final participants array:", participants);
-        if (participants.length > 0) {
-          console.log("Inserting", participants.length, "participants into database...");
+        // First clear existing participants, then insert new ones
+        if (participantsToUpsert.length > 0) {
+          // Delete existing participants first
+          console.log("Clearing existing participants...");
+          const { error: deleteError } = await supabase
+            .from('match_participants')
+            .delete()
+            .eq('match_id', matchId);
+
+          if (deleteError) {
+            console.error("Error deleting existing participants:", deleteError);
+            throw deleteError;
+          }
+
+          // Small delay to ensure deletion is processed
+          await new Promise(resolve => setTimeout(resolve, 200));
+
+          // Insert new participants
+          console.log("Inserting", participantsToUpsert.length, "participants...");
           const { error: participantError } = await supabase
             .from('match_participants')
-            .insert(participants);
+            .insert(participantsToUpsert);
 
           if (participantError) {
             console.error("Participant insert error:", participantError);
