@@ -754,14 +754,19 @@ export function TournamentBracket({
         console.log("Looking for next round:", nextRound);
         
         if (nextRound) {
-          const { data: nextRoundMatches, error: nextRoundError } = await supabase
-            .from('matches')
-            .select('*')
-            .eq('tournament_id', tournamentId)
-            .eq('round', nextRound)
-            .order('created_at');
-            
-          if (!nextRoundError && nextRoundMatches && nextRoundMatches.length > advancement.nextMatchIndex) {
+        const { data: nextRoundMatches, error: nextRoundError } = await supabase
+          .from('matches')
+          .select('*')
+          .eq('tournament_id', tournamentId)
+          .eq('round', nextRound)
+          .order('created_at');
+          
+        console.log("=== NEXT ROUND MATCH LOOKUP ===");
+        console.log("Looking for next round:", nextRound);
+        console.log("Found next round matches:", nextRoundMatches?.length || 0);
+        console.log("Next round matches:", nextRoundMatches?.map(m => ({ id: m.id, round: m.round })) || []);
+        
+        if (!nextRoundError && nextRoundMatches && nextRoundMatches.length > advancement.nextMatchIndex) {
             nextMatch = nextRoundMatches[advancement.nextMatchIndex];
             position = advancement.position;
             console.log(`Using custom mapping: Match ${matchIndex + 1} winner → Match ${advancement.nextMatchIndex + 1} Position ${position}`);
@@ -1486,6 +1491,9 @@ export function TournamentBracket({
       console.log("Match status:", completedMatch?.status);
       console.log("Match winner:", completedMatch?.winner);
       console.log("Should advance:", completedMatch?.status === "completed" && !!completedMatch.winner);
+      console.log("Current tournament matches count:", matches.filter(m => m.tournamentId === tournamentId).length);
+      console.log("Round 1 matches:", matches.filter(m => m.tournamentId === tournamentId && m.round === "Round 1").length);
+      console.log("Quarterfinals matches:", matches.filter(m => m.tournamentId === tournamentId && m.round === "Quarterfinals").length);
       
       if (completedMatch?.status === "completed" && completedMatch.winner) {
         console.log("=== AUTOMATIC WINNER ADVANCEMENT TRIGGERED ===");
