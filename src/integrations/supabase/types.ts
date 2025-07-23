@@ -41,7 +41,9 @@ export type Database = {
       match_participants: {
         Row: {
           id: string
+          is_placeholder: boolean | null
           match_id: string
+          placeholder_name: string | null
           player_id: string | null
           position: number | null
           score: number | null
@@ -49,7 +51,9 @@ export type Database = {
         }
         Insert: {
           id?: string
+          is_placeholder?: boolean | null
           match_id: string
+          placeholder_name?: string | null
           player_id?: string | null
           position?: number | null
           score?: number | null
@@ -57,7 +61,9 @@ export type Database = {
         }
         Update: {
           id?: string
+          is_placeholder?: boolean | null
           match_id?: string
+          placeholder_name?: string | null
           player_id?: string | null
           position?: number | null
           score?: number | null

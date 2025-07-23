@@ -358,6 +358,8 @@ export function TournamentDashboard() {
             score,
             team_number,
             player_id,
+            is_placeholder,
+            placeholder_name,
             players (
               id,
               name,
@@ -410,20 +412,20 @@ export function TournamentDashboard() {
               name: player1.players.name,
               handicap: player1.players.handicap,
               score: player1.score
-            } : {
-              name: "no-opponent-1", // Reconstruct no-opponent placeholder
+            } : player1.is_placeholder ? {
+              name: player1.placeholder_name,
               handicap: 0,
               score: player1.score
-            }) : undefined,
+            } : undefined) : undefined,
             player2: player2 ? (player2.players ? {
               name: player2.players.name,
               handicap: player2.players.handicap,
               score: player2.score
-            } : {
-              name: "no-opponent-2", // Reconstruct no-opponent placeholder
+            } : player2.is_placeholder ? {
+              name: player2.placeholder_name,
               handicap: 0,
               score: player2.score
-            }) : undefined,
+            } : undefined) : undefined,
             round: match.round,
             status: match.status as "scheduled" | "completed",
             date: new Date(match.match_date || new Date()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -1112,19 +1114,23 @@ export function TournamentDashboard() {
                       match_id: matchId,
                       player_id: player1.id,
                       position: 1,
-                      score: updates.player1.score || null
+                      score: updates.player1.score || null,
+                      is_placeholder: false,
+                      placeholder_name: null
                     });
                   } else {
                     console.log("Player1 not found in players list:", updates.player1.name);
                   }
                 } else {
-                  // "no-opponent" placeholder - create a special participant entry with null player_id
+                  // "no-opponent" placeholder
                   console.log("Creating placeholder participant for no-opponent player1:", updates.player1.name);
                   participants.push({
                     match_id: matchId,
-                    player_id: null, // Use null for placeholder participants
+                    player_id: null,
                     position: 1,
-                    score: null
+                    score: null,
+                    is_placeholder: true,
+                    placeholder_name: updates.player1.name
                   });
                 }
               } else {
@@ -1145,19 +1151,23 @@ export function TournamentDashboard() {
                       match_id: matchId,
                       player_id: player2.id,
                       position: 2,
-                      score: updates.player2.score || null
+                      score: updates.player2.score || null,
+                      is_placeholder: false,
+                      placeholder_name: null
                     });
                   } else {
                     console.log("Player2 not found in players list:", updates.player2.name);
                   }
                 } else {
-                  // "no-opponent" placeholder - create a special participant entry with null player_id
+                  // "no-opponent" placeholder
                   console.log("Creating placeholder participant for no-opponent player2:", updates.player2.name);
                   participants.push({
                     match_id: matchId,
-                    player_id: null, // Use null for placeholder participants  
+                    player_id: null,
                     position: 2,
-                    score: null
+                    score: null,
+                    is_placeholder: true,
+                    placeholder_name: updates.player2.name
                   });
                 }
               } else {
