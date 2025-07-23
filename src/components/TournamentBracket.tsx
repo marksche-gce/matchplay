@@ -1068,29 +1068,43 @@ export function TournamentBracket({
       const completedMatch = updatedMatches.find(m => m.id === matchId);
       let finalMatches = updatedMatches;
       
+      console.log("=== CHECKING FOR WINNER ADVANCEMENT ===");
+      console.log("Completed match found:", !!completedMatch);
+      console.log("Match status:", completedMatch?.status);
+      console.log("Match winner:", completedMatch?.winner);
+      console.log("Should advance:", completedMatch?.status === "completed" && !!completedMatch.winner);
+      
       if (completedMatch?.status === "completed" && completedMatch.winner) {
-        console.log("=== AUTOMATIC WINNER ADVANCEMENT ===");
+        console.log("=== AUTOMATIC WINNER ADVANCEMENT TRIGGERED ===");
         console.log("Match completed with winner:", completedMatch.winner);
         console.log("Advancing winner immediately...");
         
-        // First ensure bracket relationships are set up
-        console.log("Setting up bracket relationships for advancement...");
-        await setupBracketRelationships();
-        
-        // Progress winner immediately in UI
-        console.log("Progressing winner in UI...");
-        finalMatches = progressWinnerImmediately(updatedMatches, completedMatch);
-        
-        // Also progress winner in database
-        const winnerPlayer = players.find(p => p.name === completedMatch.winner);
-        if (winnerPlayer) {
-          console.log("Advancing winner to database:", winnerPlayer.name);
-          await progressWinnerToDatabase(completedMatch, winnerPlayer);
-        } else {
-          console.log("Winner player not found in players list:", completedMatch.winner);
+        try {
+          // First ensure bracket relationships are set up
+          console.log("Setting up bracket relationships for advancement...");
+          await setupBracketRelationships();
+          
+          // Progress winner immediately in UI
+          console.log("Progressing winner in UI...");
+          finalMatches = progressWinnerImmediately(updatedMatches, completedMatch);
+          
+          // Also progress winner in database
+          const winnerPlayer = players.find(p => p.name === completedMatch.winner);
+          if (winnerPlayer) {
+            console.log("Advancing winner to database:", winnerPlayer.name);
+            await progressWinnerToDatabase(completedMatch, winnerPlayer);
+          } else {
+            console.log("Winner player not found in players list:", completedMatch.winner);
+            console.log("Available players:", players.map(p => p.name));
+          }
+          
+          console.log("=== WINNER ADVANCEMENT COMPLETE ===");
+        } catch (error) {
+          console.error("Error during winner advancement:", error);
         }
-        
-        console.log("=== WINNER ADVANCEMENT COMPLETE ===");
+      } else {
+        console.log("=== NO WINNER ADVANCEMENT NEEDED ===");
+        console.log("Reason: Match not completed or no winner set");
       }
 
       toast({
@@ -1105,6 +1119,7 @@ export function TournamentBracket({
       
       // Refresh bracket display to show advancement
       setTimeout(() => {
+        console.log("Refreshing bracket display...");
         generateBracket();
       }, 200);
 
