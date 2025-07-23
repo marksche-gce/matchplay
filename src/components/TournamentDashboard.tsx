@@ -688,6 +688,8 @@ export function TournamentDashboard() {
   };
 
   const handleActivateTournament = async (tournamentId: string) => {
+    console.log("🏌️ Activating tournament:", tournamentId);
+    
     try {
       const { error } = await supabase
         .from('tournaments')
@@ -697,8 +699,13 @@ export function TournamentDashboard() {
         })
         .eq('id', tournamentId);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Database error activating tournament:", error);
+        throw error;
+      }
 
+      console.log("✅ Tournament activated successfully");
+      
       toast({
         title: "Tournament Activated",
         description: "Tournament is now active and registration is closed.",
@@ -706,11 +713,13 @@ export function TournamentDashboard() {
 
       // Refresh tournaments list
       await fetchTournaments();
+      console.log("✅ Tournament list refreshed");
+      
     } catch (error) {
-      console.error('Error activating tournament:', error);
+      console.error('🚨 Error activating tournament:', error);
       toast({
         title: "Error",
-        description: "Failed to activate tournament.",
+        description: `Failed to activate tournament: ${error.message || error}`,
         variant: "destructive"
       });
     }
