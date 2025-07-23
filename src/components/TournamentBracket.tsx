@@ -1997,14 +1997,41 @@ export function TournamentBracket({
                 <RefreshCw className="h-4 w-4" />
                 Setup Relationships
               </Button>
-              <Button
-                onClick={generateCompleteBracket}
-                variant="outline"
-                className="gap-2"
-              >
-                <Trophy className="h-4 w-4" />
-                Complete Bracket
-              </Button>
+               <Button
+                 onClick={generateCompleteBracket}
+                 variant="outline"
+                 className="gap-2"
+               >
+                 <Trophy className="h-4 w-4" />
+                 Complete Bracket
+               </Button>
+               <AlertDialog>
+                 <AlertDialogTrigger asChild>
+                   <Button
+                     variant="destructive"
+                     className="gap-2"
+                   >
+                     <Trash2 className="h-4 w-4" />
+                     Reset All Matches
+                   </Button>
+                 </AlertDialogTrigger>
+                 <AlertDialogContent>
+                   <AlertDialogHeader>
+                     <AlertDialogTitle>Reset All Matches</AlertDialogTitle>
+                     <AlertDialogDescription>
+                       This will permanently delete all matches and bracket data for this tournament. 
+                       This action cannot be undone.
+                     </AlertDialogDescription>
+                   </AlertDialogHeader>
+                   <AlertDialogFooter>
+                     <AlertDialogCancel>Cancel</AlertDialogCancel>
+                     <AlertDialogAction onClick={deleteAllMatches} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                       Delete All Matches
+                     </AlertDialogAction>
+                   </AlertDialogFooter>
+                 </AlertDialogContent>
+               </AlertDialog>
+             </div>
             </div>
           </div>
         </CardHeader>
