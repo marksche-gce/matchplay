@@ -676,25 +676,20 @@ export function TournamentBracket({
     console.log("=== NEXT ROUND MATCHES CREATION COMPLETE ===");
   };
 
-  // Custom advancement mapping based on user requirements
+  // Standard tournament bracket advancement pattern
   const getAdvancementMapping = (matchIndex: number, totalMatches: number) => {
-    // User specified:
-    // Match 1 (index 0) → Position 2 of Round 2 Match 1 (index 0)
+    // Standard pattern:
+    // Match 1 (index 0) → Position 1 of Round 2 Match 1 (index 0)
+    // Match 2 (index 1) → Position 2 of Round 2 Match 1 (index 0)
+    // Match 3 (index 2) → Position 1 of Round 2 Match 2 (index 1)
+    // Match 4 (index 3) → Position 2 of Round 2 Match 2 (index 1)
     // Match 5 (index 4) → Position 1 of Round 2 Match 3 (index 2)
+    // Match 6 (index 5) → Position 2 of Round 2 Match 3 (index 2)
     
-    // This suggests a custom bracket structure
-    const advancementMap = {
-      0: { nextMatchIndex: 0, position: 2 }, // Match 1 → Match 1 Position 2
-      1: { nextMatchIndex: 0, position: 1 }, // Match 2 → Match 1 Position 1 (assuming)
-      2: { nextMatchIndex: 1, position: 2 }, // Match 3 → Match 2 Position 2 (assuming)
-      3: { nextMatchIndex: 1, position: 1 }, // Match 4 → Match 2 Position 1 (assuming)
-      4: { nextMatchIndex: 2, position: 1 }, // Match 5 → Match 3 Position 1
-      5: { nextMatchIndex: 2, position: 2 }, // Match 6 → Match 3 Position 2 (assuming)
-      6: { nextMatchIndex: 3, position: 1 }, // Match 7 → Match 4 Position 1 (assuming)
-      7: { nextMatchIndex: 3, position: 2 }, // Match 8 → Match 4 Position 2 (assuming)
-    };
+    const nextMatchIndex = Math.floor(matchIndex / 2);
+    const position = (matchIndex % 2) + 1;
     
-    return advancementMap[matchIndex] || { nextMatchIndex: Math.floor(matchIndex / 2), position: (matchIndex % 2) + 1 };
+    return { nextMatchIndex, position };
   };
   const progressWinnerToDatabase = async (completedMatch: Match, winnerPlayer: { id: string; name: string; handicap: number }) => {
     try {
