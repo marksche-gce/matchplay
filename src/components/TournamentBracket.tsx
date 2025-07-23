@@ -866,13 +866,36 @@ export function TournamentBracket({
           }));
         });
 
+        // Check if match was completed with a winner - advance immediately
+        let finalMatches = updatedMatches;
+        if (databaseMatch.status === "completed" && databaseMatch.winner) {
+          console.log("=== AUTOMATIC WINNER ADVANCEMENT (PLACEHOLDER CONVERSION) ===");
+          console.log("Match completed with winner:", databaseMatch.winner);
+          
+          // First ensure bracket relationships are set up
+          await setupBracketRelationships();
+          
+          // Progress winner immediately
+          finalMatches = progressWinnerImmediately(updatedMatches, databaseMatch);
+          
+          // Also progress winner in database
+          const winnerPlayer = players.find(p => p.name === databaseMatch.winner);
+          if (winnerPlayer) {
+            await progressWinnerToDatabase(databaseMatch, winnerPlayer);
+          }
+          
+          console.log("=== WINNER ADVANCEMENT COMPLETE (PLACEHOLDER CONVERSION) ===");
+        }
+
         toast({
           title: "Match Created & Updated!",
-          description: "Placeholder match converted to database match successfully.",
+          description: databaseMatch.winner ? 
+            `Match created! ${databaseMatch.winner} has been advanced to the next round.` :
+            "Placeholder match converted to database match successfully.",
         });
 
         // Update parent component with the updated matches
-        onMatchUpdate(updatedMatches);
+        onMatchUpdate(finalMatches);
         
         return;
 
@@ -1041,33 +1064,49 @@ export function TournamentBracket({
         }));
       });
 
-      // Check if match was completed and progress winner
+      // Check if match was completed with a winner - advance immediately
       const completedMatch = updatedMatches.find(m => m.id === matchId);
       let finalMatches = updatedMatches;
       
       if (completedMatch?.status === "completed" && completedMatch.winner) {
-        console.log("Processing winner progression for completed match");
+        console.log("=== AUTOMATIC WINNER ADVANCEMENT ===");
+        console.log("Match completed with winner:", completedMatch.winner);
+        console.log("Advancing winner immediately...");
+        
+        // First ensure bracket relationships are set up
+        console.log("Setting up bracket relationships for advancement...");
+        await setupBracketRelationships();
+        
+        // Progress winner immediately in UI
+        console.log("Progressing winner in UI...");
         finalMatches = progressWinnerImmediately(updatedMatches, completedMatch);
         
         // Also progress winner in database
         const winnerPlayer = players.find(p => p.name === completedMatch.winner);
         if (winnerPlayer) {
+          console.log("Advancing winner to database:", winnerPlayer.name);
           await progressWinnerToDatabase(completedMatch, winnerPlayer);
+        } else {
+          console.log("Winner player not found in players list:", completedMatch.winner);
         }
+        
+        console.log("=== WINNER ADVANCEMENT COMPLETE ===");
       }
 
       toast({
         title: "Match Updated!",
-        description: "Match has been saved to database successfully.",
+        description: completedMatch?.winner ? 
+          `Match completed! ${completedMatch.winner} has been advanced to the next round.` :
+          "Match has been saved successfully.",
       });
 
       // Update parent component with the updated matches
       onMatchUpdate(finalMatches);
       
-      // Immediately update the bracket display to reflect changes
+      // Refresh bracket display to show advancement
       setTimeout(() => {
         generateBracket();
-      }, 100);
+      }, 200);
 
     } catch (error) {
       console.error('Error updating database match:', error);
