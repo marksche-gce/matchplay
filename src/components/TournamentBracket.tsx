@@ -1036,6 +1036,9 @@ export function TournamentBracket({
   };
 
   const handleMatchUpdate = async (matchId: string, updates: Partial<Match>) => {
+    console.log("🔥 handleMatchUpdate FUNCTION CALLED!");
+    console.log("🔥 Match ID:", matchId);
+    console.log("🔥 Updates:", updates);
     console.log("=== BRACKET MATCH UPDATE DEBUG ===");
     console.log("handleMatchUpdate called for match ID:", matchId, "updates:", updates);
     console.log("Original match data:", matches.find(m => m.id === matchId));
@@ -1886,6 +1889,7 @@ export function TournamentBracket({
             console.log("Updates received:", updates);
             console.log("Original match data:", selectedMatch);
             console.log("Available players for filtering:", getAvailablePlayersForMatch(selectedMatch.id));
+            console.log("=== ABOUT TO CALL handleMatchUpdate ===");
             handleMatchUpdate(matchId, updates);
             setSelectedMatch(null); // Close dialog after update
           }}
