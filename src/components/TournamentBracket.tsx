@@ -1291,99 +1291,116 @@ export function TournamentBracket({
       if (updates.player1 || updates.player2) {
         console.log("Updating player assignments");
         
-        // Use upsert approach instead of delete/insert to avoid race conditions
-        console.log("Managing participants with upsert approach...");
-        
-        const participantsToUpsert = [];
-        
-        if (updates.player1) {
-          if (updates.player1.name?.startsWith("no-opponent")) {
-            // Handle "no opponent" placeholder
-            console.log("Adding player1 placeholder:", updates.player1.name);
-            participantsToUpsert.push({
-              match_id: matchId,
-              player_id: null,
-              position: 1,
-              score: null,
-              is_placeholder: true,
-              placeholder_name: updates.player1.name
-            });
-          } else if (updates.player1.name && !updates.player1.name.startsWith("no-player")) {
-            // Handle real player
-            const player1Data = players.find(p => p.name === updates.player1?.name);
-            if (player1Data) {
-              console.log("Adding player1 participant:", player1Data.name, "ID:", player1Data.id);
-              participantsToUpsert.push({
-                match_id: matchId,
-                player_id: player1Data.id,
-                position: 1,
-                score: updates.player1.score,
-                is_placeholder: false,
-                placeholder_name: null
-              });
-            } else {
-              console.log("Could not find player1 data for:", updates.player1.name);
-            }
-          }
-        }
-        
-        if (updates.player2) {
-          if (updates.player2.name?.startsWith("no-opponent")) {
-            // Handle "no opponent" placeholder
-            console.log("Adding player2 placeholder:", updates.player2.name);
-            participantsToUpsert.push({
-              match_id: matchId,
-              player_id: null,
-              position: 2,
-              score: null,
-              is_placeholder: true,
-              placeholder_name: updates.player2.name
-            });
-          } else if (updates.player2.name && !updates.player2.name.startsWith("no-player")) {
-            // Handle real player
-            const player2Data = players.find(p => p.name === updates.player2?.name);
-            if (player2Data) {
-              console.log("Adding player2 participant:", player2Data.name, "ID:", player2Data.id);
-              participantsToUpsert.push({
-                match_id: matchId,
-                player_id: player2Data.id,
-                position: 2,
-                score: updates.player2.score,
-                is_placeholder: false,
-                placeholder_name: null
-              });
-            } else {
-              console.log("Could not find player2 data for:", updates.player2.name);
-            }
-          }
-        }
-
-        // Always clear and re-insert participants to ensure consistency
-        console.log("Clearing existing participants...");
-        const { error: deleteError } = await supabase
-          .from('match_participants')
-          .delete()
-          .eq('match_id', matchId);
-
-        if (deleteError) {
-          console.error("Error deleting existing participants:", deleteError);
-          throw deleteError;
-        }
-
-        // Insert new participants (including placeholders)
-        if (participantsToUpsert.length > 0) {
-          console.log("Inserting", participantsToUpsert.length, "participants...");
-          const { error: participantError } = await supabase
+        try {
+          // Get existing participants first
+          const { data: existingParticipants, error: fetchError } = await supabase
             .from('match_participants')
-            .insert(participantsToUpsert);
+            .select('*')
+            .eq('match_id', matchId);
 
-          if (participantError) {
-            console.error("Participant insert error:", participantError);
-            throw participantError;
+          if (fetchError) {
+            console.error("Error fetching existing participants:", fetchError);
+            throw fetchError;
           }
-          console.log("Successfully inserted all participants");
-        } else {
-          console.log("No participants to insert");
+
+          console.log("Found existing participants:", existingParticipants?.length || 0);
+          
+          const participantsToUpsert = [];
+          
+          if (updates.player1) {
+            if (updates.player1.name?.startsWith("no-opponent")) {
+              // Handle "no opponent" placeholder
+              console.log("Adding player1 placeholder:", updates.player1.name);
+              participantsToUpsert.push({
+                match_id: matchId,
+                player_id: null,
+                position: 1,
+                score: null,
+                is_placeholder: true,
+                placeholder_name: updates.player1.name
+              });
+            } else if (updates.player1.name && !updates.player1.name.startsWith("no-player")) {
+              // Handle real player
+              const player1Data = players.find(p => p.name === updates.player1?.name);
+              if (player1Data) {
+                console.log("Adding player1 participant:", player1Data.name, "ID:", player1Data.id);
+                participantsToUpsert.push({
+                  match_id: matchId,
+                  player_id: player1Data.id,
+                  position: 1,
+                  score: updates.player1.score || null,
+                  is_placeholder: false,
+                  placeholder_name: null
+                });
+              } else {
+                console.log("Could not find player1 data for:", updates.player1.name);
+                console.log("Available players:", players.map(p => p.name));
+              }
+            }
+          }
+          
+          if (updates.player2) {
+            if (updates.player2.name?.startsWith("no-opponent")) {
+              // Handle "no opponent" placeholder
+              console.log("Adding player2 placeholder:", updates.player2.name);
+              participantsToUpsert.push({
+                match_id: matchId,
+                player_id: null,
+                position: 2,
+                score: null,
+                is_placeholder: true,
+                placeholder_name: updates.player2.name
+              });
+            } else if (updates.player2.name && !updates.player2.name.startsWith("no-player")) {
+              // Handle real player
+              const player2Data = players.find(p => p.name === updates.player2?.name);
+              if (player2Data) {
+                console.log("Adding player2 participant:", player2Data.name, "ID:", player2Data.id);
+                participantsToUpsert.push({
+                  match_id: matchId,
+                  player_id: player2Data.id,
+                  position: 2,
+                  score: updates.player2.score || null,
+                  is_placeholder: false,
+                  placeholder_name: null
+                });
+              } else {
+                console.log("Could not find player2 data for:", updates.player2.name);
+                console.log("Available players:", players.map(p => p.name));
+              }
+            }
+          }
+
+          // Only update participants if we have valid data to insert
+          if (participantsToUpsert.length > 0) {
+            console.log("Clearing existing participants...");
+            const { error: deleteError } = await supabase
+              .from('match_participants')
+              .delete()
+              .eq('match_id', matchId);
+
+            if (deleteError) {
+              console.error("Error deleting existing participants:", deleteError);
+              throw deleteError;
+            }
+
+            console.log("Inserting", participantsToUpsert.length, "participants:", participantsToUpsert);
+            const { error: participantError } = await supabase
+              .from('match_participants')
+              .insert(participantsToUpsert);
+
+            if (participantError) {
+              console.error("Participant insert error:", participantError);
+              console.error("Failed data:", participantsToUpsert);
+              throw participantError;
+            }
+            console.log("Successfully updated all participants");
+          } else {
+            console.log("No valid participants to insert - keeping existing participants");
+          }
+        } catch (participantError) {
+          console.error("Error in participant update process:", participantError);
+          throw participantError;
         }
       }
 
