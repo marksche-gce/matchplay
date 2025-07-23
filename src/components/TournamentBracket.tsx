@@ -8,7 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 
 import { EditMatchDialog } from "./EditMatchDialog";
 import { ManualMatchSetup } from "./ManualMatchSetup";
-import { TournamentBracketFlow } from "./TournamentBracketFlow";
+
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -2129,28 +2129,6 @@ export function TournamentBracket({
         </CardHeader>
       </Card>
 
-      {/* Visual Bracket Flow */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Trophy className="h-5 w-5" />
-            Bracket Visualization
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <TournamentBracketFlow
-            tournamentId={tournamentId}
-            matches={matches.filter(m => m.tournamentId === tournamentId)}
-            players={players}
-            onMatchSelect={(matchId) => {
-              const match = matches.find(m => m.id === matchId);
-              if (match) {
-                setSelectedMatch(match);
-              }
-            }}
-          />
-        </CardContent>
-      </Card>
 
       {/* Bracket Display - Always show bracket structure */}
       <ScrollArea className="w-full">
