@@ -170,7 +170,7 @@ export function TournamentBracket({
     const matchesToUse = databaseMatches.length > 0 ? databaseMatches : generatedMatches;
     console.log("Using matches:", databaseMatches.length > 0 ? "database" : "generated", "count:", matchesToUse.length);
     
-    // Group existing matches by round and sort them consistently
+    // Group existing matches by round and preserve their original order (DON'T CHANGE SORTING!)
     const roundsMap = new Map<string, Match[]>();
     matchesToUse.forEach(match => {
       const roundName = match.round;
@@ -180,13 +180,8 @@ export function TournamentBracket({
       roundsMap.get(roundName)!.push(match);
     });
 
-    // Sort matches within each round for consistent positioning
-    roundsMap.forEach((matches, roundName) => {
-      matches.sort((a, b) => {
-        // Sort by ID for consistent ordering (database UUIDs will maintain creation order)
-        return a.id.localeCompare(b.id);
-      });
-    });
+    // DO NOT SORT - preserve the original order of matches within each round
+    // This ensures match 1 stays as match 1, match 2 stays as match 2, etc.
 
     // Create bracket structure with proper ordering - always show all rounds with expected matches
     const rounds: BracketRound[] = [];
@@ -874,12 +869,13 @@ export function TournamentBracket({
   const setupBracketRelationships = async () => {
     console.log("=== SETTING UP BRACKET RELATIONSHIPS ===");
     try {
-      // Get all matches for this tournament
+      // Get all matches for this tournament, preserving the order within each round
       const { data: allMatches, error } = await supabase
         .from('matches')
         .select('*')
         .eq('tournament_id', tournamentId)
-        .order('round');
+        .order('round')
+        .order('created_at'); // Preserve creation order within each round
 
       if (error) throw error;
 
