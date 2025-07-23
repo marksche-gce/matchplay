@@ -1582,120 +1582,247 @@ export function TournamentBracket({
     }
   };
 
-  const generateCompleteBracket = async () => {
-    await regenerateBracketFromScratch();
-  };
-
-  const regenerateBracketFromScratch = async () => {
+  // Save first round setup and generate complete bracket
+  const saveFirstRoundSetup = async () => {
     try {
-      console.log("=== REGENERATING BRACKET FROM SCRATCH ===");
+      console.log("=== SAVING FIRST ROUND SETUP ===");
       
-      // Step 1: Delete all matches except Round 1 to start fresh
+      // Check if we have first round matches
+      const firstRoundMatches = matches.filter(m => 
+        m.tournamentId === tournamentId && m.round === "Round 1"
+      );
+      
+      if (firstRoundMatches.length === 0) {
+        toast({
+          title: "No First Round Matches",
+          description: "Please set up first round matches first using the manual setup.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      console.log("First round matches found:", firstRoundMatches.length);
+      
+      // Calculate total rounds needed
+      const totalRounds = Math.ceil(Math.log2(maxPlayers));
+      console.log("Total rounds needed:", totalRounds);
+      
+      // Delete any existing matches beyond Round 1
       await supabase
         .from('matches')
         .delete()
         .eq('tournament_id', tournamentId)
         .neq('round', 'Round 1');
       
-      // Step 2: Clear relationships for Round 1 matches
+      // Generate complete bracket structure
+      await generateCompleteBracketStructure(totalRounds, firstRoundMatches.length);
+      
+      // Setup proper bracket relationships
+      await setupProperBracketRelationships(totalRounds);
+      
+      // Refresh the display
+      generateBracket();
+      
+      toast({
+        title: "Success",
+        description: "Tournament bracket setup completed successfully!"
+      });
+      
+    } catch (error) {
+      console.error("Error saving first round setup:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save tournament setup. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Helper function to get round names
+  const getRoundName = (round: number, totalRounds: number): string => {
+    if (round === totalRounds) return "Final";
+    if (round === totalRounds - 1) return "Semifinals";
+    if (round === totalRounds - 2) return "Quarterfinals";
+    return `Round ${round}`;
+  };
+
+  // Generate complete bracket structure
+  const generateCompleteBracketStructure = async (totalRounds: number, firstRoundMatches: number) => {
+    const allMatches = [];
+    
+    // Create matches for rounds 2 through final
+    for (let round = 2; round <= totalRounds; round++) {
+      const matchesInRound = Math.pow(2, totalRounds - round);
+      const roundName = getRoundName(round, totalRounds);
+      
+      console.log(`Creating ${matchesInRound} matches for ${roundName}`);
+      
+      for (let matchInRound = 0; matchInRound < matchesInRound; matchInRound++) {
+        const match = {
+          tournament_id: tournamentId,
+          round: roundName,
+          type: 'singles', // Always singles for now
+          status: 'scheduled'
+        };
+        
+        allMatches.push(match);
+      }
+    }
+    
+    // Insert all matches into database
+    if (allMatches.length > 0) {
+      const { data: createdMatches, error: createError } = await supabase
+        .from('matches')
+        .insert(allMatches)
+        .select('*')
+        .order('created_at');
+      
+      if (createError) {
+        console.error("Error creating matches:", createError);
+        throw createError;
+      }
+      
+      console.log("Successfully created", createdMatches?.length, "matches");
+    }
+  };
+
+  // Setup proper bracket relationships with correct advancement logic
+  const setupProperBracketRelationships = async (totalRounds: number) => {
+    try {
+      console.log("=== SETTING UP PROPER BRACKET RELATIONSHIPS ===");
+      
+      // Get all matches for this tournament, ordered by round and creation
+      const { data: allMatches, error } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('tournament_id', tournamentId)
+        .order('created_at');
+      
+      if (error) {
+        console.error("Error fetching matches:", error);
+        throw error;
+      }
+      
+      console.log("All matches fetched:", allMatches?.length);
+      if (!allMatches || allMatches.length === 0) return;
+      
+      // Group matches by round in correct order
+      const matchesByRound: { [key: string]: any[] } = {};
+      allMatches.forEach(match => {
+        if (!matchesByRound[match.round]) {
+          matchesByRound[match.round] = [];
+        }
+        matchesByRound[match.round].push(match);
+      });
+      
+      // Setup relationships: Winner of match 1&2 → match 1 next round, Winner of match 3&4 → match 2 next round, etc.
+      for (let round = 1; round < totalRounds; round++) {
+        const currentRoundName = getRoundName(round, totalRounds);
+        const nextRoundName = getRoundName(round + 1, totalRounds);
+        
+        const currentRoundMatches = matchesByRound[currentRoundName] || [];
+        const nextRoundMatches = matchesByRound[nextRoundName] || [];
+        
+        console.log(`Setting up relationships from ${currentRoundName} (${currentRoundMatches.length}) to ${nextRoundName} (${nextRoundMatches.length})`);
+        
+        // Each pair of current round matches feeds into one next round match
+        for (let i = 0; i < nextRoundMatches.length; i++) {
+          const nextMatch = nextRoundMatches[i];
+          const sourceMatch1 = currentRoundMatches[i * 2];     // Match 1, 3, 5, etc.
+          const sourceMatch2 = currentRoundMatches[i * 2 + 1]; // Match 2, 4, 6, etc.
+          
+          if (sourceMatch1 && sourceMatch2) {
+            console.log(`Setting up: Match ${i * 2 + 1} + Match ${i * 2 + 2} → Next Round Match ${i + 1}`);
+            
+            // Update the next round match with previous match references
+            await supabase
+              .from('matches')
+              .update({
+                previous_match_1_id: sourceMatch1.id,
+                previous_match_2_id: sourceMatch2.id
+              })
+              .eq('id', nextMatch.id);
+            
+            // Update source matches with next match reference
+            await supabase
+              .from('matches')
+              .update({ next_match_id: nextMatch.id })
+              .eq('id', sourceMatch1.id);
+              
+            await supabase
+              .from('matches')
+              .update({ next_match_id: nextMatch.id })
+              .eq('id', sourceMatch2.id);
+          }
+        }
+      }
+      
+      console.log("Bracket relationships setup complete");
+      
+    } catch (error) {
+      console.error("Error setting up bracket relationships:", error);
+      throw error;
+    }
+  };
+
+  // Complete reset function that clears ALL data
+  const resetAllSetup = async () => {
+    try {
+      console.log("=== RESETTING ALL SETUP ===");
+      
+      // Clear all relationships first
       await supabase
         .from('matches')
         .update({
           next_match_id: null,
           previous_match_1_id: null,
-          previous_match_2_id: null
+          previous_match_2_id: null,
+          winner_id: null
         })
-        .eq('tournament_id', tournamentId)
-        .eq('round', 'Round 1');
+        .eq('tournament_id', tournamentId);
       
-      // Step 3: Get completed Round 1 matches with winners
-      const { data: completedRound1, error: fetchError } = await supabase
+      // Delete all match participants  
+      const { data: matchIds } = await supabase
         .from('matches')
-        .select('*')
-        .eq('tournament_id', tournamentId)
-        .eq('round', 'Round 1')
-        .eq('status', 'completed')
-        .not('winner_id', 'is', null)
-        .order('created_at');
-        
-      if (fetchError) {
-        console.error("Error fetching Round 1 matches:", fetchError);
-        throw fetchError;
+        .select('id')
+        .eq('tournament_id', tournamentId);
+      
+      if (matchIds && matchIds.length > 0) {
+        await supabase
+          .from('match_participants')
+          .delete()
+          .in('match_id', matchIds.map(m => m.id));
       }
       
-      if (!completedRound1 || completedRound1.length < 2) {
-        toast({
-          title: "Info",
-          description: "Need at least 2 completed Round 1 matches to generate bracket.",
-        });
-        return;
+      // Delete all matches
+      const { error: deleteMatchesError } = await supabase
+        .from('matches')
+        .delete()
+        .eq('tournament_id', tournamentId);
+      
+      if (deleteMatchesError) {
+        console.error("Error deleting matches:", deleteMatchesError);
+        throw deleteMatchesError;
       }
       
-      console.log("Found", completedRound1.length, "completed Round 1 matches");
+      // Reset local state
+      setBracketData([]);
+      setSelectedMatch(null);
+      setShowManualSetup(true);
       
-      // Step 4: Create Quarterfinals matches - pair winners sequentially
-      const quarterfinalsMatches = [];
-      for (let i = 0; i < completedRound1.length; i += 2) {
-        if (i + 1 < completedRound1.length) {
-          quarterfinalsMatches.push({
-            tournament_id: tournamentId,
-            type: "singles",
-            round: "Quarterfinals",
-            status: "scheduled",
-            previous_match_1_id: completedRound1[i].id,
-            previous_match_2_id: completedRound1[i + 1].id
-          });
-        }
-      }
-      
-      let totalCreated = 0;
-      
-      if (quarterfinalsMatches.length > 0) {
-        const { data: newQuarterfinals, error: quarterError } = await supabase
-          .from('matches')
-          .insert(quarterfinalsMatches)
-          .select();
-          
-        if (quarterError) {
-          console.error("Error creating Quarterfinals:", quarterError);
-          throw quarterError;
-        }
-        
-        // Update Round 1 next_match_id
-        for (let i = 0; i < quarterfinalsMatches.length; i++) {
-          const nextMatchId = newQuarterfinals?.[i]?.id;
-          if (nextMatchId) {
-            await supabase
-              .from('matches')
-              .update({ next_match_id: nextMatchId })
-              .eq('id', completedRound1[i * 2].id);
-              
-            if (i * 2 + 1 < completedRound1.length) {
-              await supabase
-                .from('matches')
-                .update({ next_match_id: nextMatchId })
-                .eq('id', completedRound1[i * 2 + 1].id);
-            }
-          }
-        }
-        
-        totalCreated += newQuarterfinals?.length || 0;
-        console.log("Created", newQuarterfinals?.length || 0, "Quarterfinals matches");
-      }
-      
-      // Refresh data by calling onMatchUpdate to trigger parent refresh
-      onMatchUpdate([...matches]);
+      // Trigger refresh
+      onMatchUpdate([]);
       
       toast({
-        title: "Bracket Regenerated",
-        description: `Successfully regenerated bracket. Created ${totalCreated} new matches.`,
+        title: "Success",
+        description: "All tournament data has been reset successfully!"
       });
       
     } catch (error) {
-      console.error("Error regenerating bracket:", error);
+      console.error("Error resetting setup:", error);
       toast({
         title: "Error",
-        description: "Failed to regenerate bracket",
+        description: "Failed to reset tournament setup. Please try again.",
         variant: "destructive"
       });
     }
@@ -1982,36 +2109,20 @@ export function TournamentBracket({
             </div>
             <div className="flex gap-2">
               <Button
-                onClick={handleUpdateMatches}
-                variant="secondary"
-                className="gap-2"
-              >
-                <RefreshCw className="h-4 w-4" />
-                Update Matches
-              </Button>
-              <Button
-                onClick={() => setupBracketRelationships()}
-                variant="outline"
-                className="gap-2"
-              >
-                <RefreshCw className="h-4 w-4" />
-                Setup Relationships
-              </Button>
-              <Button
-                onClick={generateCompleteBracket}
-                variant="outline"
+                onClick={saveFirstRoundSetup}
+                variant="default"
                 className="gap-2"
               >
                 <Trophy className="h-4 w-4" />
-                Complete Bracket
+                Save Setup 1. Round
               </Button>
               <Button
-                onClick={deleteAllMatches}
+                onClick={resetAllSetup}
                 variant="destructive"
                 className="gap-2"
               >
                 <Trash2 className="h-4 w-4" />
-                Reset All Matches
+                Reset Setup
               </Button>
             </div>
           </div>
