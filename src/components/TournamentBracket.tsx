@@ -675,6 +675,27 @@ export function TournamentBracket({
     
     console.log("=== NEXT ROUND MATCHES CREATION COMPLETE ===");
   };
+
+  // Custom advancement mapping based on user requirements
+  const getAdvancementMapping = (matchIndex: number, totalMatches: number) => {
+    // User specified:
+    // Match 1 (index 0) → Position 2 of Round 2 Match 1 (index 0)
+    // Match 5 (index 4) → Position 1 of Round 2 Match 3 (index 2)
+    
+    // This suggests a custom bracket structure
+    const advancementMap = {
+      0: { nextMatchIndex: 0, position: 2 }, // Match 1 → Match 1 Position 2
+      1: { nextMatchIndex: 0, position: 1 }, // Match 2 → Match 1 Position 1 (assuming)
+      2: { nextMatchIndex: 1, position: 2 }, // Match 3 → Match 2 Position 2 (assuming)
+      3: { nextMatchIndex: 1, position: 1 }, // Match 4 → Match 2 Position 1 (assuming)
+      4: { nextMatchIndex: 2, position: 1 }, // Match 5 → Match 3 Position 1
+      5: { nextMatchIndex: 2, position: 2 }, // Match 6 → Match 3 Position 2 (assuming)
+      6: { nextMatchIndex: 3, position: 1 }, // Match 7 → Match 4 Position 1 (assuming)
+      7: { nextMatchIndex: 3, position: 2 }, // Match 8 → Match 4 Position 2 (assuming)
+    };
+    
+    return advancementMap[matchIndex] || { nextMatchIndex: Math.floor(matchIndex / 2), position: (matchIndex % 2) + 1 };
+  };
   const progressWinnerToDatabase = async (completedMatch: Match, winnerPlayer: { id: string; name: string; handicap: number }) => {
     try {
       console.log("=== PROGRESS WINNER TO DATABASE ===");
@@ -704,10 +725,29 @@ export function TournamentBracket({
         position = nextMatch.previous_match_1_id === completedMatch.id ? 1 : 2;
         console.log("Using next match from database:", nextMatch.id, "Position:", position);
       } else {
-        // Try to find next match by round logic - look for matches in the next round
-        console.log("No database relationships found, trying round-based logic...");
+        // Use custom advancement mapping for proper bracket positioning
+        console.log("Using custom advancement mapping...");
         
-        // Get the current round number and find the next round
+        // Get current round matches to find the match index
+        const { data: currentRoundMatches, error: currentRoundError } = await supabase
+          .from('matches')
+          .select('*')
+          .eq('tournament_id', tournamentId)
+          .eq('round', completedMatch.round)
+          .order('created_at');
+          
+        if (currentRoundError) {
+          console.error("Error getting current round matches:", currentRoundError);
+          throw currentRoundError;
+        }
+        
+        const matchIndex = currentRoundMatches?.findIndex(m => m.id === completedMatch.id) || 0;
+        console.log("Match index in round:", matchIndex);
+        
+        const advancement = getAdvancementMapping(matchIndex, currentRoundMatches?.length || 0);
+        console.log("Advancement mapping:", advancement);
+        
+        // Get next round matches
         const roundMapping = {
           "Round 1": "Quarterfinals",
           "Quarterfinals": "Semifinals", 
@@ -722,23 +762,13 @@ export function TournamentBracket({
             .from('matches')
             .select('*')
             .eq('tournament_id', tournamentId)
-            .eq('round', nextRound);
+            .eq('round', nextRound)
+            .order('created_at');
             
-          if (!nextRoundError && nextRoundMatches && nextRoundMatches.length > 0) {
-            // For now, use the first available match in the next round
-            // In a real implementation, you'd want more sophisticated logic here
-            nextMatch = nextRoundMatches[0];
-            
-            // Check if position 1 is already taken
-            const { data: existingP1 } = await supabase
-              .from('match_participants')
-              .select('*')
-              .eq('match_id', nextMatch.id)
-              .eq('position', 1)
-              .single();
-              
-            position = existingP1 ? 2 : 1;
-            console.log("Using next round match:", nextMatch.id, "Position:", position);
+          if (!nextRoundError && nextRoundMatches && nextRoundMatches.length > advancement.nextMatchIndex) {
+            nextMatch = nextRoundMatches[advancement.nextMatchIndex];
+            position = advancement.position;
+            console.log(`Using custom mapping: Match ${matchIndex + 1} winner → Match ${advancement.nextMatchIndex + 1} Position ${position}`);
           }
         }
       }
