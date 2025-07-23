@@ -486,60 +486,124 @@ export function TournamentBracket({
 
   const progressWinnerToDatabase = async (completedMatch: Match, winnerPlayer: { id: string; name: string; handicap: number }) => {
     try {
-      // Find the next match in the database based on bracket relationships
+      console.log("progressWinnerToDatabase: Looking for next match for completed match:", completedMatch.id);
+      
+      // First try to find next match using bracket relationships
       const { data: nextMatches, error: nextMatchError } = await supabase
         .from('matches')
         .select('*')
         .or(`previous_match_1_id.eq.${completedMatch.id},previous_match_2_id.eq.${completedMatch.id}`);
 
-      if (nextMatchError) throw nextMatchError;
-
-      if (nextMatches && nextMatches.length > 0) {
-        const nextMatch = nextMatches[0];
-        
-        // Determine which position the winner should be placed in
-        const position = nextMatch.previous_match_1_id === completedMatch.id ? 1 : 2;
-        
-        // Check if participant already exists
-        const { data: existingParticipant, error: checkError } = await supabase
-          .from('match_participants')
-          .select('*')
-          .eq('match_id', nextMatch.id)
-          .eq('position', position)
-          .single();
-
-        if (checkError && checkError.code !== 'PGRST116') { // Not found is okay
-          throw checkError;
-        }
-
-        if (existingParticipant) {
-          // Update existing participant
-          const { error: updateError } = await supabase
-            .from('match_participants')
-            .update({
-              player_id: winnerPlayer.id,
-              score: null // Reset score for new match
-            })
-            .eq('id', existingParticipant.id);
-
-          if (updateError) throw updateError;
-        } else {
-          // Create new participant
-          const { error: insertError } = await supabase
-            .from('match_participants')
-            .insert({
-              match_id: nextMatch.id,
-              player_id: winnerPlayer.id,
-              position: position,
-              team_number: null,
-              score: null
-            });
-
-          if (insertError) throw insertError;
-        }
-
-        console.log(`Winner ${winnerPlayer.name} advanced to next match in database`);
+      if (nextMatchError) {
+        console.log("Database query error:", nextMatchError);
+        throw nextMatchError;
       }
+
+      console.log("Found next matches from database:", nextMatches?.length || 0);
+      
+      // If no matches found in database with relationships, try to find from bracket data
+      let nextMatch = null;
+      if (nextMatches && nextMatches.length > 0) {
+        nextMatch = nextMatches[0];
+        console.log("Using next match from database:", nextMatch.id);
+      } else {
+        // Find next match from bracket data as fallback
+        console.log("No database relationships found, searching bracket data...");
+        for (const round of bracketData) {
+          for (const match of round.matches) {
+            if (match.previousMatch1Id === completedMatch.id || match.previousMatch2Id === completedMatch.id) {
+              // Check if this is a real database match (has UUID)
+              if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(match.id)) {
+                // Fetch the actual match from database
+                const { data: dbMatch, error: fetchError } = await supabase
+                  .from('matches')
+                  .select('*')
+                  .eq('id', match.id)
+                  .single();
+                
+                if (!fetchError && dbMatch) {
+                  nextMatch = dbMatch;
+                  console.log("Found next match from bracket data:", nextMatch.id);
+                  break;
+                }
+              }
+            }
+          }
+          if (nextMatch) break;
+        }
+      }
+
+      if (!nextMatch) {
+        console.log("No next match found for winner advancement");
+        return;
+      }
+
+      // Determine which position the winner should be placed in
+      let position = 1;
+      
+      // Check bracket data to determine correct position
+      const bracketMatch = bracketData
+        .flatMap(round => round.matches)
+        .find(m => m.id === nextMatch.id);
+        
+      if (bracketMatch) {
+        if (bracketMatch.previousMatch1Id === completedMatch.id) {
+          position = 1;
+        } else if (bracketMatch.previousMatch2Id === completedMatch.id) {
+          position = 2;
+        }
+      } else {
+        // Fallback to database relationships
+        if (nextMatch.previous_match_1_id === completedMatch.id) {
+          position = 1;
+        } else if (nextMatch.previous_match_2_id === completedMatch.id) {
+          position = 2;
+        }
+      }
+      
+      console.log("Advancing winner to position:", position, "in match:", nextMatch.id);
+      
+      // Check if participant already exists
+      const { data: existingParticipant, error: checkError } = await supabase
+        .from('match_participants')
+        .select('*')
+        .eq('match_id', nextMatch.id)
+        .eq('position', position)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') { // Not found is okay
+        throw checkError;
+      }
+
+      if (existingParticipant) {
+        // Update existing participant
+        console.log("Updating existing participant for position:", position);
+        const { error: updateError } = await supabase
+          .from('match_participants')
+          .update({
+            player_id: winnerPlayer.id,
+            score: null // Reset score for new match
+          })
+          .eq('id', existingParticipant.id);
+
+        if (updateError) throw updateError;
+      } else {
+        // Create new participant
+        console.log("Creating new participant for position:", position);
+        const { error: insertError } = await supabase
+          .from('match_participants')
+          .insert({
+            match_id: nextMatch.id,
+            player_id: winnerPlayer.id,
+            position: position,
+            team_number: null,
+            score: null
+          });
+
+        if (insertError) throw insertError;
+      }
+
+      console.log(`Winner ${winnerPlayer.name} successfully advanced to next match in database`);
     } catch (error) {
       console.error('Error progressing winner to database:', error);
       throw error;
