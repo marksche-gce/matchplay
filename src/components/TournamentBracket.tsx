@@ -135,27 +135,69 @@ export function TournamentBracket({
       if (databaseMatches.length > 0) {
         setShowManualSetup(false);
         
-        // Ensure bracket relationships are set up before processing winners
-        // But only if we're not already advancing winners to prevent loops
-        if (!isAdvancingWinners) {
-          console.log("Setting up bracket relationships...");
-          setupBracketRelationships().then(async () => {
-            console.log("Bracket relationships set up, calling advanceAllWinners...");
-            await advanceAllWinners();
-            console.log("Calling processAutoAdvanceByes...");
-            await processAutoAdvanceByes();
-          }).catch(error => {
-            console.error("Failed to setup bracket relationships:", error);
-          });
-        } else {
-          console.log("Already advancing winners, skipping automatic advancement in useEffect");
-        }
+        // Set up bracket relationships if needed
+        setupBracketRelationships().catch(error => {
+          console.error("Failed to setup bracket relationships:", error);
+        });
       } else {
         setShowManualSetup(true);
       }
     }
     console.log("=== BRACKET EFFECT COMPLETE ===");
   }, [matches, players, maxPlayers]);
+
+  // Enhanced function for immediate winner advancement
+  const handleImmediateWinnerAdvancement = async (updatedMatches: Match[]) => {
+    console.log("=== HANDLE IMMEDIATE WINNER ADVANCEMENT ===");
+    
+    // Check if any matches were just completed
+    const previousMatches = matches.filter(m => m.tournamentId === tournamentId);
+    const newMatches = updatedMatches.filter(m => m.tournamentId === tournamentId);
+    
+    // Find newly completed matches
+    const newlyCompletedMatches = newMatches.filter(newMatch => {
+      const previousMatch = previousMatches.find(prev => prev.id === newMatch.id);
+      return newMatch.status === "completed" && 
+             newMatch.winner && 
+             previousMatch && 
+             (previousMatch.status !== "completed" || previousMatch.winner !== newMatch.winner);
+    });
+    
+    console.log("Newly completed matches:", newlyCompletedMatches.length);
+    
+    // Immediately advance winners for newly completed matches
+    for (const completedMatch of newlyCompletedMatches) {
+      if (completedMatch.winner) {
+        console.log("Immediately advancing winner:", completedMatch.winner, "from match:", completedMatch.id);
+        
+        const winnerPlayerData = players.find(p => p.name === completedMatch.winner);
+        if (winnerPlayerData) {
+          try {
+            await progressWinnerToDatabase(completedMatch, winnerPlayerData);
+            
+            toast({
+              title: "Winner Advanced!",
+              description: `${completedMatch.winner} has been advanced to the next round.`,
+            });
+          } catch (error) {
+            console.error("Failed to advance winner immediately:", error);
+            toast({
+              title: "Error",
+              description: "Failed to advance winner. Please try refreshing.",
+              variant: "destructive"
+            });
+          }
+        }
+      }
+    }
+    
+    // Regenerate bracket to show the changes
+    setTimeout(() => {
+      generateBracket();
+    }, 100);
+    
+    console.log("=== END IMMEDIATE WINNER ADVANCEMENT ===");
+  };
 
   const generateBracket = () => {
     const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
