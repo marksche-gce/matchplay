@@ -161,39 +161,11 @@ export function TournamentBracket({
     const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
     console.log("All tournament matches:", tournamentMatches);
     
-    // Separate database matches (UUIDs) from generated matches (non-UUIDs)
-    const databaseMatches = tournamentMatches.filter(m => 
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(m.id)
-    );
-    const generatedMatches = tournamentMatches.filter(m => 
-      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(m.id)
-    );
-    
-    console.log("Database matches found:", databaseMatches.length);
-    console.log("Generated matches found:", generatedMatches.length);
-    
-    // Use database matches if they exist, otherwise use generated matches
-    const matchesToUse = databaseMatches.length > 0 ? databaseMatches : generatedMatches;
-    console.log("Using matches:", databaseMatches.length > 0 ? "database" : "generated", "count:", matchesToUse.length);
-    
-    // Group existing matches by round and preserve their original order (DON'T CHANGE SORTING!)
-    const roundsMap = new Map<string, Match[]>();
-    matchesToUse.forEach(match => {
-      const roundName = match.round;
-      if (!roundsMap.has(roundName)) {
-        roundsMap.set(roundName, []);
-      }
-      roundsMap.get(roundName)!.push(match);
-    });
-
-    // DO NOT SORT - preserve the original order of matches within each round
-    // This ensures match 1 stays as match 1, match 2 stays as match 2, etc.
-
-    // Create bracket structure with proper ordering - always show all rounds with expected matches
-    const rounds: BracketRound[] = [];
+    // Calculate proper bracket structure based on max players
     const totalRounds = Math.ceil(Math.log2(maxPlayers));
+    console.log(`Generating bracket for ${maxPlayers} players with ${totalRounds} rounds`);
     
-    // Generate all round names based on tournament size
+    // Define round names in correct order
     const roundNames: string[] = [];
     for (let i = 1; i <= totalRounds; i++) {
       if (i === totalRounds) roundNames.push("Final");
@@ -202,86 +174,67 @@ export function TournamentBracket({
       else roundNames.push(`Round ${i}`);
     }
     
-    // Create all rounds with expected number of matches and proper relationships
+    console.log("Round names:", roundNames);
+    
+    // Separate database matches (UUIDs) from generated matches (non-UUIDs)
+    const databaseMatches = tournamentMatches.filter(m => 
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(m.id)
+    );
+    
+    console.log("Database matches found:", databaseMatches.length);
+    
+    // Group existing matches by round
+    const roundsMap = new Map<string, Match[]>();
+    databaseMatches.forEach(match => {
+      const roundName = match.round;
+      if (!roundsMap.has(roundName)) {
+        roundsMap.set(roundName, []);
+      }
+      roundsMap.get(roundName)!.push(match);
+    });
+
+    // Create bracket structure with fixed number of matches per round
+    const rounds: BracketRound[] = [];
+    
     roundNames.forEach((roundName, roundIndex) => {
       const existingMatches = roundsMap.get(roundName) || [];
-      const expectedMatches = Math.pow(2, Math.max(0, totalRounds - (roundIndex + 1)));
-      const allMatches: Match[] = [];
+      const expectedMatches = Math.pow(2, totalRounds - (roundIndex + 1));
       
-      // Add existing matches (already sorted consistently)
-      existingMatches.forEach((match, matchIndex) => {
-        // Set up progression relationships for existing matches
-        if (roundIndex > 0) {
-          const prevRoundName = roundNames[roundIndex - 1];
-          const prevRoundMatches = roundsMap.get(prevRoundName) || [];
-          
-          // Each match in current round gets winners from 2 matches in previous round
-          const prevMatchIndex1 = matchIndex * 2;
-          const prevMatchIndex2 = matchIndex * 2 + 1;
-          
-          if (prevMatchIndex1 < prevRoundMatches.length) {
-            match.previousMatch1Id = prevRoundMatches[prevMatchIndex1].id;
-          }
-          if (prevMatchIndex2 < prevRoundMatches.length) {
-            match.previousMatch2Id = prevRoundMatches[prevMatchIndex2].id;
-          }
-        }
+      console.log(`${roundName}: Expected ${expectedMatches} matches, found ${existingMatches.length}`);
+      
+      const roundMatches: Match[] = [];
+      
+      // Add existing database matches
+      for (let i = 0; i < expectedMatches; i++) {
+        const existingMatch = existingMatches[i];
         
-        allMatches.push(match);
-      });
-      
-      // Fill remaining slots with placeholder matches that show source connections
-      const remainingSlots = Math.max(0, expectedMatches - existingMatches.length);
-      for (let i = 0; i < remainingSlots; i++) {
-        const matchIndex = existingMatches.length + i;
-        const placeholderMatch: Match = {
-          id: `placeholder-${roundName}-${i}`,
-          tournamentId: tournamentId,
-          type: "singles" as const,
-          round: roundName,
-          status: "scheduled" as const,
-          date: new Date().toISOString().split('T')[0],
-          time: "TBD"
-        };
-
-        // Set up connections to previous matches for non-first rounds
-        if (roundIndex > 0) {
-          const prevRoundName = roundNames[roundIndex - 1];
-          const prevRoundMatches = roundsMap.get(prevRoundName) || [];
-          const prevRoundMatchIndex1 = matchIndex * 2;
-          const prevRoundMatchIndex2 = matchIndex * 2 + 1;
-          
-          // Look for existing matches or create placeholder references
-          if (prevRoundMatchIndex1 < prevRoundMatches.length) {
-            placeholderMatch.previousMatch1Id = prevRoundMatches[prevRoundMatchIndex1].id;
-          } else {
-            placeholderMatch.previousMatch1Id = `placeholder-${prevRoundName}-${prevRoundMatchIndex1 - prevRoundMatches.length}`;
-          }
-          
-          if (prevRoundMatchIndex2 < prevRoundMatches.length) {
-            placeholderMatch.previousMatch2Id = prevRoundMatches[prevRoundMatchIndex2].id;
-          } else {
-            placeholderMatch.previousMatch2Id = `placeholder-${prevRoundName}-${prevRoundMatchIndex2 - prevRoundMatches.length}`;
-          }
+        if (existingMatch) {
+          // Use existing match
+          roundMatches.push(existingMatch);
+        } else {
+          // Create placeholder for missing matches
+          roundMatches.push({
+            id: `placeholder-${roundName}-${i}`,
+            tournamentId: tournamentId,
+            type: "singles" as const,
+            round: roundName,
+            status: "scheduled" as const,
+            date: new Date().toISOString().split('T')[0],
+            time: "TBD"
+          });
         }
-
-        allMatches.push(placeholderMatch);
       }
       
       rounds.push({
         name: roundName,
-        matches: allMatches,
+        matches: roundMatches,
         roundNumber: roundIndex + 1
       });
     });
 
-    console.log("Generated bracket with proper relationships:");
+    console.log("Generated bracket structure:");
     rounds.forEach(round => {
-      console.log(`${round.name}:`, round.matches.map(m => ({
-        id: m.id,
-        prev1: m.previousMatch1Id,
-        prev2: m.previousMatch2Id
-      })));
+      console.log(`${round.name}: ${round.matches.length} matches`);
     });
 
     setBracketData(rounds);
@@ -425,93 +378,29 @@ export function TournamentBracket({
       const completedMatches = tournamentMatches.filter(m => m.status === "completed" && m.winner);
       
       console.log("advanceAllWinners called with", completedMatches.length, "completed matches");
-      completedMatches.forEach(match => {
-        console.log("Processing completed match:", match.id, "winner:", match.winner);
-      });
       
       if (completedMatches.length === 0) return;
 
-      // Group matches by round and process in order to ensure proper advancement flow
-      const completedByRound = completedMatches.reduce((acc, match) => {
-        if (!acc[match.round]) acc[match.round] = [];
-        acc[match.round].push(match);
-        return acc;
-      }, {});
-
-      console.log("Completed matches by round:", Object.keys(completedByRound));
-
-      // Process rounds in order and ensure next round matches exist
-      const roundOrder = ["Round 1", "Quarterfinals", "Semifinals", "Final"];
-      
-      for (const round of roundOrder) {
-        const roundMatches = completedByRound[round] || [];
-        if (roundMatches.length === 0) continue;
-
-        console.log(`Processing ${roundMatches.length} completed matches in ${round}`);
+      // Process each completed match to advance its winner
+      for (const completedMatch of completedMatches) {
+        console.log("Processing completed match:", completedMatch.id, "winner:", completedMatch.winner);
         
-        // First, ensure next round matches exist if this isn't the final
-        if (round !== "Final") {
-          await createNextRoundMatches(round, tournamentId);
-        }
-      }
-
-      let updatedMatches = [...matches];
-      let hasChanges = false;
-      let successfulAdvancements = 0;
-
-    // Process all completed matches to advance winners
-    for (const completedMatch of completedMatches) {
-      console.log("Processing winner advancement for match:", completedMatch.id, "winner:", completedMatch.winner);
-      
-      // For database matches, use direct database advancement
-      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(completedMatch.id)) {
         const winnerPlayerData = players.find(p => p.name === completedMatch.winner);
         if (winnerPlayerData) {
-          console.log("Advancing database match winner to database:", completedMatch.winner);
-          try {
-            await progressWinnerToDatabase(completedMatch, winnerPlayerData);
-            successfulAdvancements++;
-            hasChanges = true;
-          } catch (error) {
-            console.error("Failed to advance winner in database:", error);
-          }
-        }
-      } else {
-        // For placeholder matches, use UI advancement
-        const previousMatches = updatedMatches;
-        const advancedMatches = progressWinnerImmediately(previousMatches, completedMatch);
-        
-        if (advancedMatches !== previousMatches) {
-          console.log("Changes detected after winner advancement");
-          updatedMatches = advancedMatches;
-          hasChanges = true;
-          successfulAdvancements++;
-        } else {
-          console.log("No changes after winner advancement attempt");
+          await progressWinnerToDatabase(completedMatch, winnerPlayerData);
         }
       }
-    }
 
-    if (hasChanges) {
-      console.log("Changes detected in advanceAllWinners, but NOT calling onMatchUpdate to prevent loops");
-      // DO NOT call onMatchUpdate here as it triggers the useEffect again and creates an endless loop
-      // The bracket display is already updated via setBracketData in progressWinnerImmediately
+      // Refresh the bracket display with updated data
+      generateBracket();
       
-      // Show single consolidated toast instead of multiple
-      if (successfulAdvancements > 0) {
-        toast({
-          title: "Winners Advanced!",
-          description: `${successfulAdvancements} winner${successfulAdvancements > 1 ? 's have' : ' has'} been advanced to the next round.`,
-        });
-      }
-    } else {
-      console.log("No changes to report to parent component");
-    }
+      console.log("Winner advancement completed for all matches");
+      
     } catch (error) {
-      console.error("Error in advanceAllWinners:", error);
+      console.error("Error advancing winners:", error);
       toast({
         title: "Error",
-        description: "Failed to advance winners. Please try again.",
+        description: "Failed to advance winners",
         variant: "destructive"
       });
     } finally {
