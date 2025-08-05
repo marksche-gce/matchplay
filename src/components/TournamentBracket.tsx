@@ -690,14 +690,56 @@ export function TournamentBracket({
         console.log("Advancement mapping for match", matchIndex + 1, ":", advancement);
         console.log("This means: Match", matchIndex + 1, "winner goes to Round 2 Match", advancement.nextMatchIndex + 1, "Position", advancement.position);
         
-        // Get next round matches - calculate dynamically
+        // Get next round matches - handle both new and legacy round naming
         const getCurrentRoundNumber = (roundName: string): number => {
+          if (roundName === "Round 1") return 1;
+          if (roundName === "Round 2" || roundName === "Quarterfinals") return 2;
+          if (roundName === "Round 3" || roundName === "Semifinals") return 3;
+          if (roundName === "Round 4" || roundName === "Final") return 4;
+          
           const match = roundName.match(/Round (\d+)/);
           return match ? parseInt(match[1]) : 0;
         };
         
         const currentRoundNumber = getCurrentRoundNumber(completedMatch.round);
-        const nextRound = `Round ${currentRoundNumber + 1}`;
+        let nextRound = `Round ${currentRoundNumber + 1}`;
+        
+        // Handle legacy round naming for compatibility
+        if (currentRoundNumber === 1) {
+          // Check if next round uses legacy naming
+          const { data: legacyCheck } = await supabase
+            .from('matches')
+            .select('round')
+            .eq('tournament_id', tournamentId)
+            .eq('round', 'Quarterfinals')
+            .limit(1);
+            
+          if (legacyCheck && legacyCheck.length > 0) {
+            nextRound = 'Quarterfinals';
+          }
+        } else if (currentRoundNumber === 2) {
+          const { data: legacyCheck } = await supabase
+            .from('matches')
+            .select('round')
+            .eq('tournament_id', tournamentId)
+            .eq('round', 'Semifinals')
+            .limit(1);
+            
+          if (legacyCheck && legacyCheck.length > 0) {
+            nextRound = 'Semifinals';
+          }
+        } else if (currentRoundNumber === 3) {
+          const { data: legacyCheck } = await supabase
+            .from('matches')
+            .select('round')
+            .eq('tournament_id', tournamentId)
+            .eq('round', 'Final')
+            .limit(1);
+            
+          if (legacyCheck && legacyCheck.length > 0) {
+            nextRound = 'Final';
+          }
+        }
         console.log("Looking for next round:", nextRound);
         
         if (nextRound) {
@@ -751,7 +793,7 @@ export function TournamentBracket({
         .select('*')
         .eq('match_id', nextMatch.id)
         .eq('position', position)
-        .maybeSingle(); // Use maybeSingle to avoid errors when no record found
+        .maybeSingle();
 
       if (checkError) {
         console.error("Error checking existing participant:", checkError);
@@ -759,8 +801,8 @@ export function TournamentBracket({
       }
 
       if (existingParticipant) {
-        // Update existing participant only if it's a placeholder or different player
-        if (existingParticipant.is_placeholder || existingParticipant.player_id !== winnerPlayer.id) {
+        // Update existing participant only if it's different
+        if (existingParticipant.player_id !== winnerPlayer.id) {
           console.log("Updating existing participant for position:", position);
           const { error: updateError } = await supabase
             .from('match_participants')
@@ -780,11 +822,11 @@ export function TournamentBracket({
           console.log(`Position ${position} already has the correct player, skipping update`);
         }
       } else {
-        // Create new participant
+        // Create new participant - use UPSERT to handle race conditions
         console.log("Creating new participant for position:", position);
-        const { error: insertError } = await supabase
+        const { error: upsertError } = await supabase
           .from('match_participants')
-          .insert({
+          .upsert({
             match_id: nextMatch.id,
             player_id: winnerPlayer.id,
             position: position,
@@ -792,16 +834,14 @@ export function TournamentBracket({
             score: null,
             is_placeholder: false,
             placeholder_name: null
+          }, {
+            onConflict: 'match_id,position',
+            ignoreDuplicates: false
           });
 
-        if (insertError) {
-          console.error("Error inserting participant:", insertError);
-          // If it's a duplicate key error, just log and continue (race condition)
-          if (insertError.code === '23505') {
-            console.log("Duplicate key detected, player already advanced by another process");
-            return;
-          }
-          throw insertError;
+        if (upsertError) {
+          console.error("Error upserting participant:", upsertError);
+          throw upsertError;
         }
       }
 
@@ -897,11 +937,25 @@ export function TournamentBracket({
 
       console.log("Matches by round:", Object.keys(matchesByRound));
 
-      // Set up relationships between rounds - calculate based on maxPlayers
+      // Set up relationships between rounds - handle both new and legacy naming
       const totalRounds = Math.ceil(Math.log2(maxPlayers));
-      const roundOrder: string[] = [];
-      for (let i = 1; i <= totalRounds; i++) {
-        roundOrder.push(`Round ${i}`);
+      
+      // First get all unique round names from the database to determine naming convention
+      const { data: existingRounds } = await supabase
+        .from('matches')
+        .select('round')
+        .eq('tournament_id', tournamentId);
+      
+      let roundOrder: string[] = [];
+      
+      if (existingRounds?.some(r => r.round === 'Quarterfinals' || r.round === 'Semifinals' || r.round === 'Final')) {
+        // Use legacy naming convention
+        roundOrder = ["Round 1", "Quarterfinals", "Semifinals", "Final"];
+      } else {
+        // Use new naming convention
+        for (let i = 1; i <= totalRounds; i++) {
+          roundOrder.push(`Round ${i}`);
+        }
       }
       
       for (let i = 0; i < roundOrder.length - 1; i++) {
