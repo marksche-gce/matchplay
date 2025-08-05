@@ -655,24 +655,53 @@ export function TournamentBracket({
         return;
       }
 
-      // Add or update the participant in the correct position
-      const { error: upsertError } = await supabase
-        .from('match_participants')
-        .upsert({
-          match_id: nextMatch.id,
-          player_id: winnerPlayer.id,
-          position: position,
-          team_number: null,
-          score: null,
-          is_placeholder: false,
-          placeholder_name: null
-        }, {
-          onConflict: 'match_id,position'
-        });
+      // Check what's currently in the position we want to place the winner
+      const { data: currentParticipants } = await supabase
+        .from('match_participants')  
+        .select('*')
+        .eq('match_id', nextMatch.id)
+        .order('position');
 
-      if (upsertError) {
-        console.error("Error advancing winner:", upsertError);
-        throw upsertError;
+      console.log("Current participants in next match:", currentParticipants);
+
+      // Find the correct position to insert or update
+      let targetPosition = position;
+      const existingAtPosition = currentParticipants?.find(p => p.position === position);
+
+      if (existingAtPosition) {
+        // Update existing participant at this position
+        const { error: updateError } = await supabase
+          .from('match_participants')
+          .update({
+            player_id: winnerPlayer.id,
+            is_placeholder: false,
+            placeholder_name: null,
+            score: null
+          })
+          .eq('id', existingAtPosition.id);
+
+        if (updateError) {
+          console.error("Error updating participant:", updateError);
+          throw updateError;
+        }
+      } else {
+        // Insert new participant
+        const { error: insertError } = await supabase
+          .from('match_participants')
+          .insert({
+            match_id: nextMatch.id,
+            player_id: winnerPlayer.id,
+            position: position,
+            team_number: null,
+            score: null,
+            is_placeholder: false,
+            placeholder_name: null
+          });
+
+        if (insertError) {
+          console.error("Error inserting participant:", insertError);
+          throw insertError;
+        }
       }
 
       console.log(`Winner ${winnerPlayer.name} successfully advanced to next match!`);
