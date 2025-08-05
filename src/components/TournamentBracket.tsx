@@ -75,6 +75,123 @@ export function TournamentBracket({
   const [showManualSetup, setShowManualSetup] = useState(true);
   const { toast } = useToast();
 
+  // Function to refresh match data from database
+  const refreshMatchData = async () => {
+    console.log("=== REFRESHING MATCH DATA FROM DATABASE ===");
+    try {
+      // Fetch all matches with participants for this tournament
+      const { data: dbMatches, error: matchError } = await supabase
+        .from('matches')
+        .select(`
+          *,
+          match_participants (
+            id,
+            player_id,
+            position,
+            score,
+            is_placeholder,
+            placeholder_name,
+            players (
+              id,
+              name,
+              handicap
+            )
+          )
+        `)
+        .eq('tournament_id', tournamentId)
+        .order('round', { ascending: true });
+
+      if (matchError) {
+        console.error("Error refreshing match data:", matchError);
+        return;
+      }
+
+      console.log("Fresh match data from database:", dbMatches);
+
+      // Convert database matches to Match format
+      const freshMatches: Match[] = (dbMatches || []).map(dbMatch => {
+        const participants = dbMatch.match_participants || [];
+        const player1Data = participants.find(p => p.position === 1);
+        const player2Data = participants.find(p => p.position === 2);
+
+        let player1: Player | undefined;
+        let player2: Player | undefined;
+
+        if (player1Data) {
+          if (player1Data.is_placeholder) {
+            player1 = {
+              name: player1Data.placeholder_name || "No Opponent",
+              handicap: 0,
+              score: player1Data.score || undefined
+            };
+          } else if (player1Data.players) {
+            player1 = {
+              name: player1Data.players.name,
+              handicap: player1Data.players.handicap,
+              score: player1Data.score || undefined
+            };
+          }
+        }
+
+        if (player2Data) {
+          if (player2Data.is_placeholder) {
+            player2 = {
+              name: player2Data.placeholder_name || "No Opponent",
+              handicap: 0,
+              score: player2Data.score || undefined
+            };
+          } else if (player2Data.players) {
+            player2 = {
+              name: player2Data.players.name,
+              handicap: player2Data.players.handicap,
+              score: player2Data.score || undefined
+            };
+          }
+        }
+
+        // Find winner name from winner_id
+        let winner: string | undefined;
+        if (dbMatch.winner_id) {
+          const winnerPlayer = players.find(p => p.id === dbMatch.winner_id);
+          winner = winnerPlayer?.name;
+        }
+
+        return {
+          id: dbMatch.id,
+          tournamentId: tournamentId,
+          type: "singles" as const,
+          player1,
+          player2,
+          round: dbMatch.round,
+          status: dbMatch.status as "scheduled" | "completed",
+          date: dbMatch.match_date || new Date().toISOString().split('T')[0],
+          time: dbMatch.match_time || "TBD",
+          tee: dbMatch.tee?.toString(),
+          winner,
+          nextMatchId: dbMatch.next_match_id || undefined,
+          previousMatch1Id: dbMatch.previous_match_1_id || undefined,
+          previousMatch2Id: dbMatch.previous_match_2_id || undefined
+        };
+      });
+
+      console.log("Converted fresh matches:", freshMatches);
+
+      // Update matches array in parent component
+      const otherTournamentMatches = matches.filter(m => m.tournamentId !== tournamentId);
+      const updatedMatches = [...otherTournamentMatches, ...freshMatches];
+      onMatchUpdate(updatedMatches);
+
+      // Regenerate bracket with fresh data
+      setTimeout(() => {
+        generateBracket();
+      }, 100);
+
+      console.log("=== MATCH DATA REFRESH COMPLETE ===");
+    } catch (error) {
+      console.error("Error refreshing match data:", error);
+    }
+  };
+
   // Function to get available players for a specific match (excluding already assigned players)
   const getAvailablePlayersForMatch = (matchId: string) => {
     const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
@@ -705,6 +822,9 @@ export function TournamentBracket({
       }
 
       console.log(`Winner ${winnerPlayer.name} successfully advanced to next match!`);
+      
+      // Refresh match data to show the advanced winner in the bracket
+      await refreshMatchData();
       
     } catch (error) {
       console.error('Error advancing winner:', error);
@@ -1958,6 +2078,34 @@ export function TournamentBracket({
   };
 
   const progress = getMatchProgress();
+
+  // Auto-advance winners when matches are updated
+  useEffect(() => {
+    const autoAdvance = async () => {
+      if (!tournamentId || !matches.length) return;
+
+      const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
+      const completedMatches = tournamentMatches.filter(m => 
+        m.status === "completed" && 
+        m.winner &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(m.id)
+      );
+
+      if (completedMatches.length > 0) {
+        console.log(`Found ${completedMatches.length} completed matches for auto-advancement`);
+        await handleUpdateMatches();
+      }
+    };
+
+    autoAdvance();
+  }, [matches, tournamentId]);
+
+  // Regenerate bracket when data changes
+  useEffect(() => {
+    if (matches.length > 0) {
+      generateBracket();
+    }
+  }, [matches, maxPlayers, tournamentId]);
 
   if (format !== "matchplay") {
     return (
