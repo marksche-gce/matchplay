@@ -404,36 +404,37 @@ export function TournamentBracket({
   };
 
   const advanceAllWinners = async () => {
-    // Prevent multiple simultaneous executions
-    if (isAdvancingWinners) {
-      console.log("Already advancing winners, skipping...");
-      return;
-    }
+    if (isAdvancingWinners) return;
 
     setIsAdvancingWinners(true);
+    console.log("=== ADVANCING ALL WINNERS ===");
 
     try {
       const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
       const completedMatches = tournamentMatches.filter(m => m.status === "completed" && m.winner);
       
-      console.log("advanceAllWinners called with", completedMatches.length, "completed matches");
+      console.log(`Found ${completedMatches.length} completed matches to process`);
       
-      if (completedMatches.length === 0) return;
-
-      // Process each completed match to advance its winner
+      let advancedCount = 0;
+      
       for (const completedMatch of completedMatches) {
-        console.log("Processing completed match:", completedMatch.id, "winner:", completedMatch.winner);
-        
         const winnerPlayerData = players.find(p => p.name === completedMatch.winner);
         if (winnerPlayerData) {
+          console.log(`Advancing winner ${completedMatch.winner} from ${completedMatch.round}`);
           await progressWinnerToDatabase(completedMatch, winnerPlayerData);
+          advancedCount++;
         }
       }
 
-      // Refresh the bracket display with updated data
-      generateBracket();
-      
-      console.log("Winner advancement completed for all matches");
+      if (advancedCount > 0) {
+        toast({
+          title: "Winners Advanced!",
+          description: `${advancedCount} winners advanced to next round.`,
+        });
+        
+        // Regenerate bracket to show updates
+        generateBracket();
+      }
       
     } catch (error) {
       console.error("Error advancing winners:", error);
@@ -640,215 +641,68 @@ export function TournamentBracket({
   };
   const progressWinnerToDatabase = async (completedMatch: Match, winnerPlayer: { id: string; name: string; handicap: number }) => {
     try {
-      console.log("=== PROGRESS WINNER TO DATABASE ===");
-      console.log("Completed match:", completedMatch.id, "Round:", completedMatch.round);
-      console.log("Winner player:", winnerPlayer.name, "ID:", winnerPlayer.id);
+      console.log("=== ADVANCE WINNER DIRECTLY ===");
+      console.log("Advancing winner:", winnerPlayer.name, "from match:", completedMatch.id);
       
-      // First try to find next match using bracket relationships
-      console.log("Looking for next match using database relationships...");
-      const { data: nextMatches, error: nextMatchError } = await supabase
+      // Find the next match that this completed match feeds into
+      const { data: nextMatch, error: nextMatchError } = await supabase
         .from('matches')
         .select('*')
-        .or(`previous_match_1_id.eq.${completedMatch.id},previous_match_2_id.eq.${completedMatch.id}`);
+        .or(`previous_match_1_id.eq.${completedMatch.id},previous_match_2_id.eq.${completedMatch.id}`)
+        .maybeSingle();
 
       if (nextMatchError) {
-        console.log("Database query error:", nextMatchError);
+        console.error("Error finding next match:", nextMatchError);
         throw nextMatchError;
       }
 
-      console.log("Found next matches from database:", nextMatches?.length || 0);
-      
-      // If no matches found in database with relationships, try alternative approach
-      let nextMatch = null;
-      let position = 1;
-      
-      if (nextMatches && nextMatches.length > 0) {
-        nextMatch = nextMatches[0];
-        position = nextMatch.previous_match_1_id === completedMatch.id ? 1 : 2;
-        console.log("Using next match from database:", nextMatch.id, "Position:", position);
-      } else {
-        // Use custom advancement mapping for proper bracket positioning
-        console.log("Using custom advancement mapping...");
-        
-        // Get current round matches to find the match index
-        const { data: currentRoundMatches, error: currentRoundError } = await supabase
-          .from('matches')
-          .select('*')
-          .eq('tournament_id', tournamentId)
-          .eq('round', completedMatch.round)
-          .order('created_at');
-          
-        if (currentRoundError) {
-          console.error("Error getting current round matches:", currentRoundError);
-          throw currentRoundError;
-        }
-        
-        const matchIndex = currentRoundMatches?.findIndex(m => m.id === completedMatch.id) || 0;
-        console.log("Match index in round:", matchIndex);
-        
-        const advancement = getAdvancementMapping(matchIndex, currentRoundMatches?.length || 0);
-        console.log("Advancement mapping for match", matchIndex + 1, ":", advancement);
-        console.log("This means: Match", matchIndex + 1, "winner goes to Round 2 Match", advancement.nextMatchIndex + 1, "Position", advancement.position);
-        
-        // Get next round matches - handle both new and legacy round naming
-        const getCurrentRoundNumber = (roundName: string): number => {
-          if (roundName === "Round 1") return 1;
-          if (roundName === "Round 2" || roundName === "Quarterfinals") return 2;
-          if (roundName === "Round 3" || roundName === "Semifinals") return 3;
-          if (roundName === "Round 4" || roundName === "Final") return 4;
-          
-          const match = roundName.match(/Round (\d+)/);
-          return match ? parseInt(match[1]) : 0;
-        };
-        
-        const currentRoundNumber = getCurrentRoundNumber(completedMatch.round);
-        let nextRound = `Round ${currentRoundNumber + 1}`;
-        
-        // Handle legacy round naming for compatibility
-        if (currentRoundNumber === 1) {
-          // Check if next round uses legacy naming
-          const { data: legacyCheck } = await supabase
-            .from('matches')
-            .select('round')
-            .eq('tournament_id', tournamentId)
-            .eq('round', 'Quarterfinals')
-            .limit(1);
-            
-          if (legacyCheck && legacyCheck.length > 0) {
-            nextRound = 'Quarterfinals';
-          }
-        } else if (currentRoundNumber === 2) {
-          const { data: legacyCheck } = await supabase
-            .from('matches')
-            .select('round')
-            .eq('tournament_id', tournamentId)
-            .eq('round', 'Semifinals')
-            .limit(1);
-            
-          if (legacyCheck && legacyCheck.length > 0) {
-            nextRound = 'Semifinals';
-          }
-        } else if (currentRoundNumber === 3) {
-          const { data: legacyCheck } = await supabase
-            .from('matches')
-            .select('round')
-            .eq('tournament_id', tournamentId)
-            .eq('round', 'Final')
-            .limit(1);
-            
-          if (legacyCheck && legacyCheck.length > 0) {
-            nextRound = 'Final';
-          }
-        }
-        console.log("Looking for next round:", nextRound);
-        
-        if (nextRound) {
-        const { data: nextRoundMatches, error: nextRoundError } = await supabase
-          .from('matches')
-          .select('*')
-          .eq('tournament_id', tournamentId)
-          .eq('round', nextRound)
-          .order('created_at');
-          
-        console.log("=== NEXT ROUND MATCH LOOKUP ===");
-        console.log("Looking for next round:", nextRound);
-        console.log("Found next round matches:", nextRoundMatches?.length || 0);
-        console.log("Next round matches:", nextRoundMatches?.map(m => ({ id: m.id, round: m.round })) || []);
-        
-        if (!nextRoundError && nextRoundMatches && nextRoundMatches.length > advancement.nextMatchIndex) {
-            nextMatch = nextRoundMatches[advancement.nextMatchIndex];
-            position = advancement.position;
-            console.log(`Using custom mapping: Match ${matchIndex + 1} winner → Match ${advancement.nextMatchIndex + 1} Position ${position}`);
-          }
-        }
-      }
-
       if (!nextMatch) {
-        console.log("No next match found for winner advancement - might be final match");
+        console.log("No next match found - this might be the final match");
         return;
       }
 
-      console.log("Advancing winner to match:", nextMatch.id, "at position:", position);
+      // Determine which position (1 or 2) the winner should go to
+      const position = nextMatch.previous_match_1_id === completedMatch.id ? 1 : 2;
       
-      // First check if this player is already in this match at ANY position to prevent duplicates
-      const { data: existingPlayerInMatch, error: playerCheckError } = await supabase
+      console.log(`Advancing to match ${nextMatch.id}, position ${position}`);
+
+      // Check if player is already in this match
+      const { data: existingParticipant } = await supabase
         .from('match_participants')
         .select('*')
         .eq('match_id', nextMatch.id)
-        .eq('player_id', winnerPlayer.id);
-
-      if (playerCheckError) {
-        console.error("Error checking for existing player in match:", playerCheckError);
-        throw playerCheckError;
-      }
-
-      if (existingPlayerInMatch && existingPlayerInMatch.length > 0) {
-        console.log(`Player ${winnerPlayer.name} is already in match ${nextMatch.id}, skipping advancement`);
-        return;
-      }
-      
-      // Check if participant already exists at this position
-      const { data: existingParticipant, error: checkError } = await supabase
-        .from('match_participants')
-        .select('*')
-        .eq('match_id', nextMatch.id)
-        .eq('position', position)
+        .eq('player_id', winnerPlayer.id)
         .maybeSingle();
 
-      if (checkError) {
-        console.error("Error checking existing participant:", checkError);
-        throw checkError;
-      }
-
       if (existingParticipant) {
-        // Update existing participant only if it's different
-        if (existingParticipant.player_id !== winnerPlayer.id) {
-          console.log("Updating existing participant for position:", position);
-          const { error: updateError } = await supabase
-            .from('match_participants')
-            .update({
-              player_id: winnerPlayer.id,
-              score: null, // Reset score for new match
-              is_placeholder: false,
-              placeholder_name: null
-            })
-            .eq('id', existingParticipant.id);
-
-          if (updateError) {
-            console.error("Error updating participant:", updateError);
-            throw updateError;
-          }
-        } else {
-          console.log(`Position ${position} already has the correct player, skipping update`);
-        }
-      } else {
-        // Create new participant - use UPSERT to handle race conditions
-        console.log("Creating new participant for position:", position);
-        const { error: upsertError } = await supabase
-          .from('match_participants')
-          .upsert({
-            match_id: nextMatch.id,
-            player_id: winnerPlayer.id,
-            position: position,
-            team_number: null,
-            score: null,
-            is_placeholder: false,
-            placeholder_name: null
-          }, {
-            onConflict: 'match_id,position',
-            ignoreDuplicates: false
-          });
-
-        if (upsertError) {
-          console.error("Error upserting participant:", upsertError);
-          throw upsertError;
-        }
+        console.log("Player already in next match, skipping");
+        return;
       }
 
-      console.log(`Winner ${winnerPlayer.name} successfully advanced to next match in database`);
-      console.log("=== END PROGRESS WINNER TO DATABASE ===");
+      // Add or update the participant in the correct position
+      const { error: upsertError } = await supabase
+        .from('match_participants')
+        .upsert({
+          match_id: nextMatch.id,
+          player_id: winnerPlayer.id,
+          position: position,
+          team_number: null,
+          score: null,
+          is_placeholder: false,
+          placeholder_name: null
+        }, {
+          onConflict: 'match_id,position'
+        });
+
+      if (upsertError) {
+        console.error("Error advancing winner:", upsertError);
+        throw upsertError;
+      }
+
+      console.log(`Winner ${winnerPlayer.name} successfully advanced to next match!`);
+      
     } catch (error) {
-      console.error('Error progressing winner to database:', error);
+      console.error('Error advancing winner:', error);
       throw error;
     }
   };
@@ -2146,6 +2000,15 @@ export function TournamentBracket({
               >
                 <Trash2 className="h-4 w-4" />
                 Reset Setup
+              </Button>
+              <Button
+                onClick={advanceAllWinners}
+                disabled={isAdvancingWinners}
+                variant="outline"
+                className="gap-2"
+              >
+                <ChevronRight className="h-4 w-4" />
+                {isAdvancingWinners ? "Advancing..." : "Advance All Winners"}
               </Button>
             </div>
           </div>
