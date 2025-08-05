@@ -431,10 +431,28 @@ export function TournamentBracket({
       
       if (completedMatches.length === 0) return;
 
-      // First, ensure next round matches exist before trying to advance winners
-      const rounds = [...new Set(completedMatches.map(m => m.round))];
-      for (const round of rounds) {
-        await createNextRoundMatches(round, tournamentId);
+      // Group matches by round and process in order to ensure proper advancement flow
+      const completedByRound = completedMatches.reduce((acc, match) => {
+        if (!acc[match.round]) acc[match.round] = [];
+        acc[match.round].push(match);
+        return acc;
+      }, {});
+
+      console.log("Completed matches by round:", Object.keys(completedByRound));
+
+      // Process rounds in order and ensure next round matches exist
+      const roundOrder = ["Round 1", "Quarterfinals", "Semifinals", "Final"];
+      
+      for (const round of roundOrder) {
+        const roundMatches = completedByRound[round] || [];
+        if (roundMatches.length === 0) continue;
+
+        console.log(`Processing ${roundMatches.length} completed matches in ${round}`);
+        
+        // First, ensure next round matches exist if this isn't the final
+        if (round !== "Final") {
+          await createNextRoundMatches(round, tournamentId);
+        }
       }
 
       let updatedMatches = [...matches];
@@ -893,9 +911,6 @@ export function TournamentBracket({
       console.log("Setting up bracket relationships...");
       await setupBracketRelationships();
 
-      // Regenerate bracket to ensure latest data
-      generateBracket();
-      
       // Process all completed matches to advance winners
       console.log("Calling advanceAllWinners...");
       await advanceAllWinners();
@@ -903,6 +918,15 @@ export function TournamentBracket({
       // Process bye matches (auto-advance players with no opponents)
       console.log("Calling processAutoAdvanceByes...");
       await processAutoAdvanceByes();
+
+      // Regenerate bracket to ensure latest data is displayed
+      console.log("Regenerating bracket display...");
+      generateBracket();
+      
+      // Force a refresh by calling the parent's refresh method
+      console.log("Triggering parent component refresh...");
+      // The parent component will fetch fresh data and regenerate the bracket
+      onMatchUpdate([...matches]); // Trigger refresh with current matches to force re-render
       
       toast({
         title: "Matches Updated!",
