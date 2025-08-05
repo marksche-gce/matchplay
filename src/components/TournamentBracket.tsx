@@ -207,13 +207,10 @@ export function TournamentBracket({
     const totalRounds = Math.ceil(Math.log2(maxPlayers));
     console.log(`Generating bracket for ${maxPlayers} players with ${totalRounds} rounds`);
     
-    // Define round names in correct order
+    // Define round names in correct order - use consistent numbering
     const roundNames: string[] = [];
     for (let i = 1; i <= totalRounds; i++) {
-      if (i === totalRounds) roundNames.push("Final");
-      else if (i === totalRounds - 1) roundNames.push("Semifinals");
-      else if (i === totalRounds - 2) roundNames.push("Quarterfinals");
-      else roundNames.push(`Round ${i}`);
+      roundNames.push(`Round ${i}`);
     }
     
     console.log("Round names:", roundNames);
@@ -693,14 +690,14 @@ export function TournamentBracket({
         console.log("Advancement mapping for match", matchIndex + 1, ":", advancement);
         console.log("This means: Match", matchIndex + 1, "winner goes to Round 2 Match", advancement.nextMatchIndex + 1, "Position", advancement.position);
         
-        // Get next round matches
-        const roundMapping = {
-          "Round 1": "Quarterfinals",
-          "Quarterfinals": "Semifinals", 
-          "Semifinals": "Final"
+        // Get next round matches - calculate dynamically
+        const getCurrentRoundNumber = (roundName: string): number => {
+          const match = roundName.match(/Round (\d+)/);
+          return match ? parseInt(match[1]) : 0;
         };
         
-        const nextRound = roundMapping[completedMatch.round];
+        const currentRoundNumber = getCurrentRoundNumber(completedMatch.round);
+        const nextRound = `Round ${currentRoundNumber + 1}`;
         console.log("Looking for next round:", nextRound);
         
         if (nextRound) {
@@ -900,8 +897,12 @@ export function TournamentBracket({
 
       console.log("Matches by round:", Object.keys(matchesByRound));
 
-      // Set up relationships between rounds
-      const roundOrder = ["Round 1", "Quarterfinals", "Semifinals", "Final"];
+      // Set up relationships between rounds - calculate based on maxPlayers
+      const totalRounds = Math.ceil(Math.log2(maxPlayers));
+      const roundOrder: string[] = [];
+      for (let i = 1; i <= totalRounds; i++) {
+        roundOrder.push(`Round ${i}`);
+      }
       
       for (let i = 0; i < roundOrder.length - 1; i++) {
         const currentRound = roundOrder[i];
