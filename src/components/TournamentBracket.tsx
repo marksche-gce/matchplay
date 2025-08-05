@@ -73,7 +73,6 @@ export function TournamentBracket({
   const [bracketData, setBracketData] = useState<BracketRound[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [showManualSetup, setShowManualSetup] = useState(true);
-  const [isAdvancingWinners, setIsAdvancingWinners] = useState(false); // Prevent multiple simultaneous executions
   const { toast } = useToast();
 
   // Function to get available players for a specific match (excluding already assigned players)
@@ -139,6 +138,11 @@ export function TournamentBracket({
         setupBracketRelationships().catch(error => {
           console.error("Failed to setup bracket relationships:", error);
         });
+        
+        // Auto-advance winners whenever matches change
+        autoAdvanceWinners(matches).catch(error => {
+          console.error("Failed to auto-advance winners:", error);
+        });
       } else {
         setShowManualSetup(true);
       }
@@ -146,57 +150,73 @@ export function TournamentBracket({
     console.log("=== BRACKET EFFECT COMPLETE ===");
   }, [matches, players, maxPlayers]);
 
-  // Enhanced function for immediate winner advancement
-  const handleImmediateWinnerAdvancement = async (updatedMatches: Match[]) => {
-    console.log("=== HANDLE IMMEDIATE WINNER ADVANCEMENT ===");
+  // Auto-advance winners when matches are updated from external sources  
+  useEffect(() => {
+    if (matches.length > 0) {
+      autoAdvanceWinners(matches).catch(error => {
+        console.error("Failed to auto-advance winners on update:", error);
+      });
+    }
+  }, [matches]);
+
+  // Automatic winner advancement - called after any match update
+  const autoAdvanceWinners = async (updatedMatches: Match[]) => {
+    console.log("=== AUTO ADVANCE WINNERS ===");
     
-    // Check if any matches were just completed
-    const previousMatches = matches.filter(m => m.tournamentId === tournamentId);
-    const newMatches = updatedMatches.filter(m => m.tournamentId === tournamentId);
+    const tournamentMatches = updatedMatches.filter(m => m.tournamentId === tournamentId);
+    const completedMatches = tournamentMatches.filter(m => m.status === "completed" && m.winner);
     
-    // Find newly completed matches
-    const newlyCompletedMatches = newMatches.filter(newMatch => {
-      const previousMatch = previousMatches.find(prev => prev.id === newMatch.id);
-      return newMatch.status === "completed" && 
-             newMatch.winner && 
-             previousMatch && 
-             (previousMatch.status !== "completed" || previousMatch.winner !== newMatch.winner);
+    console.log(`Processing ${completedMatches.length} completed matches for auto-advancement`);
+    
+    for (const completedMatch of completedMatches) {
+      const winnerPlayerData = players.find(p => p.name === completedMatch.winner);
+      if (winnerPlayerData) {
+        console.log(`Auto-advancing winner: ${completedMatch.winner} from ${completedMatch.round}`);
+        try {
+          await progressWinnerToDatabase(completedMatch, winnerPlayerData);
+        } catch (error) {
+          console.error("Failed to auto-advance winner:", error);
+        }
+      }
+    }
+    
+    // Auto-advance bye matches too
+    const byeMatches = tournamentMatches.filter(m => {
+      if (!m.player1 || !m.player2) return false;
+      const hasRealPlayer = (m.player1.name && !m.player1.name.startsWith("no-opponent")) ||
+                          (m.player2.name && !m.player2.name.startsWith("no-opponent"));
+      const hasPlaceholder = m.player1.name?.startsWith("no-opponent") || 
+                           m.player2.name?.startsWith("no-opponent") ||
+                           !m.player1.name || !m.player2.name;
+      return hasRealPlayer && hasPlaceholder && !m.winner;
     });
     
-    console.log("Newly completed matches:", newlyCompletedMatches.length);
-    
-    // Immediately advance winners for newly completed matches
-    for (const completedMatch of newlyCompletedMatches) {
-      if (completedMatch.winner) {
-        console.log("Immediately advancing winner:", completedMatch.winner, "from match:", completedMatch.id);
+    for (const byeMatch of byeMatches) {
+      const realPlayer = byeMatch.player1?.name && !byeMatch.player1.name.startsWith("no-opponent") 
+        ? byeMatch.player1 
+        : byeMatch.player2;
         
-        const winnerPlayerData = players.find(p => p.name === completedMatch.winner);
+      if (realPlayer) {
+        console.log(`Auto-advancing bye winner: ${realPlayer.name}`);
+        const winnerPlayerData = players.find(p => p.name === realPlayer.name);
         if (winnerPlayerData) {
-          try {
-            await progressWinnerToDatabase(completedMatch, winnerPlayerData);
+          // Mark match as completed with this winner
+          const { error } = await supabase
+            .from('matches')
+            .update({ 
+              winner_id: winnerPlayerData.id,
+              status: 'completed' 
+            })
+            .eq('id', byeMatch.id);
             
-            toast({
-              title: "Winner Advanced!",
-              description: `${completedMatch.winner} has been advanced to the next round.`,
-            });
-          } catch (error) {
-            console.error("Failed to advance winner immediately:", error);
-            toast({
-              title: "Error",
-              description: "Failed to advance winner. Please try refreshing.",
-              variant: "destructive"
-            });
+          if (!error) {
+            await progressWinnerToDatabase(byeMatch, winnerPlayerData);
           }
         }
       }
     }
     
-    // Regenerate bracket to show the changes
-    setTimeout(() => {
-      generateBracket();
-    }, 100);
-    
-    console.log("=== END IMMEDIATE WINNER ADVANCEMENT ===");
+    console.log("=== AUTO ADVANCE COMPLETE ===");
   };
 
   const generateBracket = () => {
@@ -387,7 +407,7 @@ export function TournamentBracket({
       console.log("Winner successfully advanced in bracket display and matches array");
       setBracketData(updatedBracketData);
       
-      // Don't show individual toast here - let advanceAllWinners handle consolidated messaging
+      // Winner successfully advanced
       return updatedMatches;
     } else {
       console.log("No next match found for winner advancement");
@@ -403,50 +423,6 @@ export function TournamentBracket({
     return currentMatches;
   };
 
-  const advanceAllWinners = async () => {
-    if (isAdvancingWinners) return;
-
-    setIsAdvancingWinners(true);
-    console.log("=== ADVANCING ALL WINNERS ===");
-
-    try {
-      const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
-      const completedMatches = tournamentMatches.filter(m => m.status === "completed" && m.winner);
-      
-      console.log(`Found ${completedMatches.length} completed matches to process`);
-      
-      let advancedCount = 0;
-      
-      for (const completedMatch of completedMatches) {
-        const winnerPlayerData = players.find(p => p.name === completedMatch.winner);
-        if (winnerPlayerData) {
-          console.log(`Advancing winner ${completedMatch.winner} from ${completedMatch.round}`);
-          await progressWinnerToDatabase(completedMatch, winnerPlayerData);
-          advancedCount++;
-        }
-      }
-
-      if (advancedCount > 0) {
-        toast({
-          title: "Winners Advanced!",
-          description: `${advancedCount} winners advanced to next round.`,
-        });
-        
-        // Regenerate bracket to show updates
-        generateBracket();
-      }
-      
-    } catch (error) {
-      console.error("Error advancing winners:", error);
-      toast({
-        title: "Error",
-        description: "Failed to advance winners",
-        variant: "destructive"
-      });
-    } finally {
-      setIsAdvancingWinners(false);
-    }
-  };
 
   const processAutoAdvanceByes = async () => {
     const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
@@ -733,9 +709,8 @@ export function TournamentBracket({
       console.log("Setting up bracket relationships...");
       await setupBracketRelationships();
 
-      // Process all completed matches to advance winners
-      console.log("Calling advanceAllWinners...");
-      await advanceAllWinners();
+      // Auto-advance winners will be handled by the automatic system
+      console.log("Automatic winner advancement will process completed matches...");
       
       // Process bye matches (auto-advance players with no opponents)
       console.log("Calling processAutoAdvanceByes...");
@@ -2000,15 +1975,6 @@ export function TournamentBracket({
               >
                 <Trash2 className="h-4 w-4" />
                 Reset Setup
-              </Button>
-              <Button
-                onClick={advanceAllWinners}
-                disabled={isAdvancingWinners}
-                variant="outline"
-                className="gap-2"
-              >
-                <ChevronRight className="h-4 w-4" />
-                {isAdvancingWinners ? "Advancing..." : "Advance All Winners"}
               </Button>
             </div>
           </div>
