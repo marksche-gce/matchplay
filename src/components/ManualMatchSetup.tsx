@@ -226,14 +226,15 @@ export function ManualMatchSetup({
   // Create the full tournament structure once
   const createTournamentStructure = async () => {
     try {
+      console.log('🏗️ Creating tournament structure for', maxPlayers, 'players');
       const totalRounds = Math.ceil(Math.log2(maxPlayers));
-      let currentRoundMatches: any[] = [];
+      console.log('Total rounds needed:', totalRounds);
       
-      // Create subsequent rounds structure
+      // Create subsequent rounds structure (Round 2, Semifinals, Final)
       for (let round = 2; round <= totalRounds; round++) {
         const roundName = getRoundName(round, totalRounds);
         const matchesInRound = Math.pow(2, totalRounds - round);
-        const roundMatches = [];
+        console.log(`Creating ${roundName} with ${matchesInRound} matches`);
 
         for (let matchIndex = 0; matchIndex < matchesInRound; matchIndex++) {
           const matchData = {
@@ -252,12 +253,17 @@ export function ManualMatchSetup({
             .select()
             .single();
 
-          if (matchError) throw matchError;
-          roundMatches.push(matchResult);
+          if (matchError) {
+            console.error('Error creating match:', matchError);
+            throw matchError;
+          }
+          
+          console.log(`✅ Created ${roundName} match ${matchIndex + 1}:`, matchResult.id);
         }
-
-        currentRoundMatches = roundMatches;
       }
+
+      // Wait a moment for database consistency
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Set up relationships between rounds
       await setupRoundRelationships();
