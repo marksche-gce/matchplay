@@ -76,6 +76,143 @@ export function TournamentBracket({
   const [showManualSetup, setShowManualSetup] = useState(true);
   const { toast } = useToast();
 
+  // Function to create Round 2 matches with winners
+  const createRound2WithWinners = async () => {
+    console.log("=== CREATING ROUND 2 WITH WINNERS ===");
+    
+    // Get all Round 1 matches with winners
+    const { data: round1Matches, error: fetchError } = await supabase
+      .from('matches')
+      .select(`
+        *,
+        match_participants (
+          id,
+          player_id,
+          position,
+          score,
+          is_placeholder,
+          placeholder_name,
+          players (
+            id,
+            name,
+            handicap
+          )
+        )
+      `)
+      .eq('tournament_id', tournamentId)
+      .eq('round', 'Round 1')
+      .eq('status', 'completed')
+      .not('winner_id', 'is', null);
+      
+    if (fetchError) {
+      console.error("Error fetching Round 1 matches:", fetchError);
+      return;
+    }
+    
+    console.log("Round 1 completed matches with winners:", round1Matches?.length);
+    
+    if (!round1Matches || round1Matches.length < 2) {
+      toast({
+        title: "Not Ready",
+        description: "Need at least 2 completed Round 1 matches to create Round 2.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Create Round 2 matches by pairing winners
+    const round2Matches = [];
+    for (let i = 0; i < round1Matches.length; i += 2) {
+      const match1 = round1Matches[i];
+      const match2 = round1Matches[i + 1];
+      
+      round2Matches.push({
+        tournament_id: tournamentId,
+        type: "singles",
+        round: "Round 2",
+        status: "scheduled",
+        match_date: null,
+        match_time: null,
+        tee: null,
+        winner_id: null,
+        previous_match_1_id: match1.id,
+        previous_match_2_id: match2?.id || null
+      });
+    }
+    
+    // Insert Round 2 matches
+    const { data: createdMatches, error: createError } = await supabase
+      .from('matches')
+      .insert(round2Matches)
+      .select();
+      
+    if (createError) {
+      console.error("Error creating Round 2 matches:", createError);
+      toast({
+        title: "Error",
+        description: "Failed to create Round 2 matches.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Add winners as participants to Round 2 matches
+    for (let i = 0; i < createdMatches.length; i++) {
+      const newMatch = createdMatches[i];
+      const participants = [];
+      
+      // Add winner from first previous match
+      const prevMatch1 = round1Matches[i * 2];
+      const prevMatch2 = round1Matches[i * 2 + 1];
+      
+      if (prevMatch1?.winner_id) {
+        const winner1 = players.find(p => p.id === prevMatch1.winner_id);
+        if (winner1) {
+          participants.push({
+            match_id: newMatch.id,
+            player_id: winner1.id,
+            position: 1,
+            score: null,
+            is_placeholder: false,
+            placeholder_name: null
+          });
+        }
+      }
+      
+      if (prevMatch2?.winner_id) {
+        const winner2 = players.find(p => p.id === prevMatch2.winner_id);
+        if (winner2) {
+          participants.push({
+            match_id: newMatch.id,
+            player_id: winner2.id,
+            position: 2,
+            score: null,
+            is_placeholder: false,
+            placeholder_name: null
+          });
+        }
+      }
+      
+      if (participants.length > 0) {
+        const { error: participantError } = await supabase
+          .from('match_participants')
+          .insert(participants);
+          
+        if (participantError) {
+          console.error("Error adding participants to Round 2:", participantError);
+        }
+      }
+    }
+    
+    toast({
+      title: "Round 2 Created!",
+      description: `Successfully created ${createdMatches.length} Round 2 matches with winners.`,
+    });
+    
+    // Refresh the bracket
+    await refreshMatchData();
+  };
+
   // Function to refresh match data from database
   const refreshMatchData = async () => {
     console.log("=== REFRESHING MATCH DATA FROM DATABASE ===");
@@ -2158,6 +2295,17 @@ export function TournamentBracket({
         }
         
         if (participants.length > 0) {
+          // First, delete any existing participants for this match to avoid duplicates
+          const { error: deleteError } = await supabase
+            .from('match_participants')
+            .delete()
+            .eq('match_id', dbMatchId);
+            
+          if (deleteError) {
+            console.error("Error deleting existing participants:", deleteError);
+          }
+          
+          // Then insert the new participants
           const { error: participantsError } = await supabase
             .from('match_participants')
             .insert(participants);
@@ -2253,6 +2401,14 @@ export function TournamentBracket({
               </p>
             </div>
             <div className="flex gap-2">
+              <Button
+                onClick={createRound2WithWinners}
+                variant="default"
+                className="gap-2"
+              >
+                <ChevronRight className="h-4 w-4" />
+                Create Round 2
+              </Button>
               <Button
                 onClick={() => resetAllSetup()}
                 variant="destructive"
