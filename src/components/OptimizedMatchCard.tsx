@@ -1,4 +1,4 @@
-import React, { memo, useCallback } from 'react';
+import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Users } from "lucide-react";
@@ -29,11 +29,7 @@ interface OptimizedMatchCardProps {
   onMatchClick: (match: Match) => void;
 }
 
-export const OptimizedMatchCard = memo(({ match, matchIndex, onMatchClick }: OptimizedMatchCardProps) => {
-  const handleClick = useCallback(() => {
-    onMatchClick(match);
-  }, [match, onMatchClick]);
-
+export const OptimizedMatchCard = ({ match, matchIndex, onMatchClick }: OptimizedMatchCardProps) => {
   const isGeneratedMatch = !match.id.includes('-');
   
   return (
@@ -46,7 +42,7 @@ export const OptimizedMatchCard = memo(({ match, matchIndex, onMatchClick }: Opt
             ? "border-warning bg-warning/5" 
             : "border-muted"
         }`}
-        onClick={handleClick}
+        onClick={() => onMatchClick(match)}
       >
         <CardContent className="p-4">
           <div className="space-y-3">
@@ -124,6 +120,4 @@ export const OptimizedMatchCard = memo(({ match, matchIndex, onMatchClick }: Opt
       </Card>
     </div>
   );
-});
-
-OptimizedMatchCard.displayName = 'OptimizedMatchCard';
+};
