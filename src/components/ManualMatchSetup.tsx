@@ -138,8 +138,16 @@ export function ManualMatchSetup({
   // Auto-save individual match when it changes
   const autoSaveMatch = async (matchSetup: MatchSetup) => {
     try {
-      // Create tournament structure if not created yet
-      if (!tournamentCreated) {
+      // Create tournament structure if not created yet - check if Round 2 exists
+      const { data: round2Matches } = await supabase
+        .from('matches')
+        .select('id')
+        .eq('tournament_id', tournamentId)
+        .neq('round', 'Round 1')
+        .limit(1);
+
+      if (!round2Matches || round2Matches.length === 0) {
+        console.log('🏗️ Creating tournament structure - no Round 2 matches found');
         await createTournamentStructure();
         setTournamentCreated(true);
       }
