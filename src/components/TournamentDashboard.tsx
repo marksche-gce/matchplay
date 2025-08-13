@@ -1051,6 +1051,168 @@ export function TournamentDashboard() {
     
     try {
       // First, update match participants if players have changed
+      if (updates.player1?.name !== undefined || updates.player2?.name !== undefined || 
+          updates.team1 !== undefined || updates.team2 !== undefined) {
+        
+        console.log("Updating match participants first to ensure consistency");
+        
+        // Delete existing participants
+        console.log("Deleting existing participants for match:", matchId);
+        
+        const { error: deleteError } = await supabase
+          .from('match_participants')
+          .delete()
+          .eq('match_id', matchId);
+
+        if (deleteError && deleteError.code !== 'PGRST116') {
+          console.error("Error deleting existing participants:", deleteError);
+          throw deleteError;
+        }
+
+        console.log("Successfully deleted existing participants");
+
+        // Prepare new participants
+        const participants = [];
+        
+        if (updates.type === "singles" || (!updates.type && (updates.player1 || updates.player2))) {
+          console.log("Processing singles match participants");
+          
+          // Handle player1
+          if (updates.player1?.name && updates.player1.name !== "no-player") {
+            if (!updates.player1.name.startsWith("no-opponent")) {
+              const player1 = players.find(p => p.name === updates.player1.name);
+              if (player1) {
+                participants.push({
+                  match_id: matchId,
+                  player_id: player1.id,
+                  position: 1,
+                  score: updates.player1.score || null,
+                  is_placeholder: false,
+                  placeholder_name: null
+                });
+              }
+            } else {
+              participants.push({
+                match_id: matchId,
+                player_id: null,
+                position: 1,
+                score: null,
+                is_placeholder: true,
+                placeholder_name: updates.player1.name
+              });
+            }
+          }
+          
+          // Handle player2
+          if (updates.player2?.name && updates.player2.name !== "no-player") {
+            if (!updates.player2.name.startsWith("no-opponent")) {
+              const player2 = players.find(p => p.name === updates.player2.name);
+              if (player2) {
+                participants.push({
+                  match_id: matchId,
+                  player_id: player2.id,
+                  position: 2,
+                  score: updates.player2.score || null,
+                  is_placeholder: false,
+                  placeholder_name: null
+                });
+              }
+            } else {
+              participants.push({
+                match_id: matchId,
+                player_id: null,
+                position: 2,
+                score: null,
+                is_placeholder: true,
+                placeholder_name: updates.player2.name
+              });
+            }
+          }
+        }
+
+        // Insert new participants if any
+        if (participants.length > 0) {
+          console.log("Attempting to insert participants:", participants);
+          
+          const { error: insertError } = await supabase
+            .from('match_participants')
+            .insert(participants);
+          
+          if (insertError) {
+            console.error("Error inserting participants:", insertError);
+            throw insertError;
+          }
+          
+          console.log("Successfully inserted all participants");
+        } else {
+          console.log("No participants to insert - match has no valid players assigned");
+        }
+      }
+
+      // Now update the match details (including winner)
+      const matchUpdates: any = {
+        round: updates.round,
+        status: updates.status
+      };
+
+      // Set winner_id based on winner name
+      let winnerValue: string | undefined = updates.winner;
+      
+      // Handle serialization issues
+      if (typeof winnerValue === 'object' && winnerValue !== null) {
+        const objValue = winnerValue as any;
+        if ('value' in objValue) {
+          winnerValue = objValue.value;
+        } else if ('_type' in objValue && objValue._type === 'undefined') {
+          winnerValue = undefined;
+        }
+      }
+      
+      if (winnerValue && typeof winnerValue === 'string' && winnerValue !== "no-winner" && winnerValue !== "undefined") {
+        if (winnerValue !== "no-player" && !winnerValue.startsWith("no-opponent")) {
+          const winnerPlayer = players.find(p => p.name === winnerValue);
+          console.log("Looking for winner player:", winnerValue, "found:", winnerPlayer);
+          if (winnerPlayer) {
+            matchUpdates.winner_id = winnerPlayer.id;
+            console.log("Setting winner_id to:", winnerPlayer.id);
+          } else {
+            console.warn("Winner player not found in players list:", winnerValue);
+            matchUpdates.winner_id = null;
+          }
+        } else {
+          console.log("Winner is placeholder player, not setting winner_id");
+          matchUpdates.winner_id = null;
+        }
+      } else {
+        console.log("No winner specified or winner is 'no-winner'");
+        matchUpdates.winner_id = null;
+      }
+
+      console.log("About to update match with:", matchUpdates);
+
+      // Update match in database
+      const { data, error: matchError } = await supabase
+        .from('matches')
+        .update(matchUpdates)
+        .eq('id', matchId)
+        .select();
+
+      if (matchError) {
+        console.error("Database error updating match:", matchError);
+        throw new Error(`Failed to update match: ${matchError.message}`);
+      }
+
+      console.log("Successfully updated match in database. Updated data:", data);
+      
+    } catch (error) {
+      console.error('Database operation failed:', error);
+      throw error;
+    }
+  };
+    console.log("🎯 handleEditMatchDatabase called for:", matchId, "with updates:", updates);
+    
+    try {
+      // First, update match participants if players have changed
       // Do this BEFORE updating the match to ensure consistency
       if (updates.player1?.name !== undefined || updates.player2?.name !== undefined || 
           updates.team1 !== undefined || updates.team2 !== undefined) {
@@ -1327,61 +1489,109 @@ export function TournamentDashboard() {
                   // Real player
                   console.log("Looking for player2:", updates.player2.name);
                   const player2 = players.find(p => p.name === updates.player2.name);
-                  if (player2) {
-                    console.log("Found player2:", player2);
-      
-      // Update scores if provided (for existing participants)
-      if (updates.player1?.score !== undefined || updates.player2?.score !== undefined) {
-        // Get current match participants
-        const { data: participants, error: participantsError } = await supabase
-          .from('match_participants')
-          .select('*')
-          .eq('match_id', matchId);
+                    participants.push({
+                      match_id: matchId,
+                      player_id: player2.id,
+                      position: 2,
+                      score: updates.player2.score || null,
+                      is_placeholder: false,
+                      placeholder_name: null
+                    });
+                  }
+                } else {
+                  participants.push({
+                    match_id: matchId,
+                    player_id: null,
+                    position: 2,
+                    score: null,
+                    is_placeholder: true,
+                    placeholder_name: updates.player2.name
+                  });
+                }
+              }
+            }
+          }
+        }
 
-        if (participantsError) throw participantsError;
+        // Insert new participants if any
+          if (participants.length > 0) {
+            console.log("Attempting to insert participants:", participants);
+            
+            const { error: insertError } = await supabase
+              .from('match_participants')
+              .insert(participants);
+            
+            if (insertError) {
+              console.error("Error inserting participants:", insertError);
+              throw insertError;
+            }
+            
+            console.log("Successfully inserted all participants");
+          } else {
+            console.log("No participants to insert - match has no valid players assigned");
+          }
+        }
 
-        // Update scores for each participant
-        const updatePromises = [];
+        // Now update the match details (including winner)
+        const matchUpdates: any = {
+          round: updates.round,
+          status: updates.status
+        };
+
+        // Set winner_id based on winner name
+        let winnerValue: string | undefined = updates.winner;
         
-        if (updates.player1?.score !== undefined) {
-          const player1Participant = participants.find(p => p.position === 1);
-          if (player1Participant) {
-            updatePromises.push(
-              supabase
-                .from('match_participants')
-                .update({ score: updates.player1.score })
-                .eq('id', player1Participant.id)
-            );
+        // Handle serialization issues
+        if (typeof winnerValue === 'object' && winnerValue !== null) {
+          const objValue = winnerValue as any;
+          if ('value' in objValue) {
+            winnerValue = objValue.value;
+          } else if ('_type' in objValue && objValue._type === 'undefined') {
+            winnerValue = undefined;
           }
+        }
+        
+        if (winnerValue && typeof winnerValue === 'string' && winnerValue !== "no-winner" && winnerValue !== "undefined") {
+          if (winnerValue !== "no-player" && !winnerValue.startsWith("no-opponent")) {
+            const winnerPlayer = players.find(p => p.name === winnerValue);
+            console.log("Looking for winner player:", winnerValue, "found:", winnerPlayer);
+            if (winnerPlayer) {
+              matchUpdates.winner_id = winnerPlayer.id;
+              console.log("Setting winner_id to:", winnerPlayer.id);
+            } else {
+              console.warn("Winner player not found in players list:", winnerValue);
+              matchUpdates.winner_id = null;
+            }
+          } else {
+            console.log("Winner is placeholder player, not setting winner_id");
+            matchUpdates.winner_id = null;
+          }
+        } else {
+          console.log("No winner specified or winner is 'no-winner'");
+          matchUpdates.winner_id = null;
         }
 
-        if (updates.player2?.score !== undefined) {
-          const player2Participant = participants.find(p => p.position === 2);
-          if (player2Participant) {
-            updatePromises.push(
-              supabase
-                .from('match_participants')
-                .update({ score: updates.player2.score })
-                .eq('id', player2Participant.id)
-            );
-          }
+        console.log("About to update match with:", matchUpdates);
+
+        // Update match in database
+        const { data, error: matchError } = await supabase
+          .from('matches')
+          .update(matchUpdates)
+          .eq('id', matchId)
+          .select();
+
+        if (matchError) {
+          console.error("Database error updating match:", matchError);
+          throw new Error(`Failed to update match: ${matchError.message}`);
         }
 
-        // Execute all score updates
-        if (updatePromises.length > 0) {
-          const results = await Promise.all(updatePromises);
-          const scoreErrors = results.filter(result => result.error);
-          if (scoreErrors.length > 0) {
-            throw new Error('Failed to update some scores');
-          }
-        }
+        console.log("Successfully updated match in database. Updated data:", data);
+        
+      } catch (error) {
+        console.error('Database operation failed:', error);
+        throw error;
       }
-      
-    } catch (error) {
-      console.error('Database operation failed:', error);
-      throw error; // Re-throw to be handled by calling function
-    }
-  };
+    };
 
   const handleEditMatch = async (matchId: string, updates: Partial<Match>) => {
     console.log("🎯 handleEditMatch called for:", matchId, "with updates:", updates);
