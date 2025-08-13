@@ -2077,28 +2077,60 @@ export function TournamentBracket({
         const participants = [];
         
         if (originalMatch.player1) {
-          const player1 = players.find(p => p.name === originalMatch.player1.name);
-          if (player1) {
+          if (originalMatch.player1.name.startsWith('no-opponent') || originalMatch.player1.name.startsWith('No Opponent')) {
+            // Handle placeholder
             participants.push({
               match_id: dbMatchId,
-              player_id: player1.id,
+              player_id: null,
               position: 1,
               team_number: null,
-              score: null
+              score: null,
+              is_placeholder: true,
+              placeholder_name: originalMatch.player1.name
             });
+          } else {
+            // Handle real player
+            const player1 = players.find(p => p.name === originalMatch.player1.name);
+            if (player1) {
+              participants.push({
+                match_id: dbMatchId,
+                player_id: player1.id,
+                position: 1,
+                team_number: null,
+                score: null,
+                is_placeholder: false,
+                placeholder_name: null
+              });
+            }
           }
         }
         
         if (originalMatch.player2) {
-          const player2 = players.find(p => p.name === originalMatch.player2.name);
-          if (player2) {
+          if (originalMatch.player2.name.startsWith('no-opponent') || originalMatch.player2.name.startsWith('No Opponent')) {
+            // Handle placeholder
             participants.push({
               match_id: dbMatchId,
-              player_id: player2.id,
+              player_id: null,
               position: 2,
               team_number: null,
-              score: null
+              score: null,
+              is_placeholder: true,
+              placeholder_name: originalMatch.player2.name
             });
+          } else {
+            // Handle real player
+            const player2 = players.find(p => p.name === originalMatch.player2.name);
+            if (player2) {
+              participants.push({
+                match_id: dbMatchId,
+                player_id: player2.id,
+                position: 2,
+                team_number: null,
+                score: null,
+                is_placeholder: false,
+                placeholder_name: null
+              });
+            }
           }
         }
         
