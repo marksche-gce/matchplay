@@ -178,7 +178,7 @@ export function EditMatchDialog({
     // Create updated match for validation
     const updatedMatch = { ...match, ...updates };
 
-    if (match.type === "singles") {
+    if (match.type === "singles" || match.type === "foursome") {
       // Use allPlayers if available, otherwise fallback to availablePlayers
       const playersToSearch = allPlayers.length > 0 ? allPlayers : availablePlayers;
       
@@ -364,7 +364,7 @@ export function EditMatchDialog({
                 </Select>
               </div>
 
-              {match.type === "singles" && (
+              {(match.type === "singles" || match.type === "foursome") && (
                 <div className="space-y-4 border-t pt-4">
                   <Label className="text-base font-semibold">Players</Label>
                   
@@ -426,7 +426,7 @@ export function EditMatchDialog({
                 <div className="space-y-4 border-t pt-4">
                   <Label className="text-base font-semibold">Match Results</Label>
                   
-                  {match.type === "singles" && (
+                  {(match.type === "singles" || match.type === "foursome") && (
                     <div className="space-y-2">
                       <Label htmlFor="winner">Winner</Label>
                       <Select value={formData.winner} onValueChange={(value) => handleInputChange("winner", value)}>
