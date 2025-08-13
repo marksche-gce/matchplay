@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { getRoundName, calculateTotalRounds } from '@/lib/tournamentUtils';
 
 interface Player {
   id: string;
@@ -581,12 +582,6 @@ export function ManualMatchSetup({
     }
   };
 
-  const getRoundName = (round: number, totalRounds: number): string => {
-    if (round === totalRounds) return "Final";
-    if (round === totalRounds - 1) return "Semifinals";
-    if (round === totalRounds - 2) return "Quarterfinals";
-    return `Round ${round}`;
-  };
 
   const getMatchStatusText = (match: MatchSetup) => {
     if (match.isCompleted) {

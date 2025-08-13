@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { getRoundName, getNextRoundName, ROUND_PROGRESSION } from '@/lib/tournamentUtils';
 
 import { EditMatchDialog } from "./EditMatchDialog";
 import { ManualMatchSetup } from "./ManualMatchSetup";
@@ -653,13 +654,9 @@ export function TournamentBracket({
     console.log("=== CREATING NEXT ROUND MATCHES ===");
     console.log("Current round:", currentRound);
     
-    const roundMapping = {
-      "Round 1": "Quarterfinals",
-      "Quarterfinals": "Semifinals", 
-      "Semifinals": "Final"
-    };
+    const roundMapping = ROUND_PROGRESSION;
     
-    const nextRound = roundMapping[currentRound];
+    const nextRound = getNextRoundName(currentRound);
     if (!nextRound) {
       console.log("No next round for:", currentRound);
       return;
@@ -1697,13 +1694,6 @@ export function TournamentBracket({
     }
   };
 
-  // Helper function to get round names
-  const getRoundName = (round: number, totalRounds: number): string => {
-    if (round === totalRounds) return "Final";
-    if (round === totalRounds - 1) return "Semifinals";
-    if (round === totalRounds - 2) return "Quarterfinals";
-    return `Round ${round}`;
-  };
 
   // Generate complete bracket structure
   const generateCompleteBracketStructure = async (totalRounds: number, firstRoundMatches: number) => {

@@ -1,4 +1,5 @@
 import { useToast } from "@/hooks/use-toast";
+import { getRoundName, calculateTotalRounds, calculateFirstRoundMatches } from '@/lib/tournamentUtils';
 
 interface Player {
   id: string;
@@ -103,21 +104,7 @@ export function useBracketGeneration() {
     return newMatches;
   };
 
-  const calculateFirstRoundMatches = (maxPlayers: number): number => {
-    return maxPlayers / 2;
-  };
-
-  const calculateTotalRounds = (maxPlayers: number): number => {
-    return Math.ceil(Math.log2(maxPlayers));
-  };
-
-
-  const getRoundName = (round: number, totalRounds: number): string => {
-    if (round === totalRounds) return "Final";
-    if (round === totalRounds - 1) return "Semifinals";
-    if (round === totalRounds - 2) return "Quarterfinals";
-    return `Round ${round}`;
-  };
+  // fillFirstRoundMatches function starts here
 
   const fillFirstRoundMatches = (
     tournamentId: string,
