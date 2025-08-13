@@ -2108,14 +2108,6 @@ export function TournamentBracket({
             </div>
             <div className="flex gap-2">
               <Button
-                onClick={saveFirstRoundSetup}
-                variant="default"
-                className="gap-2"
-              >
-                <Trophy className="h-4 w-4" />
-                Save Setup 1. Round
-              </Button>
-              <Button
                 onClick={() => resetAllSetup()}
                 variant="destructive"
                 className="gap-2"
