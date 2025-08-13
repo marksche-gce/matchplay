@@ -50,10 +50,10 @@ const MatchNode = ({ data }: { data: any }) => {
   
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-green-100 border-green-300';
-      case 'in_progress': return 'bg-yellow-100 border-yellow-300';
-      case 'scheduled': return 'bg-blue-100 border-blue-300';
-      default: return 'bg-gray-100 border-gray-300';
+      case 'completed': return 'bg-success/10 border-success/30';
+      case 'in-progress': return 'bg-warning/10 border-warning/30';
+      case 'scheduled': return 'bg-primary/10 border-primary/30';
+      default: return 'bg-secondary/10 border-secondary/30';
     }
   };
 
@@ -73,17 +73,17 @@ const MatchNode = ({ data }: { data: any }) => {
         </Badge>
       </CardHeader>
       <CardContent className="p-2 space-y-1">
-        <div className={`text-sm p-1 rounded ${match.winner === player1Name ? 'bg-green-200 font-bold' : ''}`}>
+        <div className={`text-sm p-1 rounded ${match.winner === player1Name ? 'bg-success/20 font-bold' : ''}`}>
           {player1Name}
           {match.player1?.handicap && ` (${match.player1.handicap})`}
         </div>
-        <div className="text-xs text-center text-gray-500">vs</div>
-        <div className={`text-sm p-1 rounded ${match.winner === player2Name ? 'bg-green-200 font-bold' : ''}`}>
+        <div className="text-xs text-center text-muted-foreground">vs</div>
+        <div className={`text-sm p-1 rounded ${match.winner === player2Name ? 'bg-success/20 font-bold' : ''}`}>
           {player2Name}
           {match.player2?.handicap && ` (${match.player2.handicap})`}
         </div>
         {match.winner && (
-          <div className="text-xs text-center text-green-700 font-semibold mt-1">
+          <div className="text-xs text-center text-success font-semibold mt-1">
             Winner: {match.winner}
           </div>
         )}
@@ -117,8 +117,8 @@ export const TournamentBracketFlow: React.FC<TournamentBracketFlowProps> = ({
     return grouped;
   }, [matches]);
 
-  // Define round order for proper layout
-  const roundOrder = ['Round 1', 'Quarterfinals', 'Semifinals', 'Final'];
+  // Define round order for proper layout - use standard numbering
+  const roundOrder = ['Round 1', 'Round 2', 'Round 3', 'Round 4'];
 
   useEffect(() => {
     // Create nodes for matches
@@ -163,7 +163,7 @@ export const TournamentBracketFlow: React.FC<TournamentBracketFlowProps> = ({
               width: 15,
               height: 15,
             },
-            style: { stroke: '#3b82f6', strokeWidth: 2 },
+            style: { stroke: 'hsl(var(--primary))', strokeWidth: 2 },
           });
         }
       });
@@ -185,7 +185,7 @@ export const TournamentBracketFlow: React.FC<TournamentBracketFlowProps> = ({
         nodeTypes={nodeTypes}
         fitView
         attributionPosition="bottom-left"
-        className="bg-gray-50"
+        className="bg-background"
       >
         <Controls />
         <Background />

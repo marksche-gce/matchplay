@@ -9,7 +9,7 @@ import { getRoundName, getNextRoundName, ROUND_PROGRESSION } from '@/lib/tournam
 import { EditMatchDialog } from "./EditMatchDialog";
 import { ManualMatchSetup } from "./ManualMatchSetup";
 import { OptimizedMatchCard } from "./OptimizedMatchCard";
-import { ManualProgressionButton } from "./ManualProgressionButton";
+
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -520,10 +520,21 @@ export function TournamentBracket({
     console.log("=== BRACKET EFFECT COMPLETE ===");
   }, [matches, players, maxPlayers]);
 
-  // Re-enable auto-advance winners when matches are updated
+  // Auto-advance winners when matches are updated
   useEffect(() => {
     if (matches.length > 0) {
-      // Check if all Round 1 matches are completed and auto-create Round 2
+      // Auto-advance winners and check for round completion
+      const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
+      const completedMatches = tournamentMatches.filter(m => m.status === "completed" && m.winner);
+      
+      // Auto-advance any completed matches
+      if (completedMatches.length > 0) {
+        autoAdvanceWinners(matches).catch(error => {
+          console.error("Failed to auto-advance winners:", error);
+        });
+      }
+      
+      // Check if rounds are complete and auto-create next round
       checkAndCreateNextRound().catch(error => {
         console.error("Failed to check and create next round:", error);
       });
@@ -2583,11 +2594,6 @@ export function TournamentBracket({
                 <RefreshCw className="h-4 w-4" />
                 Refresh
               </Button>
-              <ManualProgressionButton
-                tournamentId={tournamentId}
-                players={players}
-                onRefreshNeeded={refreshMatchData}
-              />
               <Button
                 onClick={() => resetAllSetup()}
                 variant="destructive"

@@ -15,6 +15,7 @@ import { TournamentSelector } from "./TournamentSelector";
 import { TournamentManagement } from "./TournamentManagement";
 import { HeaderImageUpload } from "./HeaderImageUpload";
 import { TournamentBracket } from "./TournamentBracket";
+import { TournamentBracketFlow } from "./TournamentBracketFlow";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -2308,16 +2309,6 @@ export function TournamentDashboard() {
                         <Trophy className="h-4 w-4" />
                         Generate Bracket Structure
                       </Button>
-                      {matches.length > 0 && (
-                        <Button 
-                          onClick={handleFillBracket}
-                          variant="outline"
-                          className="flex items-center gap-2"
-                        >
-                          <Users className="h-4 w-4" />
-                          Fill with Players
-                        </Button>
-                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -2327,15 +2318,6 @@ export function TournamentDashboard() {
                 <div className="flex justify-between items-center">
                   <h2 className="text-2xl font-bold">Tournament Bracket</h2>
                   <div className="flex gap-2">
-                    <Button 
-                      onClick={handleFillBracket}
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-2"
-                    >
-                      <Users className="h-4 w-4" />
-                      Refill Players
-                    </Button>
                     <Button 
                       onClick={resetAllMatches}
                       variant="destructive"
@@ -2347,14 +2329,16 @@ export function TournamentDashboard() {
                     </Button>
                   </div>
                 </div>
-                <TournamentBracket
+                <TournamentBracketFlow
                   tournamentId={currentTournament?.id || ""}
-                  matches={matches}
+                  matches={tournamentMatches}
                   players={players}
-                  onMatchUpdate={handleBracketMatchUpdate}
-                  onCreateMatch={handleCreateMatch}
-                  format={currentTournament?.format || "matchplay"}
-                  maxPlayers={currentTournament?.max_players || 32}
+                  onMatchSelect={(matchId) => {
+                    const match = tournamentMatches.find(m => m.id === matchId);
+                    if (match) {
+                      setSelectedPlayer(matchId);
+                    }
+                  }}
                 />
               </>
             )}
@@ -2404,6 +2388,29 @@ export function TournamentDashboard() {
           </TabsContent>
         </Tabs>
       </div>
+      
+      {/* Edit Match Dialog */}
+      {selectedPlayer && tournamentMatches.find(m => m.id === selectedPlayer) && (
+        <EditMatchDialog
+          match={tournamentMatches.find(m => m.id === selectedPlayer)!}
+          allPlayers={players}
+          availablePlayers={getAvailablePlayersForMatch(selectedPlayer)}
+          open={!!selectedPlayer}
+          onOpenChange={(open) => {
+            if (!open) setSelectedPlayer(null);
+          }}
+          onMatchUpdate={async (matchId, updates) => {
+            // Handle match update
+            const matchIndex = matches.findIndex(m => m.id === matchId);
+            if (matchIndex !== -1) {
+              const newMatches = [...matches];
+              newMatches[matchIndex] = { ...newMatches[matchIndex], ...updates };
+              setMatches(newMatches);
+            }
+            setSelectedPlayer(null);
+          }}
+        />
+      )}
     </div>
   );
 }
