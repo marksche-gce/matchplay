@@ -922,10 +922,8 @@ export function TournamentDashboard() {
         await Promise.all(savePromises);
         console.log("All database updates completed successfully");
         
-        toast({
-          title: "Matches Updated!",
-          description: "All match updates have been saved successfully.",
-        });
+        // Only show toast for significant updates (when there are actual changes)
+        // Remove the automatic toast to prevent spam
       } catch (error) {
         console.error('Error updating matches:', error);
         toast({
