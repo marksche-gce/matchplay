@@ -76,141 +76,199 @@ export function TournamentBracket({
   const [showManualSetup, setShowManualSetup] = useState(true);
   const { toast } = useToast();
 
-  // Function to create Round 2 matches with winners
+  // Function to create Round 2 matches with winners - improved logic
   const createRound2WithWinners = async () => {
     console.log("=== CREATING ROUND 2 WITH WINNERS ===");
     
-    // Get all Round 1 matches with winners
-    const { data: round1Matches, error: fetchError } = await supabase
-      .from('matches')
-      .select(`
-        *,
-        match_participants (
-          id,
-          player_id,
-          position,
-          score,
-          is_placeholder,
-          placeholder_name,
-          players (
+    try {
+      // First check if Round 2 matches already exist
+      const { data: existingRound2, error: checkError } = await supabase
+        .from('matches')
+        .select('id')
+        .eq('tournament_id', tournamentId)
+        .eq('round', 'Round 2');
+        
+      if (checkError) {
+        console.error("Error checking existing Round 2:", checkError);
+        return;
+      }
+      
+      if (existingRound2 && existingRound2.length > 0) {
+        toast({
+          title: "Round 2 Already Exists",
+          description: `Found ${existingRound2.length} Round 2 matches already created.`,
+        });
+        return;
+      }
+      
+      // Get all Round 1 matches with winners
+      const { data: round1Matches, error: fetchError } = await supabase
+        .from('matches')
+        .select(`
+          *,
+          match_participants (
             id,
-            name,
-            handicap
+            player_id,
+            position,
+            score,
+            is_placeholder,
+            placeholder_name,
+            players (
+              id,
+              name,
+              handicap
+            )
           )
-        )
-      `)
-      .eq('tournament_id', tournamentId)
-      .eq('round', 'Round 1')
-      .eq('status', 'completed')
-      .not('winner_id', 'is', null);
+        `)
+        .eq('tournament_id', tournamentId)
+        .eq('round', 'Round 1')
+        .eq('status', 'completed')
+        .not('winner_id', 'is', null)
+        .order('created_at');
+        
+      if (fetchError) {
+        console.error("Error fetching Round 1 matches:", fetchError);
+        return;
+      }
       
-    if (fetchError) {
-      console.error("Error fetching Round 1 matches:", fetchError);
-      return;
-    }
-    
-    console.log("Round 1 completed matches with winners:", round1Matches?.length);
-    
-    if (!round1Matches || round1Matches.length < 2) {
+      console.log("Round 1 completed matches with winners:", round1Matches?.length);
+      
+      if (!round1Matches || round1Matches.length < 2) {
+        toast({
+          title: "Not Ready",
+          description: "Need at least 2 completed Round 1 matches to create Round 2.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Create Round 2 matches by pairing winners from consecutive Round 1 matches
+      const round2Matches = [];
+      for (let i = 0; i < round1Matches.length; i += 2) {
+        const match1 = round1Matches[i];
+        const match2 = round1Matches[i + 1];
+        
+        if (match1) {
+          round2Matches.push({
+            tournament_id: tournamentId,
+            type: "singles",
+            round: "Round 2",
+            status: "scheduled",
+            match_date: null,
+            match_time: null,
+            tee: null,
+            winner_id: null,
+            previous_match_1_id: match1.id,
+            previous_match_2_id: match2?.id || null
+          });
+        }
+      }
+      
+      console.log("Creating", round2Matches.length, "Round 2 matches");
+      
+      // Insert Round 2 matches
+      const { data: createdMatches, error: createError } = await supabase
+        .from('matches')
+        .insert(round2Matches)
+        .select();
+        
+      if (createError) {
+        console.error("Error creating Round 2 matches:", createError);
+        toast({
+          title: "Error",
+          description: "Failed to create Round 2 matches.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      console.log("Successfully created", createdMatches.length, "Round 2 matches");
+      
+      // Add winners as participants to Round 2 matches
+      const participantsToAdd = [];
+      
+      for (let i = 0; i < createdMatches.length; i++) {
+        const newMatch = createdMatches[i];
+        const match1 = round1Matches[i * 2];
+        const match2 = round1Matches[i * 2 + 1];
+        
+        // Add winner from first previous match as position 1
+        if (match1?.winner_id) {
+          const winner1 = players.find(p => p.id === match1.winner_id);
+          if (winner1) {
+            participantsToAdd.push({
+              match_id: newMatch.id,
+              player_id: winner1.id,
+              position: 1,
+              score: null,
+              is_placeholder: false,
+              placeholder_name: null
+            });
+            console.log(`Adding ${winner1.name} to position 1 of Round 2 match`);
+          }
+        }
+        
+        // Add winner from second previous match as position 2
+        if (match2?.winner_id) {
+          const winner2 = players.find(p => p.id === match2.winner_id);
+          if (winner2) {
+            participantsToAdd.push({
+              match_id: newMatch.id,
+              player_id: winner2.id,
+              position: 2,
+              score: null,
+              is_placeholder: false,
+              placeholder_name: null
+            });
+            console.log(`Adding ${winner2.name} to position 2 of Round 2 match`);
+          }
+        } else if (match1) {
+          // If only one match, add placeholder for position 2
+          participantsToAdd.push({
+            match_id: newMatch.id,
+            player_id: null,
+            position: 2,
+            score: null,
+            is_placeholder: true,
+            placeholder_name: "TBD"
+          });
+        }
+      }
+      
+      // Insert all participants at once
+      if (participantsToAdd.length > 0) {
+        const { error: participantError } = await supabase
+          .from('match_participants')
+          .insert(participantsToAdd);
+          
+        if (participantError) {
+          console.error("Error adding participants to Round 2:", participantError);
+          toast({
+            title: "Warning",
+            description: "Round 2 matches created but failed to add participants.",
+            variant: "destructive"
+          });
+        } else {
+          console.log("Successfully added", participantsToAdd.length, "participants to Round 2");
+        }
+      }
+      
       toast({
-        title: "Not Ready",
-        description: "Need at least 2 completed Round 1 matches to create Round 2.",
-        variant: "destructive"
+        title: "Round 2 Created!",
+        description: `Successfully created ${createdMatches.length} Round 2 matches with winners.`,
       });
-      return;
-    }
-    
-    // Create Round 2 matches by pairing winners
-    const round2Matches = [];
-    for (let i = 0; i < round1Matches.length; i += 2) {
-      const match1 = round1Matches[i];
-      const match2 = round1Matches[i + 1];
       
-      round2Matches.push({
-        tournament_id: tournamentId,
-        type: "singles",
-        round: "Round 2",
-        status: "scheduled",
-        match_date: null,
-        match_time: null,
-        tee: null,
-        winner_id: null,
-        previous_match_1_id: match1.id,
-        previous_match_2_id: match2?.id || null
-      });
-    }
-    
-    // Insert Round 2 matches
-    const { data: createdMatches, error: createError } = await supabase
-      .from('matches')
-      .insert(round2Matches)
-      .select();
+      // Refresh the bracket to show Round 2
+      await refreshMatchData();
       
-    if (createError) {
-      console.error("Error creating Round 2 matches:", createError);
+    } catch (error) {
+      console.error("Error creating Round 2:", error);
       toast({
         title: "Error",
         description: "Failed to create Round 2 matches.",
         variant: "destructive"
       });
-      return;
     }
-    
-    // Add winners as participants to Round 2 matches
-    for (let i = 0; i < createdMatches.length; i++) {
-      const newMatch = createdMatches[i];
-      const participants = [];
-      
-      // Add winner from first previous match
-      const prevMatch1 = round1Matches[i * 2];
-      const prevMatch2 = round1Matches[i * 2 + 1];
-      
-      if (prevMatch1?.winner_id) {
-        const winner1 = players.find(p => p.id === prevMatch1.winner_id);
-        if (winner1) {
-          participants.push({
-            match_id: newMatch.id,
-            player_id: winner1.id,
-            position: 1,
-            score: null,
-            is_placeholder: false,
-            placeholder_name: null
-          });
-        }
-      }
-      
-      if (prevMatch2?.winner_id) {
-        const winner2 = players.find(p => p.id === prevMatch2.winner_id);
-        if (winner2) {
-          participants.push({
-            match_id: newMatch.id,
-            player_id: winner2.id,
-            position: 2,
-            score: null,
-            is_placeholder: false,
-            placeholder_name: null
-          });
-        }
-      }
-      
-      if (participants.length > 0) {
-        const { error: participantError } = await supabase
-          .from('match_participants')
-          .insert(participants);
-          
-        if (participantError) {
-          console.error("Error adding participants to Round 2:", participantError);
-        }
-      }
-    }
-    
-    toast({
-      title: "Round 2 Created!",
-      description: `Successfully created ${createdMatches.length} Round 2 matches with winners.`,
-    });
-    
-    // Refresh the bracket
-    await refreshMatchData();
   };
 
   // Function to refresh match data from database
