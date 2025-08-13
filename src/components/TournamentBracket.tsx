@@ -717,7 +717,10 @@ export function TournamentBracket({
       });
     }
     
+    console.log("Matches to create:", matchesToCreate);
+    
     if (matchesToCreate.length > 0) {
+      console.log("Attempting to insert", matchesToCreate.length, "matches into database...");
       const { data: createdMatches, error: createError } = await supabase
         .from('matches')
         .insert(matchesToCreate)
@@ -725,12 +728,16 @@ export function TournamentBracket({
         
       if (createError) {
         console.error("Error creating next round matches:", createError);
+        console.error("Full error details:", JSON.stringify(createError, null, 2));
       } else {
         console.log("Successfully created", createdMatches?.length, "next round matches");
+        console.log("Created matches:", createdMatches);
         
         // Update bracket relationships for the newly created matches
         await setupBracketRelationships();
       }
+    } else {
+      console.log("No matches to create - matchesToCreate is empty");
     }
     
     console.log("=== NEXT ROUND MATCHES CREATION COMPLETE ===");
