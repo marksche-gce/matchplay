@@ -1186,64 +1186,103 @@ export function TournamentDashboard() {
     try {
       console.log("🎯 Filling bracket with players...");
       
-      // Fill first round matches with players
-      const filledMatches = fillFirstRoundMatches(
-        selectedTournament,
-        players,
-        matches
-      );
+      // Get first round matches from database (not generated ones)
+      const firstRoundMatches = matches.filter(match => match.round === "Round 1");
+      
+      if (firstRoundMatches.length === 0) {
+        toast({
+          title: "Error",
+          description: "No first round matches found. Generate bracket first.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log("First round matches found:", firstRoundMatches.length);
+      
+      // Sort players by handicap (best handicaps first - lowest values)
+      const sortedPlayers = [...players].sort((a, b) => a.handicap - b.handicap);
+      console.log("Sorted players:", sortedPlayers.map(p => `${p.name} (${p.handicap})`));
+      
+      const totalMatches = firstRoundMatches.length;
+      const totalPlayers = sortedPlayers.length;
+      
+      // Calculate how many players need to compete vs get free passes
+      const maxTournamentPlayers = totalMatches * 2; // e.g., 8 matches = 16 max players
+      const freePassPlayers = Math.min(6, Math.max(0, maxTournamentPlayers - totalPlayers));
+      const competingPlayers = totalPlayers - freePassPlayers;
+      
+      // Best handicappers get free passes, worst handicappers compete
+      const playersWithFreePasses = sortedPlayers.slice(0, freePassPlayers);
+      const playersToCompete = sortedPlayers.slice(freePassPlayers);
+      
+      console.log(`Setup: ${totalMatches} matches, ${totalPlayers} players`);
+      console.log(`Free pass players (${freePassPlayers}):`, playersWithFreePasses.map(p => `${p.name} (${p.handicap})`));
+      console.log(`Competing players (${competingPlayers}):`, playersToCompete.map(p => p.name));
 
       // Update database with filled matches
-      const updatePromises = filledMatches
-        .filter(match => match.tournamentId === selectedTournament && match.round === "Round 1")
-        .map(async (match) => {
-          // First delete existing participants
-          await supabase
+      const updatePromises = firstRoundMatches.map(async (match, matchIndex) => {
+        // First delete existing participants
+        await supabase
+          .from('match_participants')
+          .delete()
+          .eq('match_id', match.id);
+
+        // Create new participants for this match
+        const participants = [];
+        
+        if (matchIndex < Math.floor(playersToCompete.length / 2)) {
+          // Fill with pairs of competing players
+          const playerIndex = matchIndex * 2;
+          
+          if (playerIndex < playersToCompete.length) {
+            participants.push({
+              match_id: match.id,
+              player_id: playersToCompete[playerIndex].id,
+              position: 1,
+              score: null,
+              is_placeholder: false,
+              placeholder_name: null
+            });
+          }
+          
+          if (playerIndex + 1 < playersToCompete.length) {
+            participants.push({
+              match_id: match.id,
+              player_id: playersToCompete[playerIndex + 1].id,
+              position: 2,
+              score: null,
+              is_placeholder: false,
+              placeholder_name: null
+            });
+          }
+        } else if (matchIndex - Math.floor(playersToCompete.length / 2) < playersWithFreePasses.length) {
+          // Fill with free pass players (one player per match)
+          const freePassIndex = matchIndex - Math.floor(playersToCompete.length / 2);
+          
+          if (freePassIndex < playersWithFreePasses.length) {
+            participants.push({
+              match_id: match.id,
+              player_id: playersWithFreePasses[freePassIndex].id,
+              position: 1,
+              score: null,
+              is_placeholder: false,
+              placeholder_name: null
+            });
+          }
+        }
+
+        if (participants.length > 0) {
+          const { error } = await supabase
             .from('match_participants')
-            .delete()
-            .eq('match_id', match.id);
-
-          // Create new participants
-          const participants = [];
+            .insert(participants);
           
-          if (match.player1) {
-            const player1Data = players.find(p => p.name === match.player1?.name);
-            if (player1Data) {
-              participants.push({
-                match_id: match.id,
-                player_id: player1Data.id,
-                position: 1,
-                score: null,
-                is_placeholder: false,
-                placeholder_name: null
-              });
-            }
-          }
-
-          if (match.player2) {
-            const player2Data = players.find(p => p.name === match.player2?.name);
-            if (player2Data) {
-              participants.push({
-                match_id: match.id,
-                player_id: player2Data.id,
-                position: 2,
-                score: null,
-                is_placeholder: false,
-                placeholder_name: null
-              });
-            }
-          }
-
-          if (participants.length > 0) {
-            const { error } = await supabase
-              .from('match_participants')
-              .insert(participants);
-            
-            if (error) throw error;
-          }
-          
-          return match;
-        });
+          if (error) throw error;
+          console.log(`Added ${participants.length} participants to match ${match.id}`);
+        }
+        
+        return match;
+      });
 
       await Promise.all(updatePromises);
 
