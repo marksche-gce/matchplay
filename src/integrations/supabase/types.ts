@@ -482,6 +482,10 @@ export type Database = {
           | { role_name: string }
         Returns: boolean
       }
+      user_owns_player: {
+        Args: { player_id_param: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "organizer" | "player"
