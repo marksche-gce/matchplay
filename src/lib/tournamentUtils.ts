@@ -33,15 +33,6 @@ export const calculateFirstRoundMatches = (maxPlayers: number): number => {
 };
 
 /**
- * Get next round name
- */
-export const getNextRoundName = (currentRound: string): string | null => {
-  const roundNumber = parseInt(currentRound.split(' ')[1]);
-  if (isNaN(roundNumber)) return null;
-  return `Round ${roundNumber + 1}`;
-};
-
-/**
  * Standard round progression mapping
  */
 export const ROUND_PROGRESSION = {
@@ -49,4 +40,11 @@ export const ROUND_PROGRESSION = {
   "Round 2": "Round 3", 
   "Round 3": "Round 4",
   "Round 4": null // Final round
+};
+
+/**
+ * Get next round name
+ */
+export const getNextRoundName = (currentRound: string): string | null => {
+  return ROUND_PROGRESSION[currentRound] || null;
 };
