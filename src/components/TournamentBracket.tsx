@@ -1220,19 +1220,37 @@ export function TournamentBracket({
       console.log("Basic match updates prepared:", matchUpdates);
 
       // Set winner_id based on winner name if provided
-      if (updates.winner) {
+      let winnerName: string | null = null;
+      try {
+        if (updates.winner) {
+          if (typeof updates.winner === 'string') {
+            winnerName = updates.winner;
+          } else if (typeof updates.winner === 'object' && updates.winner !== null) {
+            const winnerObj = updates.winner as any;
+            if (winnerObj.value && winnerObj.value !== "undefined") {
+              winnerName = winnerObj.value;
+            }
+          }
+        }
+      } catch (e) {
+        console.log("Error parsing winner:", e);
+      }
+      
+      console.log("Winner detection - raw:", updates.winner, "extracted:", winnerName);
+      
+      if (winnerName) {
         // Handle both real players and "no opponent" scenarios
-        if (updates.winner.startsWith('no-opponent')) {
+        if (winnerName.startsWith('no-opponent')) {
           // This is a placeholder winner, don't set winner_id
           matchUpdates.winner_id = null;
-          console.log("Placeholder winner, not setting winner_id:", updates.winner);
+          console.log("Placeholder winner, not setting winner_id:", winnerName);
         } else {
-          const winnerPlayer = players.find(p => p.name === updates.winner);
+          const winnerPlayer = players.find(p => p.name === winnerName);
           if (winnerPlayer) {
             matchUpdates.winner_id = winnerPlayer.id;
-            console.log("Setting winner_id:", winnerPlayer.id, "for winner:", updates.winner);
+            console.log("✅ Setting winner_id:", winnerPlayer.id, "for winner:", winnerName);
           } else {
-            console.log("Could not find player ID for winner:", updates.winner);
+            console.log("❌ Could not find player ID for winner:", winnerName);
             console.log("Available players:", players.map(p => ({ id: p.id, name: p.name })));
             matchUpdates.winner_id = null;
           }
@@ -1240,7 +1258,7 @@ export function TournamentBracket({
       } else {
         // Clear winner if no winner is set
         matchUpdates.winner_id = null;
-        console.log("Clearing winner_id");
+        console.log("Clearing winner_id - no valid winner found");
       }
 
       // Set date and time if provided
