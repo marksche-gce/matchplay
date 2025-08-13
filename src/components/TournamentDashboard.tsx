@@ -1090,9 +1090,7 @@ export function TournamentDashboard() {
           match_date: match.date,
           match_time: match.time,
           tee: parseInt(match.tee || "1"),
-          previous_match_1_id: match.previousMatch1Id || null,
-          previous_match_2_id: match.previousMatch2Id || null,
-          next_match_id: match.nextMatchId || null,
+          // Don't include previous/next match IDs yet - we'll set these after all matches are created
           winner_id: null
         };
 
@@ -1103,20 +1101,56 @@ export function TournamentDashboard() {
           .single();
 
         if (error) throw error;
-        return data;
+        return { originalId: match.id, dbMatch: data };
       });
 
       // Wait for all matches to be created
-      const savedMatches = await Promise.all(matchInsertPromises);
+      const matchResults = await Promise.all(matchInsertPromises);
       
-      console.log("✅ Successfully saved", savedMatches.length, "matches to database");
+      // Create a mapping from original IDs to database UUIDs
+      const idMapping = new Map();
+      matchResults.forEach(result => {
+        idMapping.set(result.originalId, result.dbMatch.id);
+      });
+
+      // Now update the previous/next match relationships
+      const updatePromises = generatedMatches.map(async (originalMatch) => {
+        const dbMatchId = idMapping.get(originalMatch.id);
+        if (!dbMatchId) return;
+
+        const updates: any = {};
+        
+        if (originalMatch.previousMatch1Id) {
+          updates.previous_match_1_id = idMapping.get(originalMatch.previousMatch1Id) || null;
+        }
+        if (originalMatch.previousMatch2Id) {
+          updates.previous_match_2_id = idMapping.get(originalMatch.previousMatch2Id) || null;
+        }
+        if (originalMatch.nextMatchId) {
+          updates.next_match_id = idMapping.get(originalMatch.nextMatchId) || null;
+        }
+
+        // Only update if there are relationships to set
+        if (Object.keys(updates).length > 0) {
+          const { error } = await supabase
+            .from('matches')
+            .update(updates)
+            .eq('id', dbMatchId);
+
+          if (error) throw error;
+        }
+      });
+
+      await Promise.all(updatePromises);
+      
+      console.log("✅ Successfully saved", matchResults.length, "matches to database with relationships");
 
       // Refresh matches from database
       await fetchMatches();
 
       toast({
         title: "Bracket Generated!",
-        description: `Successfully created ${savedMatches.length} matches for the tournament.`,
+        description: `Successfully created ${matchResults.length} matches for the tournament.`,
       });
 
     } catch (error) {
