@@ -35,7 +35,7 @@ export const calculateFirstRoundMatches = (maxPlayers: number): number => {
 /**
  * Standard round progression mapping
  */
-export const ROUND_PROGRESSION = {
+export const ROUND_PROGRESSION: { [key: string]: string | null } = {
   "Round 1": "Round 2",
   "Round 2": "Round 3", 
   "Round 3": "Round 4",
