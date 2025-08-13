@@ -256,10 +256,15 @@ export function TournamentBracket({
           console.error("Failed to setup bracket relationships:", error);
         });
         
-        // Auto-advance winners whenever matches change
-        autoAdvanceWinners(matches).catch(error => {
-          console.error("Failed to auto-advance winners:", error);
-        });
+        // Only auto-advance winners for matches that weren't just created
+        // This prevents conflicts with the manual setup process
+        if (databaseMatches.length > 0 && !tournamentMatches.some(m => 
+          Date.now() - new Date(m.date).getTime() < 10000 // Created in last 10 seconds
+        )) {
+          autoAdvanceWinners(matches).catch(error => {
+            console.error("Failed to auto-advance winners:", error);
+          });
+        }
       } else {
         setShowManualSetup(true);
       }

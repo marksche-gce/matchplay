@@ -186,8 +186,9 @@ export function ManualMatchSetup({
         }
       }
 
-      // Create subsequent rounds with proper connections
+      // Create ALL subsequent rounds first before advancing winners
       let currentRoundMatches = allMatches;
+      const allRoundMatches = [currentRoundMatches]; // Store all rounds for reference
       
       for (let round = 2; round <= totalRounds; round++) {
         const roundName = getRoundName(round, totalRounds);
@@ -220,36 +221,41 @@ export function ManualMatchSetup({
           roundMatches.push(matchResult);
         }
 
+        allRoundMatches.push(roundMatches);
         currentRoundMatches = roundMatches;
       }
 
-      // Now advance any completed first round winners to Round 2
+      // Wait a moment for database consistency
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Now advance completed first round winners to Round 2
       const completedFirstRoundMatches = allMatches.filter(match => 
         match.status === "completed" && match.winner_id
       );
 
-      for (const completedMatch of completedFirstRoundMatches) {
+      console.log(`Advancing ${completedFirstRoundMatches.length} winners to Round 2`);
+      
+      // Advance winners to Round 2 matches
+      const round2Matches = allRoundMatches[1]; // Round 2 is at index 1
+      
+      for (let i = 0; i < completedFirstRoundMatches.length; i++) {
+        const completedMatch = completedFirstRoundMatches[i];
+        
         // Find the Round 2 match this winner should advance to
-        const { data: nextMatch, error: nextMatchError } = await supabase
-          .from('matches')
-          .select('*')
-          .or(`previous_match_1_id.eq.${completedMatch.id},previous_match_2_id.eq.${completedMatch.id}`)
-          .maybeSingle();
+        const targetRound2Match = round2Matches.find(r2Match => 
+          r2Match.previous_match_1_id === completedMatch.id || 
+          r2Match.previous_match_2_id === completedMatch.id
+        );
 
-        if (nextMatchError) {
-          console.error("Error finding next match:", nextMatchError);
-          continue;
-        }
-
-        if (nextMatch) {
+        if (targetRound2Match) {
           // Determine position (1 or 2) based on which previous match this is
-          const position = nextMatch.previous_match_1_id === completedMatch.id ? 1 : 2;
+          const position = targetRound2Match.previous_match_1_id === completedMatch.id ? 1 : 2;
           
           // Add the winner to the next round match
           const { error: participantError } = await supabase
             .from('match_participants')
             .insert({
-              match_id: nextMatch.id,
+              match_id: targetRound2Match.id,
               player_id: completedMatch.winner_id,
               position: position,
               team_number: null,
@@ -261,14 +267,14 @@ export function ManualMatchSetup({
           if (participantError) {
             console.error("Error advancing winner to next round:", participantError);
           } else {
-            console.log(`Advanced winner to Round 2 match ${nextMatch.id}, position ${position}`);
+            console.log(`Advanced winner to Round 2 match ${targetRound2Match.id}, position ${position}`);
           }
         }
       }
 
       toast({
         title: "Tournament Created!",
-        description: `Successfully created ${allMatches.length} first round matches and advanced ${completedFirstRoundMatches.length} winners to Round 2.`,
+        description: `Successfully created tournament with ${allMatches.length} first round matches. ${completedFirstRoundMatches.length} winners advanced to Round 2.`,
       });
 
       onMatchesCreated();
