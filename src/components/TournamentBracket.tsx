@@ -35,7 +35,7 @@ interface Match {
     teamScore?: number;
   };
   round: string;
-  status: "scheduled" | "completed";
+  status: "pending" | "scheduled" | "completed";
   date: string;
   time: string | null;
   tee?: string;
@@ -163,7 +163,7 @@ export function TournamentBracket({
           player1,
           player2,
           round: dbMatch.round,
-          status: dbMatch.status as "scheduled" | "completed",
+          status: dbMatch.status as "pending" | "scheduled" | "completed",
           date: dbMatch.match_date || new Date().toISOString().split('T')[0],
           time: dbMatch.match_time || "TBD",
           tee: dbMatch.tee?.toString(),
@@ -2181,10 +2181,12 @@ export function TournamentBracket({
                           {/* Match Status */}
                           <div className="flex items-center justify-between">
                             <Badge 
-                              variant={match.status === "completed" ? "default" : "secondary"}
+                              variant={match.status === "completed" ? "default" : 
+                                     match.status === "scheduled" ? "secondary" : "outline"}
                               className="text-xs"
                             >
-                              {match.status === "completed" ? "Completed" : "Scheduled"}
+                              {match.status === "completed" ? "Completed" : 
+                               match.status === "scheduled" ? "Scheduled" : "Pending"}
                             </Badge>
                             {match.winner && (
                               <Trophy className="h-4 w-4 text-primary" />

@@ -67,7 +67,7 @@ interface Match {
     teamScore?: number;
   };
   round: string;
-  status: "scheduled" | "completed";
+  status: "pending" | "scheduled" | "completed";
   date: string;
   time: string;
   tee?: string;

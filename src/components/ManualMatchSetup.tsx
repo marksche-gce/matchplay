@@ -172,7 +172,8 @@ export function ManualMatchSetup({
         const { error: matchError } = await supabase
           .from('matches')
           .update({
-            status: matchSetup.isCompleted ? "completed" : "scheduled",
+            status: matchSetup.isCompleted ? "completed" : 
+                   (matchSetup.player1Id || matchSetup.player2Id) ? "scheduled" : "pending",
             winner_id: matchSetup.winnerId || null
           })
           .eq('id', existingMatch.id);
@@ -199,7 +200,8 @@ export function ManualMatchSetup({
           tournament_id: tournamentId,
           type: "singles",
           round: "Round 1",
-          status: matchSetup.isCompleted ? "completed" : "scheduled",
+          status: matchSetup.isCompleted ? "completed" : 
+                 (matchSetup.player1Id || matchSetup.player2Id) ? "scheduled" : "pending",
           match_date: new Date().toISOString().split('T')[0],
           match_time: "09:00:00",
           tee: matchSetup.matchNumber,
@@ -260,7 +262,7 @@ export function ManualMatchSetup({
             tournament_id: tournamentId,
             type: "singles",
             round: roundName,
-            status: "scheduled",
+            status: "pending",
             match_date: new Date().toISOString().split('T')[0],
             match_time: "09:00:00",
             tee: matchIndex + 1

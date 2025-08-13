@@ -41,7 +41,7 @@ interface Match {
   team1?: Team;
   team2?: Team;
   round: string;
-  status: "scheduled" | "completed";
+  status: "pending" | "scheduled" | "completed";
   date: string;
   time: string | null;
   tee?: string;
