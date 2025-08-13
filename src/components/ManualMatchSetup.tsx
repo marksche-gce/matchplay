@@ -281,6 +281,9 @@ export function ManualMatchSetup({
 
       const totalRounds = Math.ceil(Math.log2(maxPlayers));
       
+      console.log('Setting up relationships for', totalRounds, 'rounds');
+      console.log('Matches by round:', matchesByRound);
+      
       // Set up previous match relationships
       for (let round = 2; round <= totalRounds; round++) {
         const roundName = getRoundName(round, totalRounds);
@@ -288,19 +291,33 @@ export function ManualMatchSetup({
         const previousRoundName = getRoundName(round - 1, totalRounds);
         const previousRoundMatches = matchesByRound[previousRoundName] || [];
 
+        console.log(`Setting up ${roundName}: ${currentRoundMatches.length} matches, previous ${previousRoundName}: ${previousRoundMatches.length} matches`);
+
+        // Sort matches by tee number to ensure correct pairing
+        currentRoundMatches.sort((a, b) => (a.tee || 0) - (b.tee || 0));
+        previousRoundMatches.sort((a, b) => (a.tee || 0) - (b.tee || 0));
+
         for (let i = 0; i < currentRoundMatches.length; i++) {
           const currentMatch = currentRoundMatches[i];
           const prevMatch1 = previousRoundMatches[i * 2];
           const prevMatch2 = previousRoundMatches[i * 2 + 1];
 
+          console.log(`Match ${i + 1} in ${roundName} gets winners from matches ${prevMatch1?.tee || 'none'} and ${prevMatch2?.tee || 'none'} from ${previousRoundName}`);
+
           if (prevMatch1 || prevMatch2) {
-            await supabase
+            const { error } = await supabase
               .from('matches')
               .update({
                 previous_match_1_id: prevMatch1?.id || null,
                 previous_match_2_id: prevMatch2?.id || null
               })
               .eq('id', currentMatch.id);
+
+            if (error) {
+              console.error('Error updating match relationships:', error);
+            } else {
+              console.log(`✅ Updated ${roundName} match ${currentMatch.tee} with previous matches: ${prevMatch1?.id || 'none'}, ${prevMatch2?.id || 'none'}`);
+            }
           }
         }
       }
