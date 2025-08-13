@@ -2629,14 +2629,14 @@ export function TournamentBracket({
               
               <div className="space-y-6">
                 {round.matches.map((match, matchIndex) => {
-                  const handleMatchClick = () => {
-                    console.log("Match clicked for edit:", match.id);
-                    let selectedMatch = matches.find(m => m.id === match.id);
+                  const handleMatchClick = (clickedMatch: Match) => {
+                    console.log("Match clicked for edit:", clickedMatch.id);
+                    let selectedMatch = matches.find(m => m.id === clickedMatch.id);
                     
                     // If not found, look in bracketData (for placeholder matches)
                     if (!selectedMatch) {
                       for (const round of bracketData) {
-                        const foundMatch = round.matches.find(m => m.id === match.id);
+                        const foundMatch = round.matches.find(m => m.id === clickedMatch.id);
                         if (foundMatch) {
                           selectedMatch = foundMatch;
                           break;
@@ -2644,7 +2644,7 @@ export function TournamentBracket({
                       }
                     }
                     
-                    setSelectedMatch(selectedMatch || null);
+                    setSelectedMatch(selectedMatch || clickedMatch);
                   };
 
                   return (
