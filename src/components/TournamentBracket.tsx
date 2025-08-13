@@ -733,6 +733,9 @@ export function TournamentBracket({
         console.log("Successfully created", createdMatches?.length, "next round matches");
         console.log("Created matches:", createdMatches);
         
+        // Immediately add winners as participants to the new matches
+        await addWinnersToNewMatches(createdMatches, currentMatches);
+        
         // Update bracket relationships for the newly created matches
         await setupBracketRelationships();
       }
@@ -741,6 +744,65 @@ export function TournamentBracket({
     }
     
     console.log("=== NEXT ROUND MATCHES CREATION COMPLETE ===");
+  };
+
+  const addWinnersToNewMatches = async (createdMatches: any[], currentMatches: any[]) => {
+    console.log("=== ADDING WINNERS TO NEW MATCHES ===");
+    
+    for (const newMatch of createdMatches) {
+      const participantsToAdd = [];
+      
+      // Find the previous matches for this new match
+      const prevMatch1 = currentMatches.find(m => m.id === newMatch.previous_match_1_id);
+      const prevMatch2 = currentMatches.find(m => m.id === newMatch.previous_match_2_id);
+      
+      // Add winner from previous match 1 to position 1
+      if (prevMatch1 && prevMatch1.winner_id) {
+        const winnerPlayer = players.find(p => p.id === prevMatch1.winner_id);
+        if (winnerPlayer) {
+          participantsToAdd.push({
+            match_id: newMatch.id,
+            player_id: winnerPlayer.id,
+            position: 1,
+            score: null,
+            is_placeholder: false,
+            placeholder_name: null
+          });
+          console.log(`Adding ${winnerPlayer.name} to position 1 of new match ${newMatch.id}`);
+        }
+      }
+      
+      // Add winner from previous match 2 to position 2
+      if (prevMatch2 && prevMatch2.winner_id) {
+        const winnerPlayer = players.find(p => p.id === prevMatch2.winner_id);
+        if (winnerPlayer) {
+          participantsToAdd.push({
+            match_id: newMatch.id,
+            player_id: winnerPlayer.id,
+            position: 2,
+            score: null,
+            is_placeholder: false,
+            placeholder_name: null
+          });
+          console.log(`Adding ${winnerPlayer.name} to position 2 of new match ${newMatch.id}`);
+        }
+      }
+      
+      // Insert participants if any
+      if (participantsToAdd.length > 0) {
+        const { error: participantError } = await supabase
+          .from('match_participants')
+          .insert(participantsToAdd);
+          
+        if (participantError) {
+          console.error("Error adding participants to new match:", participantError);
+        } else {
+          console.log(`Successfully added ${participantsToAdd.length} participants to match ${newMatch.id}`);
+        }
+      }
+    }
+    
+    console.log("=== WINNERS ADDED TO NEW MATCHES ===");
   };
 
   // Standard tournament bracket advancement pattern
