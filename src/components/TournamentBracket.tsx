@@ -290,6 +290,20 @@ export function TournamentBracket({
     
     console.log(`Processing ${completedMatches.length} completed matches for auto-advancement`);
     
+    // First, ensure next round matches exist for each completed round
+    const completedRounds = [...new Set(completedMatches.map(m => m.round))];
+    for (const round of completedRounds) {
+      const roundMatches = tournamentMatches.filter(m => m.round === round);
+      const completedInRound = roundMatches.filter(m => m.status === "completed" && m.winner);
+      
+      // If all matches in this round are completed, create next round
+      if (roundMatches.length > 0 && completedInRound.length === roundMatches.length) {
+        console.log(`All matches completed in ${round}, creating next round...`);
+        await createNextRoundMatches(round, tournamentId);
+      }
+    }
+    
+    // Now advance winners to existing next round matches
     for (const completedMatch of completedMatches) {
       const winnerPlayerData = players.find(p => p.name === completedMatch.winner);
       if (winnerPlayerData) {
