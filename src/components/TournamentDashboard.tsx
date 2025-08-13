@@ -1217,7 +1217,6 @@ export function TournamentDashboard() {
           console.error("Error updating match participants:", participantError);
           throw new Error(`Failed to update participants: ${participantError.message || participantError}`);
         }
-        }
       }
 
       // Now update the match details (including winner)
