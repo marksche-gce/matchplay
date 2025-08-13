@@ -1446,7 +1446,7 @@ export function TournamentDashboard() {
           tournament_id: selectedTournament,
           type: "singles",
           round: "Round 1",
-          status: "scheduled",
+          status: "pending",
           match_date: currentTournament.start_date,
           match_time: null,
           tee: null

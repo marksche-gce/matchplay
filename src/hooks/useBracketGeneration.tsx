@@ -54,7 +54,7 @@ export function useBracketGeneration() {
         tournamentId,
         type: "foursome", // First round is foursome
         round: "Round 1",
-        status: "scheduled",
+        status: "pending",
         date: new Date().toISOString().split('T')[0],
         time: "09:00",
         tee: (i + 1).toString()
@@ -73,7 +73,7 @@ export function useBracketGeneration() {
           tournamentId,
           type: "singles",
           round: roundName,
-          status: "scheduled",
+          status: "pending",
           date: new Date().toISOString().split('T')[0],
           time: "09:00",
           tee: (matchIndex + 1).toString()

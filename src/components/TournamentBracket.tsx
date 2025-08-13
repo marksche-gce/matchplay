@@ -399,7 +399,7 @@ export function TournamentBracket({
             tournamentId: tournamentId,
             type: "singles" as const,
             round: roundName,
-            status: "scheduled" as const,
+            status: "pending" as const,
             date: new Date().toISOString().split('T')[0],
             time: "TBD"
           });
@@ -697,7 +697,7 @@ export function TournamentBracket({
         tournament_id: tournamentId,
         type: "singles",
         round: nextRound,
-        status: "scheduled",
+        status: "pending",
         previous_match_1_id: prevMatch1?.id || null,
         previous_match_2_id: prevMatch2?.id || null
       });

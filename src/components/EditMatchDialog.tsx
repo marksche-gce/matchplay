@@ -70,7 +70,7 @@ export function EditMatchDialog({
   const setOpen = onOpenChange || setInternalOpen;
   const [formData, setFormData] = useState({
     round: match?.round || "",
-    status: match?.status || "scheduled",
+    status: match?.status || "pending",
     winner: match?.winner || "",
     player1Name: match?.player1?.name || "no-player",
     player2Name: match?.player2?.name || "no-player"
@@ -81,7 +81,7 @@ export function EditMatchDialog({
     if (match) {
       setFormData({
         round: match.round || "",
-        status: match.status || "scheduled",
+        status: match.status || "pending",
         winner: match.winner || "",
         player1Name: match.player1?.name || "no-player",
         player2Name: match.player2?.name || "no-player"
@@ -274,7 +274,7 @@ export function EditMatchDialog({
       }
       // Auto-schedule match when winner is cleared
       if (field === "winner" && (value === "no-winner" || value === "")) {
-        newData.status = "scheduled";
+        newData.status = "pending";
       }
       
       // Auto-complete match with "no opponent" and set winner
@@ -305,7 +305,7 @@ export function EditMatchDialog({
         } else if (!player1IsNoPlayer && !player2IsNoPlayer) {
           // Both are real players, reset to scheduled if not manually completed
           if (newData.status === "completed" && !newData.winner) {
-            newData.status = "scheduled";
+            newData.status = "pending";
           }
         }
         console.log("Final status:", newData.status);

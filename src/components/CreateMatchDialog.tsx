@@ -157,7 +157,7 @@ export function CreateMatchDialog({
       tournamentId,
       type: matchType,
       round: "Round 1",
-      status: "scheduled",
+      status: "pending",
       date: tournamentStartDate || new Date().toISOString().split('T')[0],
       time: null,
       tee: undefined
