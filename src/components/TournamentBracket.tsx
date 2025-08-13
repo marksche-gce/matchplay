@@ -1019,6 +1019,10 @@ export function TournamentBracket({
       const prevMatch1 = currentMatches?.[startIndex];
       const prevMatch2 = currentMatches?.[startIndex + 1];
       
+      console.log(`Creating ${nextRound} match ${i + 1}:`);
+      console.log(`  - Previous Match 1 (position 1): ${prevMatch1?.id} (from ${currentRound} match ${startIndex + 1})`);
+      console.log(`  - Previous Match 2 (position 2): ${prevMatch2?.id} (from ${currentRound} match ${startIndex + 2})`);
+      
       matchesToCreate.push({
         tournament_id: tournamentId,
         type: "singles",
@@ -1159,6 +1163,13 @@ export function TournamentBracket({
 
       // Determine which position (1 or 2) the winner should go to
       const position = nextMatch.previous_match_1_id === completedMatch.id ? 1 : 2;
+      
+      console.log(`Winner advancement mapping:`);
+      console.log(`  - Completed match: ${completedMatch.id}`);
+      console.log(`  - Next match: ${nextMatch.id}`);
+      console.log(`  - Next match previous_match_1_id: ${nextMatch.previous_match_1_id}`);
+      console.log(`  - Next match previous_match_2_id: ${nextMatch.previous_match_2_id}`);
+      console.log(`  - Winner ${winnerPlayer.name} will be placed in position: ${position}`);
       
       console.log(`Advancing to match ${nextMatch.id}, position ${position}`);
 
