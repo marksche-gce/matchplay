@@ -81,7 +81,21 @@ export function TournamentDashboard() {
 
   const handleCreateTournament = async (tournamentData: any) => {
     try {
-      await createTournamentFn(tournamentData);
+      // Convert camelCase to snake_case for database
+      const dbTournamentData = {
+        name: tournamentData.name,
+        course: tournamentData.course,
+        description: tournamentData.description,
+        start_date: tournamentData.startDate,
+        end_date: tournamentData.endDate,
+        max_players: tournamentData.maxPlayers,
+        format: tournamentData.format,
+        status: tournamentData.status,
+        registration_open: true,
+        entry_fee: 0
+      };
+      
+      await createTournamentFn(dbTournamentData);
       setShowCreateTournament(false);
       toast({
         title: "Success",
