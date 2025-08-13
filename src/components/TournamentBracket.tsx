@@ -735,6 +735,9 @@ export function TournamentBracket({
         
         // Update bracket relationships for the newly created matches
         await setupBracketRelationships();
+        
+        // Refresh the matches to show the updated data
+        await refreshMatchData();
       }
     } else {
       console.log("No matches to create - matchesToCreate is empty");
@@ -1558,6 +1561,26 @@ export function TournamentBracket({
         console.log("Advancing winner immediately...");
         
         try {
+          // First check if we need to create Round 2 matches
+          console.log("Checking if Round 2 matches need to be created...");
+          const currentRoundMatches = matches.filter(m => m.tournamentId === tournamentId && m.round === "Round 1");
+          const completedRound1Matches = currentRoundMatches.filter(m => m.status === "completed");
+          const round2Matches = matches.filter(m => m.tournamentId === tournamentId && m.round === "Round 2");
+          
+          console.log("Round 1 matches:", currentRoundMatches.length);
+          console.log("Completed Round 1 matches:", completedRound1Matches.length);
+          console.log("Existing Round 2 matches:", round2Matches.length);
+          
+          // If we have enough completed matches but no Round 2 matches, create them
+          if (completedRound1Matches.length >= 2 && round2Matches.length === 0) {
+            console.log("Creating Round 2 matches automatically...");
+            await createNextRoundMatches("Round 1", tournamentId);
+            
+            // Refresh match data after creating new round
+            await refreshMatchData();
+            return; // Exit early to let the refresh handle the update
+          }
+          
           // First ensure bracket relationships are set up
           console.log("Setting up bracket relationships for advancement...");
           await setupBracketRelationships();
