@@ -41,7 +41,7 @@ interface Match {
   team1?: Team;
   team2?: Team;
   round: string;
-  status: "pending" | "scheduled" | "completed";
+  status: "scheduled" | "in-progress" | "completed";
   date: string;
   time: string | null;
   tee?: string;
@@ -157,7 +157,7 @@ export function CreateMatchDialog({
       tournamentId,
       type: matchType,
       round: "Round 1",
-      status: "pending",
+      status: "scheduled",
       date: tournamentStartDate || new Date().toISOString().split('T')[0],
       time: null,
       tee: undefined

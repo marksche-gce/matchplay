@@ -68,7 +68,7 @@ interface Match {
   team1?: Team;
   team2?: Team;
   round: string;
-  status: "pending" | "scheduled" | "completed";
+  status: "scheduled" | "in-progress" | "completed";
   date: string;
   time: string | null;
   tee?: string;
@@ -457,7 +457,7 @@ export function TournamentDashboard() {
             player1: formattedPlayer1,
             player2: formattedPlayer2,
             round: String(match.round),
-            status: match.status as "pending" | "scheduled" | "completed",
+            status: match.status as "scheduled" | "in-progress" | "completed",
             date: new Date(match.match_date || new Date()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
             time: match.match_time || "TBD",
             tee: match.tee ? `Tee ${match.tee}` : undefined,
@@ -495,7 +495,7 @@ export function TournamentDashboard() {
               teamScore: team2Players[0].score
             } : undefined,
             round: match.round,
-            status: match.status as "pending" | "scheduled" | "completed",
+            status: match.status as "scheduled" | "in-progress" | "completed",
             date: new Date(match.match_date || new Date()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
             time: match.match_time || "TBD",
             tee: match.tee ? `Tee ${match.tee}` : undefined

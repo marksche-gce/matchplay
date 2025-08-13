@@ -20,7 +20,7 @@ interface Match {
   player1?: MatchPlayer;
   player2?: MatchPlayer;
   round: string;
-  status: "pending" | "scheduled" | "completed";
+  status: "scheduled" | "in-progress" | "completed";
   date: string;
   time: string | null;
   tee?: string;
@@ -55,7 +55,7 @@ export function useBracketGeneration() {
         tournamentId,
         type: "foursome", // First round is foursome
         round: "Round 1",
-        status: "pending",
+        status: "scheduled",
         date: new Date().toISOString().split('T')[0],
         time: "09:00",
         tee: (i + 1).toString()
@@ -74,7 +74,7 @@ export function useBracketGeneration() {
           tournamentId,
           type: "singles",
           round: roundName,
-          status: "pending",
+          status: "scheduled",
           date: new Date().toISOString().split('T')[0],
           time: "09:00",
           tee: (matchIndex + 1).toString()

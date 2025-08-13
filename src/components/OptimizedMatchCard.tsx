@@ -16,7 +16,7 @@ interface Match {
   player1?: Player;
   player2?: Player;
   round: string;
-  status: "pending" | "scheduled" | "completed";
+  status: "scheduled" | "in-progress" | "completed";
   date: string;
   time: string | null;
   tee?: string;

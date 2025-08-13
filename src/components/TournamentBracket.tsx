@@ -36,7 +36,7 @@ interface Match {
     teamScore?: number;
   };
   round: string;
-  status: "pending" | "scheduled" | "completed";
+  status: "scheduled" | "in-progress" | "completed";
   date: string;
   time: string | null;
   tee?: string;
@@ -397,7 +397,7 @@ export function TournamentBracket({
           player1,
           player2,
           round: dbMatch.round,
-          status: dbMatch.status as "pending" | "scheduled" | "completed",
+          status: dbMatch.status as "scheduled" | "in-progress" | "completed",
           date: dbMatch.match_date || new Date().toISOString().split('T')[0],
           time: dbMatch.match_time || "TBD",
           tee: dbMatch.tee?.toString(),
@@ -718,7 +718,7 @@ export function TournamentBracket({
             tournamentId: tournamentId,
             type: "singles" as const,
             round: roundName,
-            status: "pending" as const,
+            status: "scheduled" as const,
             date: new Date().toISOString().split('T')[0],
             time: "TBD"
           });
@@ -1012,7 +1012,7 @@ export function TournamentBracket({
         tournament_id: tournamentId,
         type: "singles",
         round: nextRound,
-        status: "pending",
+        status: "scheduled",
         previous_match_1_id: prevMatch1?.id || null,
         previous_match_2_id: prevMatch2?.id || null
       });
