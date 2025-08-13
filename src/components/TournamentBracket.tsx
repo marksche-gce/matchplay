@@ -1547,7 +1547,7 @@ export function TournamentBracket({
 
           console.log("Existing participants:", existingParticipants);
 
-          // Update participants one by one using direct UPDATE queries
+          // Update or create participants for position 1
           if (updates.player1) {
             console.log("=== UPDATING POSITION 1 ===");
             let participant1Data;
@@ -1578,39 +1578,27 @@ export function TournamentBracket({
             }
 
             if (participant1Data) {
-              // Check if position 1 participant exists
-              const position1Exists = existingParticipants?.some(p => p.position === 1);
-              
-              if (position1Exists) {
-                console.log("Updating existing position 1 participant");
-                const { error: updateError } = await supabase
-                  .from('match_participants')
-                  .update(participant1Data)
-                  .eq('match_id', matchId)
-                  .eq('position', 1);
-                  
-                if (updateError) {
-                  console.error("Error updating position 1 participant:", updateError);
-                  throw updateError;
-                }
+              // Always use UPSERT pattern for more reliable updates
+              const { error: upsertError } = await supabase
+                .from('match_participants')
+                .upsert({
+                  match_id: matchId,
+                  position: 1,
+                  ...participant1Data
+                }, {
+                  onConflict: 'match_id,position'
+                });
+                
+              if (upsertError) {
+                console.error("Error upserting position 1 participant:", upsertError);
+                throw upsertError;
               } else {
-                console.log("Inserting new position 1 participant");
-                const { error: insertError } = await supabase
-                  .from('match_participants')
-                  .insert({
-                    match_id: matchId,
-                    position: 1,
-                    ...participant1Data
-                  });
-                  
-                if (insertError) {
-                  console.error("Error inserting position 1 participant:", insertError);
-                  throw insertError;
-                }
+                console.log("Successfully upserted position 1 participant");
               }
             }
           }
           
+          // Update or create participants for position 2
           if (updates.player2) {
             console.log("=== UPDATING POSITION 2 ===");
             let participant2Data;
@@ -1641,35 +1629,22 @@ export function TournamentBracket({
             }
 
             if (participant2Data) {
-              // Check if position 2 participant exists
-              const position2Exists = existingParticipants?.some(p => p.position === 2);
-              
-              if (position2Exists) {
-                console.log("Updating existing position 2 participant");
-                const { error: updateError } = await supabase
-                  .from('match_participants')
-                  .update(participant2Data)
-                  .eq('match_id', matchId)
-                  .eq('position', 2);
-                  
-                if (updateError) {
-                  console.error("Error updating position 2 participant:", updateError);
-                  throw updateError;
-                }
+              // Always use UPSERT pattern for more reliable updates
+              const { error: upsertError } = await supabase
+                .from('match_participants')
+                .upsert({
+                  match_id: matchId,
+                  position: 2,
+                  ...participant2Data
+                }, {
+                  onConflict: 'match_id,position'
+                });
+                
+              if (upsertError) {
+                console.error("Error upserting position 2 participant:", upsertError);
+                throw upsertError;
               } else {
-                console.log("Inserting new position 2 participant");
-                const { error: insertError } = await supabase
-                  .from('match_participants')
-                  .insert({
-                    match_id: matchId,
-                    position: 2,
-                    ...participant2Data
-                  });
-                  
-                if (insertError) {
-                  console.error("Error inserting position 2 participant:", insertError);
-                  throw insertError;
-                }
+                console.log("Successfully upserted position 2 participant");
               }
             }
           }
@@ -1677,7 +1652,12 @@ export function TournamentBracket({
           console.log("=== PARTICIPANT UPDATES COMPLETED SUCCESSFULLY ===");
         } catch (participantError) {
           console.error("Error in participant update process:", participantError);
-          throw participantError;
+          // Don't throw here - let the match update succeed even if participant update fails
+          toast({
+            title: "Warning",
+            description: "Match updated but there was an issue updating participant data.",
+            variant: "destructive"
+          });
         }
       }
 
