@@ -485,7 +485,7 @@ export function TournamentBracket({
     console.log("Tournament ID:", tournamentId);
     console.log("Format:", format);
     
-    if (format === "matchplay") {
+    if (format === "matchplay" && matches.length > 0) {
       generateBracket();
       
       const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
@@ -2535,10 +2535,14 @@ export function TournamentBracket({
 
   // Regenerate bracket when data changes
   useEffect(() => {
-    if (matches.length > 0) {
+    console.log("=== REGENERATE BRACKET EFFECT ===");
+    console.log("Matches length:", matches.length);
+    console.log("Tournament matches:", matches.filter(m => m.tournamentId === tournamentId).length);
+    
+    if (matches.length > 0 && format === "matchplay") {
       generateBracket();
     }
-  }, [matches, maxPlayers, tournamentId]);
+  }, [matches, maxPlayers, tournamentId, format]);
 
   if (format !== "matchplay") {
     return (
@@ -2599,6 +2603,11 @@ export function TournamentBracket({
 
 
       {/* Bracket Display - Always show bracket structure */}
+      {bracketData.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">Loading bracket data...</p>
+        </div>
+      ) : (
       <ScrollArea className="w-full">
         <div className="flex gap-8 p-4 min-w-max">
           {bracketData.map((round, roundIndex) => (
@@ -2614,7 +2623,7 @@ export function TournamentBracket({
               
               <div className="space-y-6">
                 {round.matches.map((match, matchIndex) => {
-                  const handleMatchClick = useCallback(() => {
+                  const handleMatchClick = () => {
                     console.log("Match clicked for edit:", match.id);
                     let selectedMatch = matches.find(m => m.id === match.id);
                     
@@ -2630,7 +2639,7 @@ export function TournamentBracket({
                     }
                     
                     setSelectedMatch(selectedMatch || null);
-                  }, [match.id, matches, bracketData]);
+                  };
 
                   return (
                     <div key={match.id} className="relative">
@@ -2654,6 +2663,7 @@ export function TournamentBracket({
           ))}
         </div>
       </ScrollArea>
+      )}
 
       {/* Edit Match Dialog */}
       {selectedMatch && (
