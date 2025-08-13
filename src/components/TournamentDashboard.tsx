@@ -375,7 +375,8 @@ export function TournamentDashboard() {
       // Transform database matches to frontend format
       const formattedMatches: Match[] = (data || []).map((match: any) => {
         const participants = match.match_participants || [];
-        console.log("Processing match:", match.id, "winner_id:", match.winner_id, "participants:", participants.map(p => ({ player_id: p.player_id, id: p.players?.id, name: p.players?.name })));
+        console.log("Processing match:", match.id, "winner_id:", match.winner_id, "participants:", participants.length);
+        console.log("Match participants raw data:", participants);
         
         if (match.type === 'singles') {
           const player1 = participants.find((p: any) => p.position === 1);
@@ -411,34 +412,54 @@ export function TournamentDashboard() {
             participants: participants.map(p => ({ player_id: p.player_id, name: p.players?.name }))
           });
           
+          // Create clean player objects without circular references
+          let formattedPlayer1: MatchPlayer | undefined;
+          let formattedPlayer2: MatchPlayer | undefined;
+
+          if (player1) {
+            if (player1.players) {
+              formattedPlayer1 = {
+                name: String(player1.players.name),
+                handicap: Number(player1.players.handicap || 0),
+                score: player1.score || undefined
+              };
+            } else if (player1.is_placeholder) {
+              formattedPlayer1 = {
+                name: String(player1.placeholder_name || "TBD"),
+                handicap: 0,
+                score: player1.score || undefined
+              };
+            }
+          }
+
+          if (player2) {
+            if (player2.players) {
+              formattedPlayer2 = {
+                name: String(player2.players.name),
+                handicap: Number(player2.players.handicap || 0),
+                score: player2.score || undefined
+              };
+            } else if (player2.is_placeholder) {
+              formattedPlayer2 = {
+                name: String(player2.placeholder_name || "TBD"),
+                handicap: 0,
+                score: player2.score || undefined
+              };
+            }
+          }
+
           return {
-            id: match.id,
-            tournamentId: match.tournament_id,
-            type: "singles",
-            player1: player1 ? (player1.players ? {
-              name: player1.players.name,
-              handicap: player1.players.handicap,
-              score: player1.score
-            } : player1.is_placeholder ? {
-              name: player1.placeholder_name,
-              handicap: 0,
-              score: player1.score
-            } : undefined) : undefined,
-            player2: player2 ? (player2.players ? {
-              name: player2.players.name,
-              handicap: player2.players.handicap,
-              score: player2.score
-            } : player2.is_placeholder ? {
-              name: player2.placeholder_name,
-              handicap: 0,
-              score: player2.score
-            } : undefined) : undefined,
-            round: match.round,
+            id: String(match.id),
+            tournamentId: String(match.tournament_id),
+            type: "singles" as const,
+            player1: formattedPlayer1,
+            player2: formattedPlayer2,
+            round: String(match.round),
             status: match.status as "pending" | "scheduled" | "completed",
             date: new Date(match.match_date || new Date()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
             time: match.match_time || "TBD",
             tee: match.tee ? `Tee ${match.tee}` : undefined,
-            winner: winner
+            winner: winner ? String(winner) : undefined
           };
         } else {
           // Handle foursome matches
