@@ -223,9 +223,52 @@ export function ManualMatchSetup({
         currentRoundMatches = roundMatches;
       }
 
+      // Now advance any completed first round winners to Round 2
+      const completedFirstRoundMatches = allMatches.filter(match => 
+        match.status === "completed" && match.winner_id
+      );
+
+      for (const completedMatch of completedFirstRoundMatches) {
+        // Find the Round 2 match this winner should advance to
+        const { data: nextMatch, error: nextMatchError } = await supabase
+          .from('matches')
+          .select('*')
+          .or(`previous_match_1_id.eq.${completedMatch.id},previous_match_2_id.eq.${completedMatch.id}`)
+          .maybeSingle();
+
+        if (nextMatchError) {
+          console.error("Error finding next match:", nextMatchError);
+          continue;
+        }
+
+        if (nextMatch) {
+          // Determine position (1 or 2) based on which previous match this is
+          const position = nextMatch.previous_match_1_id === completedMatch.id ? 1 : 2;
+          
+          // Add the winner to the next round match
+          const { error: participantError } = await supabase
+            .from('match_participants')
+            .insert({
+              match_id: nextMatch.id,
+              player_id: completedMatch.winner_id,
+              position: position,
+              team_number: null,
+              score: null,
+              is_placeholder: false,
+              placeholder_name: null
+            });
+
+          if (participantError) {
+            console.error("Error advancing winner to next round:", participantError);
+          } else {
+            console.log(`Advanced winner to Round 2 match ${nextMatch.id}, position ${position}`);
+          }
+        }
+      }
+
       toast({
         title: "Tournament Created!",
-        description: `Successfully created ${allMatches.length} first round matches and ${currentRoundMatches.length - allMatches.length} subsequent round matches.`,
+        description: `Successfully created ${allMatches.length} first round matches and advanced ${completedFirstRoundMatches.length} winners to Round 2.`,
       });
 
       onMatchesCreated();
@@ -313,7 +356,7 @@ export function ManualMatchSetup({
             className="flex-1"
           >
             <Save className="h-4 w-4 mr-2" />
-            Save Settings & Create Matches
+            Save Setup 1. Round
           </Button>
           <Button 
             variant="destructive"
