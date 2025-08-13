@@ -225,18 +225,23 @@ export function ManualMatchSetup({
         currentRoundMatches = roundMatches;
       }
 
-      // Wait a moment for database consistency
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Wait for database consistency
+      console.log("Waiting for database consistency...");
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Now advance completed first round winners to Round 2
       const completedFirstRoundMatches = allMatches.filter(match => 
         match.status === "completed" && match.winner_id
       );
 
-      console.log(`Advancing ${completedFirstRoundMatches.length} winners to Round 2`);
+      console.log(`Found ${completedFirstRoundMatches.length} completed matches to advance:`, 
+        completedFirstRoundMatches.map(m => ({ id: m.id, winner_id: m.winner_id })));
       
       // Advance winners to Round 2 matches
       const round2Matches = allRoundMatches[1]; // Round 2 is at index 1
+      console.log(`Round 2 matches available:`, round2Matches.map(m => ({ 
+        id: m.id, prev1: m.previous_match_1_id, prev2: m.previous_match_2_id 
+      })));
       
       for (let i = 0; i < completedFirstRoundMatches.length; i++) {
         const completedMatch = completedFirstRoundMatches[i];

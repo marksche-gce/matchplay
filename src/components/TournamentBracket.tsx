@@ -272,14 +272,14 @@ export function TournamentBracket({
     console.log("=== BRACKET EFFECT COMPLETE ===");
   }, [matches, players, maxPlayers]);
 
-  // Auto-advance winners when matches are updated from external sources  
-  useEffect(() => {
-    if (matches.length > 0) {
-      autoAdvanceWinners(matches).catch(error => {
-        console.error("Failed to auto-advance winners on update:", error);
-      });
-    }
-  }, [matches]);
+  // Disable auto-advance on matches effect to prevent conflicts with manual setup
+  // useEffect(() => {
+  //   if (matches.length > 0) {
+  //     autoAdvanceWinners(matches).catch(error => {
+  //       console.error("Failed to auto-advance winners on update:", error);
+  //     });
+  //   }
+  // }, [matches]);
 
   // Automatic winner advancement - called after any match update
   const autoAdvanceWinners = async (updatedMatches: Match[]) => {
@@ -840,49 +840,14 @@ export function TournamentBracket({
   const handleUpdateMatches = async () => {
     console.log("=== UPDATE MATCHES TRIGGERED ===");
     
-    toast({
-      title: "Updating Matches...",
-      description: "Processing winner advancement and bracket updates.",
-    });
-
+    // Don't show toast to prevent flickering
     try {
-      const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
-      const completedMatches = tournamentMatches.filter(m => m.status === "completed" && m.winner);
-      
-      console.log("Total tournament matches:", tournamentMatches.length);
-      console.log("Completed matches with winners:", completedMatches.length);
-      console.log("Completed matches:", completedMatches.map(m => ({
-        id: m.id,
-        round: m.round,
-        winner: m.winner,
-        player1: m.player1?.name,
-        player2: m.player2?.name
-      })));
-
-      // First set up bracket relationships if they're missing
-      console.log("Setting up bracket relationships...");
-      await setupBracketRelationships();
-
-      // Auto-advance winners will be handled by the automatic system
-      console.log("Automatic winner advancement will process completed matches...");
-      
-      // Process bye matches (auto-advance players with no opponents)
-      console.log("Calling processAutoAdvanceByes...");
-      await processAutoAdvanceByes();
-
-      // Regenerate bracket to ensure latest data is displayed
+      // Just regenerate bracket to show latest data
       console.log("Regenerating bracket display...");
       generateBracket();
       
-      // Force a refresh by calling the parent's refresh method
-      console.log("Triggering parent component refresh...");
-      // The parent component will fetch fresh data and regenerate the bracket
-      onMatchUpdate([...matches]); // Trigger refresh with current matches to force re-render
-      
-      toast({
-        title: "Matches Updated!",
-        description: "All winners have been advanced and bracket has been refreshed.",
-      });
+      // Force a refresh from database
+      await refreshMatchData();
       
     } catch (error) {
       console.error('Error updating matches:', error);
