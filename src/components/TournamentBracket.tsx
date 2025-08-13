@@ -295,19 +295,33 @@ export function TournamentBracket({
           )
         `)
         .eq('tournament_id', tournamentId)
-        .order('round', { ascending: true });
+        .order('round', { ascending: true })
+        .order('created_at', { ascending: true });
 
       if (matchError) {
         console.error("Error refreshing match data:", matchError);
+        toast({
+          title: "Error",
+          description: "Failed to refresh match data from database.",
+          variant: "destructive"
+        });
         return;
       }
 
-      console.log("Fresh match data from database:", dbMatches);
+      console.log("Fresh match data from database:", dbMatches?.length || 0, "matches");
+
+      if (!dbMatches || dbMatches.length === 0) {
+        console.log("No matches found in database for tournament:", tournamentId);
+        // Clear bracket data if no matches exist
+        setBracketData([]);
+        onMatchUpdate(matches.filter(m => m.tournamentId !== tournamentId));
+        return;
+      }
 
       // Convert database matches to Match format
-      const freshMatches: Match[] = (dbMatches || []).map(dbMatch => {
+      const freshMatches: Match[] = dbMatches.map(dbMatch => {
         const participants = dbMatch.match_participants || [];
-        console.log(`Processing match ${dbMatch.id}, participants:`, participants);
+        console.log(`Processing match ${dbMatch.id}, round ${dbMatch.round}, participants:`, participants.length);
         
         const player1Data = participants.find(p => p.position === 1);
         const player2Data = participants.find(p => p.position === 2);
@@ -367,7 +381,7 @@ export function TournamentBracket({
           }
         }
 
-        console.log(`Match ${dbMatch.id} - Player 1:`, player1, `Player 2:`, player2);
+        console.log(`Match ${dbMatch.id} - Player 1:`, player1?.name, `Player 2:`, player2?.name);
 
         // Find winner name from winner_id
         let winner: string | undefined;
@@ -394,21 +408,38 @@ export function TournamentBracket({
         };
       });
 
-      console.log("Converted fresh matches:", freshMatches);
+      console.log("Converted fresh matches:", freshMatches.length);
+      
+      // Group matches by round for logging
+      const matchesByRound = freshMatches.reduce((acc, match) => {
+        if (!acc[match.round]) acc[match.round] = [];
+        acc[match.round].push(match);
+        return acc;
+      }, {} as Record<string, Match[]>);
+      
+      console.log("Matches by round:", Object.keys(matchesByRound).map(round => `${round}: ${matchesByRound[round].length}`));
 
       // Update matches array in parent component
       const otherTournamentMatches = matches.filter(m => m.tournamentId !== tournamentId);
       const updatedMatches = [...otherTournamentMatches, ...freshMatches];
+      
+      console.log("Updating parent with", updatedMatches.length, "total matches");
       onMatchUpdate(updatedMatches);
 
-      // Regenerate bracket with fresh data
+      // Wait a bit longer then regenerate bracket with fresh data
       setTimeout(() => {
+        console.log("Regenerating bracket with fresh data...");
         generateBracket();
-      }, 100);
+      }, 200);
 
       console.log("=== MATCH DATA REFRESH COMPLETE ===");
     } catch (error) {
       console.error("Error refreshing match data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to refresh bracket data. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
