@@ -1636,22 +1636,33 @@ export function TournamentBracket({
             }
 
             if (participant1Data) {
-              // Always use UPSERT pattern for more reliable updates
-              const { error: upsertError } = await supabase
-                .from('match_participants')
-                .upsert({
-                  match_id: matchId,
-                  position: 1,
-                  ...participant1Data
-                }, {
-                  onConflict: 'match_id,position'
-                });
+              // Use more reliable delete + insert pattern instead of UPSERT
+              try {
+                // First delete existing participant for this position
+                await supabase
+                  .from('match_participants')
+                  .delete()
+                  .eq('match_id', matchId)
+                  .eq('position', 1);
                 
-              if (upsertError) {
-                console.error("Error upserting position 1 participant:", upsertError);
-                throw upsertError;
-              } else {
-                console.log("Successfully upserted position 1 participant");
+                // Then insert new participant data
+                const { error: insertError } = await supabase
+                  .from('match_participants')
+                  .insert({
+                    match_id: matchId,
+                    position: 1,
+                    ...participant1Data
+                  });
+                  
+                if (insertError) {
+                  console.error("Error inserting position 1 participant:", insertError);
+                  throw insertError;
+                } else {
+                  console.log("Successfully updated position 1 participant");
+                }
+              } catch (error) {
+                console.error("Error in position 1 participant update:", error);
+                throw error;
               }
             }
           }
@@ -1687,22 +1698,33 @@ export function TournamentBracket({
             }
 
             if (participant2Data) {
-              // Always use UPSERT pattern for more reliable updates
-              const { error: upsertError } = await supabase
-                .from('match_participants')
-                .upsert({
-                  match_id: matchId,
-                  position: 2,
-                  ...participant2Data
-                }, {
-                  onConflict: 'match_id,position'
-                });
+              // Use more reliable delete + insert pattern instead of UPSERT
+              try {
+                // First delete existing participant for this position
+                await supabase
+                  .from('match_participants')
+                  .delete()
+                  .eq('match_id', matchId)
+                  .eq('position', 2);
                 
-              if (upsertError) {
-                console.error("Error upserting position 2 participant:", upsertError);
-                throw upsertError;
-              } else {
-                console.log("Successfully upserted position 2 participant");
+                // Then insert new participant data
+                const { error: insertError } = await supabase
+                  .from('match_participants')
+                  .insert({
+                    match_id: matchId,
+                    position: 2,
+                    ...participant2Data
+                  });
+                  
+                if (insertError) {
+                  console.error("Error inserting position 2 participant:", insertError);
+                  throw insertError;
+                } else {
+                  console.log("Successfully updated position 2 participant");
+                }
+              } catch (error) {
+                console.error("Error in position 2 participant update:", error);
+                throw error;
               }
             }
           }
