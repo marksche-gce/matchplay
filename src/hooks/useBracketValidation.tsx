@@ -40,7 +40,8 @@ export function useBracketValidation() {
   const validateWinner = useCallback((match: Match, winner: string): boolean => {
     if (!winner) return false;
 
-    if (match.type === "singles") {
+    if (match.type === "singles" || match.type === "foursome") {
+      // For both types, we're using individual players
       const validWinners = [match.player1?.name, match.player2?.name].filter(Boolean);
       const isValid = validWinners.includes(winner);
       
@@ -53,19 +54,6 @@ export function useBracketValidation() {
       }
       
       return isValid;
-    } else if (match.type === "foursome") {
-      const validWinners = ["team1", "team2"];
-      const isValid = validWinners.includes(winner);
-      
-      if (!isValid) {
-        toast({
-          title: "Invalid Winner Selection",
-          description: `Winner must be either "team1" or "team2" for foursome matches.`,
-          variant: "destructive"
-        });
-      }
-      
-      return isValid;
     }
 
     return false;
@@ -73,7 +61,8 @@ export function useBracketValidation() {
 
   const validateMatchCompletion = useCallback((match: Match): boolean => {
     // Check if match has required participants
-    if (match.type === "singles") {
+    if (match.type === "singles" || match.type === "foursome") {
+      // For both singles and foursome, we're using individual players
       // Allow "no opponent" scenarios (byes) - only require at least one player
       if (!match.player1 && !match.player2) {
         toast({
@@ -88,25 +77,12 @@ export function useBracketValidation() {
       if (!match.player1 || !match.player2) {
         return true; // Bye scenarios are valid
       }
-    } else if (match.type === "foursome") {
-      if (!match.team1 && !match.team2) {
-        toast({
-          title: "Incomplete Match Setup",
-          description: "At least one team must be assigned to the match.",
-          variant: "destructive"
-        });
-        return false;
-      }
-      
-      // If only one team is assigned (bye scenario), no further validation needed for participant setup
-      if (!match.team1 || !match.team2) {
-        return true; // Bye scenarios are valid
-      }
     }
 
     // Check if scores are provided for completed matches
     if (match.status === "completed") {
-      if (match.type === "singles") {
+      if (match.type === "singles" || match.type === "foursome") {
+        // For both types, we're using individual players
         // For bye scenarios (only one player), don't require scores from both players
         const hasPlayer1 = match.player1 && !match.player1.name.startsWith("no-opponent");
         const hasPlayer2 = match.player2 && !match.player2.name.startsWith("no-opponent");
@@ -116,22 +92,6 @@ export function useBracketValidation() {
           return true;
         } else if (hasPlayer1 || hasPlayer2) {
           // Bye scenario - automatically advance the present player
-          return true;
-        }
-      } else if (match.type === "foursome") {
-        // For bye scenarios (only one team), don't require scores from both teams
-        if (match.team1 && match.team2) {
-          // Both teams present - require both scores
-          if (match.team1?.teamScore === undefined || match.team2?.teamScore === undefined) {
-            toast({
-              title: "Missing Scores",
-              description: "Both team scores must be provided to complete the match.",
-              variant: "destructive"
-            });
-            return false;
-          }
-        } else if (match.team1 || match.team2) {
-          // Bye scenario - automatically advance the present team
           return true;
         }
       }
