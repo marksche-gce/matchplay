@@ -249,6 +249,8 @@ export function TournamentBracket({
       // Convert database matches to Match format
       const freshMatches: Match[] = (dbMatches || []).map(dbMatch => {
         const participants = dbMatch.match_participants || [];
+        console.log(`Processing match ${dbMatch.id}, participants:`, participants);
+        
         const player1Data = participants.find(p => p.position === 1);
         const player2Data = participants.find(p => p.position === 2);
 
@@ -258,34 +260,56 @@ export function TournamentBracket({
         if (player1Data) {
           if (player1Data.is_placeholder) {
             player1 = {
-              name: player1Data.placeholder_name || "No Opponent",
+              name: player1Data.placeholder_name || "TBD",
               handicap: 0,
               score: player1Data.score || undefined
             };
           } else if (player1Data.players) {
             player1 = {
               name: player1Data.players.name,
-              handicap: player1Data.players.handicap,
+              handicap: Number(player1Data.players.handicap || 0),
               score: player1Data.score || undefined
             };
+          } else if (player1Data.player_id) {
+            // Fallback: find player in players array
+            const foundPlayer = players.find(p => p.id === player1Data.player_id);
+            if (foundPlayer) {
+              player1 = {
+                name: foundPlayer.name,
+                handicap: Number(foundPlayer.handicap || 0),
+                score: player1Data.score || undefined
+              };
+            }
           }
         }
 
         if (player2Data) {
           if (player2Data.is_placeholder) {
             player2 = {
-              name: player2Data.placeholder_name || "No Opponent",
+              name: player2Data.placeholder_name || "TBD",
               handicap: 0,
               score: player2Data.score || undefined
             };
           } else if (player2Data.players) {
             player2 = {
               name: player2Data.players.name,
-              handicap: player2Data.players.handicap,
+              handicap: Number(player2Data.players.handicap || 0),
               score: player2Data.score || undefined
             };
+          } else if (player2Data.player_id) {
+            // Fallback: find player in players array
+            const foundPlayer = players.find(p => p.id === player2Data.player_id);
+            if (foundPlayer) {
+              player2 = {
+                name: foundPlayer.name,
+                handicap: Number(foundPlayer.handicap || 0),
+                score: player2Data.score || undefined
+              };
+            }
           }
         }
+
+        console.log(`Match ${dbMatch.id} - Player 1:`, player1, `Player 2:`, player2);
 
         // Find winner name from winner_id
         let winner: string | undefined;
