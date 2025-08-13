@@ -121,7 +121,8 @@ export function ManualMatchSetup({
           updated.winnerId = undefined;
         }
         
-        // Auto-save this match to database
+        // Force create tournament structure on first match assignment
+        console.log('🎯 Match updated, triggering save and structure creation');
         autoSaveMatch(updated);
         
         return updated;
