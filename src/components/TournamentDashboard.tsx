@@ -18,6 +18,7 @@ import { TournamentBracket } from "./TournamentBracket";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useBracketGeneration } from "@/hooks/useBracketGeneration";
 
 interface Tournament {
   id: string;
@@ -88,6 +89,7 @@ export function TournamentDashboard() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { generateTournamentBracket, fillFirstRoundMatches } = useBracketGeneration();
 
   // Fetch tournaments, players, and matches from database
   useEffect(() => {
@@ -1040,6 +1042,190 @@ export function TournamentDashboard() {
       toast({
         title: "Error",
         description: `Failed to reset matches: ${error.message || error}`,
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Generate and save bracket to database
+  const handleGenerateBracket = async () => {
+    if (!selectedTournament) {
+      toast({
+        title: "Error",
+        description: "Please select a tournament first.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const currentTournament = tournaments.find(t => t.id === selectedTournament);
+    if (!currentTournament) {
+      toast({
+        title: "Error", 
+        description: "Tournament not found.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      console.log("🎯 Generating bracket for tournament:", currentTournament.name);
+      
+      // Generate the bracket structure
+      const generatedMatches = generateTournamentBracket(
+        selectedTournament,
+        players,
+        currentTournament.max_players
+      );
+
+      console.log("Generated matches:", generatedMatches);
+
+      // Convert to database format and save each match
+      const matchInsertPromises = generatedMatches.map(async (match) => {
+        const matchData = {
+          tournament_id: match.tournamentId,
+          round: match.round,
+          status: match.status,
+          type: match.type,
+          match_date: match.date,
+          match_time: match.time,
+          tee: parseInt(match.tee || "1"),
+          previous_match_1_id: match.previousMatch1Id || null,
+          previous_match_2_id: match.previousMatch2Id || null,
+          next_match_id: match.nextMatchId || null,
+          winner_id: null
+        };
+
+        const { data, error } = await supabase
+          .from('matches')
+          .insert(matchData)
+          .select()
+          .single();
+
+        if (error) throw error;
+        return data;
+      });
+
+      // Wait for all matches to be created
+      const savedMatches = await Promise.all(matchInsertPromises);
+      
+      console.log("✅ Successfully saved", savedMatches.length, "matches to database");
+
+      // Refresh matches from database
+      await fetchMatches();
+
+      toast({
+        title: "Bracket Generated!",
+        description: `Successfully created ${savedMatches.length} matches for the tournament.`,
+      });
+
+    } catch (error) {
+      console.error('🚨 Error generating bracket:', error);
+      toast({
+        title: "Error",
+        description: `Failed to generate bracket: ${error.message || error}`,
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Fill bracket with players and save to database
+  const handleFillBracket = async () => {
+    if (!selectedTournament) {
+      toast({
+        title: "Error",
+        description: "Please select a tournament first.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (players.length === 0) {
+      toast({
+        title: "Error",
+        description: "No players available to fill bracket.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      console.log("🎯 Filling bracket with players...");
+      
+      // Fill first round matches with players
+      const filledMatches = fillFirstRoundMatches(
+        selectedTournament,
+        players,
+        matches
+      );
+
+      // Update database with filled matches
+      const updatePromises = filledMatches
+        .filter(match => match.tournamentId === selectedTournament && match.round === "Round 1")
+        .map(async (match) => {
+          // First delete existing participants
+          await supabase
+            .from('match_participants')
+            .delete()
+            .eq('match_id', match.id);
+
+          // Create new participants
+          const participants = [];
+          
+          if (match.player1) {
+            const player1Data = players.find(p => p.name === match.player1?.name);
+            if (player1Data) {
+              participants.push({
+                match_id: match.id,
+                player_id: player1Data.id,
+                position: 1,
+                score: null,
+                is_placeholder: false,
+                placeholder_name: null
+              });
+            }
+          }
+
+          if (match.player2) {
+            const player2Data = players.find(p => p.name === match.player2?.name);
+            if (player2Data) {
+              participants.push({
+                match_id: match.id,
+                player_id: player2Data.id,
+                position: 2,
+                score: null,
+                is_placeholder: false,
+                placeholder_name: null
+              });
+            }
+          }
+
+          if (participants.length > 0) {
+            const { error } = await supabase
+              .from('match_participants')
+              .insert(participants);
+            
+            if (error) throw error;
+          }
+          
+          return match;
+        });
+
+      await Promise.all(updatePromises);
+
+      // Refresh matches from database
+      await fetchMatches();
+
+      toast({
+        title: "Bracket Filled!",
+        description: "Successfully assigned players to first round matches.",
+      });
+
+    } catch (error) {
+      console.error('🚨 Error filling bracket:', error);
+      toast({
+        title: "Error",
+        description: `Failed to fill bracket: ${error.message || error}`,
         variant: "destructive"
       });
     }
@@ -2029,15 +2215,76 @@ export function TournamentDashboard() {
           </TabsContent>
 
           <TabsContent value="bracket" className="space-y-6">
-            <TournamentBracket
-              tournamentId={currentTournament?.id || ""}
-              matches={matches}
-              players={players}
-              onMatchUpdate={handleBracketMatchUpdate}
-              onCreateMatch={handleCreateMatch}
-              format={currentTournament?.format || "matchplay"}
-              maxPlayers={currentTournament?.max_players || 32}
-            />
+            {matches.length === 0 ? (
+              <Card className="shadow-card">
+                <CardHeader>
+                  <CardTitle>Generate Tournament Bracket</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="text-center py-8">
+                    <Trophy className="h-12 w-12 text-primary mx-auto mb-3" />
+                    <p className="text-lg font-semibold">No bracket generated yet</p>
+                    <p className="text-muted-foreground mb-6">
+                      Create the tournament structure and fill it with registered players
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                      <Button 
+                        onClick={handleGenerateBracket}
+                        className="flex items-center gap-2"
+                      >
+                        <Trophy className="h-4 w-4" />
+                        Generate Bracket Structure
+                      </Button>
+                      {matches.length > 0 && (
+                        <Button 
+                          onClick={handleFillBracket}
+                          variant="outline"
+                          className="flex items-center gap-2"
+                        >
+                          <Users className="h-4 w-4" />
+                          Fill with Players
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold">Tournament Bracket</h2>
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={handleFillBracket}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2"
+                    >
+                      <Users className="h-4 w-4" />
+                      Refill Players
+                    </Button>
+                    <Button 
+                      onClick={resetAllMatches}
+                      variant="destructive"
+                      size="sm"
+                      className="flex items-center gap-2"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Reset Bracket
+                    </Button>
+                  </div>
+                </div>
+                <TournamentBracket
+                  tournamentId={currentTournament?.id || ""}
+                  matches={matches}
+                  players={players}
+                  onMatchUpdate={handleBracketMatchUpdate}
+                  onCreateMatch={handleCreateMatch}
+                  format={currentTournament?.format || "matchplay"}
+                  maxPlayers={currentTournament?.max_players || 32}
+                />
+              </>
+            )}
           </TabsContent>
 
           {/* Settings Tab */}
