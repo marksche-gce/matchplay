@@ -6,10 +6,9 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { getRoundName, getNextRoundName, ROUND_PROGRESSION } from '@/lib/tournamentUtils';
-
 import { EditMatchDialog } from "./EditMatchDialog";
 import { ManualMatchSetup } from "./ManualMatchSetup";
-
+import { AutoProgressionHandler } from "./AutoProgressionHandler";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -526,11 +525,68 @@ export function TournamentBracket({
   // Re-enable auto-advance winners when matches are updated
   useEffect(() => {
     if (matches.length > 0) {
-      autoAdvanceWinners(matches).catch(error => {
-        console.error("Failed to auto-advance winners on update:", error);
+      // Check if all Round 1 matches are completed and auto-create Round 2
+      checkAndCreateNextRound().catch(error => {
+        console.error("Failed to check and create next round:", error);
       });
     }
   }, [matches]);
+
+  // Function to check if a round is complete and create the next round automatically
+  const checkAndCreateNextRound = async () => {
+    console.log("=== CHECKING FOR ROUND COMPLETION ===");
+    
+    const tournamentMatches = matches.filter(m => m.tournamentId === tournamentId);
+    
+    // Check Round 1 completion
+    const round1Matches = tournamentMatches.filter(m => m.round === "Round 1");
+    const completedRound1 = round1Matches.filter(m => m.status === "completed" && m.winner);
+    const round2Matches = tournamentMatches.filter(m => m.round === "Round 2");
+    
+    console.log(`Round 1: ${completedRound1.length}/${round1Matches.length} completed`);
+    console.log(`Round 2: ${round2Matches.length} matches exist`);
+    
+    // If all Round 1 matches are completed but no Round 2 matches exist, create them
+    if (round1Matches.length > 0 && 
+        completedRound1.length === round1Matches.length && 
+        completedRound1.length >= 2 && 
+        round2Matches.length === 0) {
+      
+      console.log("All Round 1 matches completed - auto-creating Round 2");
+      
+      try {
+        // Auto-create Round 2 with winners
+        await createRound2WithWinners();
+        
+        toast({
+          title: "Round 2 Ready!",
+          description: "All Round 1 matches completed. Round 2 has been automatically created.",
+        });
+        
+      } catch (error) {
+        console.error("Error auto-creating Round 2:", error);
+        toast({
+          title: "Manual Action Needed",
+          description: "Round 1 is complete. Please click 'Create Round 2' to continue.",
+          variant: "destructive"
+        });
+      }
+    }
+    
+    // Check for other rounds similarly
+    if (round2Matches.length > 0) {
+      const completedRound2 = round2Matches.filter(m => m.status === "completed" && m.winner);
+      const round3Matches = tournamentMatches.filter(m => m.round === "Round 3");
+      
+      if (completedRound2.length === round2Matches.length && 
+          completedRound2.length >= 1 && 
+          round3Matches.length === 0) {
+        
+        console.log("All Round 2 matches completed - auto-creating Round 3");
+        await createNextRoundMatches("Round 2", tournamentId);
+      }
+    }
+  };
 
   // Automatic winner advancement - called after any match update
   const autoAdvanceWinners = async (updatedMatches: Match[]) => {
@@ -2502,6 +2558,12 @@ export function TournamentBracket({
 
   return (
     <div className="space-y-6">
+      {/* Auto-progression handler for seamless round advancement */}
+      <AutoProgressionHandler 
+        tournamentId={tournamentId}
+        players={players}
+        onRefreshNeeded={refreshMatchData}
+      />
       {/* Header */}
       <Card>
         <CardHeader>
