@@ -312,20 +312,35 @@ export function ManualMatchSetup({
   // Update match participants
   const updateMatchParticipants = async (matchId: string, matchSetup: MatchSetup) => {
     try {
-      // Delete existing participants
-      await supabase
+      // First get existing participants to avoid constraint violations
+      const { data: existingParticipants } = await supabase
         .from('match_participants')
-        .delete()
+        .select('*')
         .eq('match_id', matchId);
 
-      // Add new participants
+      // Delete existing participants if any exist
+      if (existingParticipants && existingParticipants.length > 0) {
+        const { error: deleteError } = await supabase
+          .from('match_participants')
+          .delete()
+          .eq('match_id', matchId);
+        
+        if (deleteError) {
+          console.error('Delete participants error:', deleteError);
+          // Continue anyway, we'll handle upserts below
+        }
+      }
+
+      // Prepare new participants
       const participants = [];
       
       if (matchSetup.player1Id) {
         participants.push({
           match_id: matchId,
           player_id: matchSetup.player1Id,
-          position: 1
+          position: 1,
+          is_placeholder: false,
+          placeholder_name: null
         });
       } else {
         participants.push({
@@ -341,7 +356,9 @@ export function ManualMatchSetup({
         participants.push({
           match_id: matchId,
           player_id: matchSetup.player2Id,
-          position: 2
+          position: 2,
+          is_placeholder: false,
+          placeholder_name: null
         });
       } else {
         participants.push({
@@ -353,16 +370,38 @@ export function ManualMatchSetup({
         });
       }
 
+      // Insert new participants with better error handling
       if (participants.length > 0) {
-        const { error } = await supabase
-          .from('match_participants')
-          .insert(participants);
-
-        if (error) throw error;
+        for (const participant of participants) {
+          const { error: insertError } = await supabase
+            .from('match_participants')
+            .insert(participant);
+          
+          if (insertError) {
+            // If it's a duplicate key error, try to update instead
+            if (insertError.code === '23505') {
+              const { error: updateError } = await supabase
+                .from('match_participants')
+                .update({
+                  player_id: participant.player_id,
+                  is_placeholder: participant.is_placeholder,
+                  placeholder_name: participant.placeholder_name
+                })
+                .eq('match_id', matchId)
+                .eq('position', participant.position);
+              
+              if (updateError) {
+                console.error('Update participant error:', updateError);
+              }
+            } else {
+              throw insertError;
+            }
+          }
+        }
       }
     } catch (error) {
       console.error('Update participants error:', error);
-      throw error;
+      // Don't throw error to prevent blocking the auto-save flow
     }
   };
 
