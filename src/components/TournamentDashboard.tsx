@@ -1056,185 +1056,20 @@ export function TournamentDashboard() {
         
         console.log("Updating match participants first to ensure consistency");
         
-        // Delete existing participants
-        console.log("Deleting existing participants for match:", matchId);
-        
-        const { error: deleteError } = await supabase
-          .from('match_participants')
-          .delete()
-          .eq('match_id', matchId);
-
-        if (deleteError && deleteError.code !== 'PGRST116') {
-          console.error("Error deleting existing participants:", deleteError);
-          throw deleteError;
-        }
-
-        console.log("Successfully deleted existing participants");
-
-        // Prepare new participants
-        const participants = [];
-        
-        if (updates.type === "singles" || (!updates.type && (updates.player1 || updates.player2))) {
-          console.log("Processing singles match participants");
-          
-          // Handle player1
-          if (updates.player1?.name && updates.player1.name !== "no-player") {
-            if (!updates.player1.name.startsWith("no-opponent")) {
-              const player1 = players.find(p => p.name === updates.player1.name);
-              if (player1) {
-                participants.push({
-                  match_id: matchId,
-                  player_id: player1.id,
-                  position: 1,
-                  score: updates.player1.score || null,
-                  is_placeholder: false,
-                  placeholder_name: null
-                });
-              }
-            } else {
-              participants.push({
-                match_id: matchId,
-                player_id: null,
-                position: 1,
-                score: null,
-                is_placeholder: true,
-                placeholder_name: updates.player1.name
-              });
-            }
-          }
-          
-          // Handle player2
-          if (updates.player2?.name && updates.player2.name !== "no-player") {
-            if (!updates.player2.name.startsWith("no-opponent")) {
-              const player2 = players.find(p => p.name === updates.player2.name);
-              if (player2) {
-                participants.push({
-                  match_id: matchId,
-                  player_id: player2.id,
-                  position: 2,
-                  score: updates.player2.score || null,
-                  is_placeholder: false,
-                  placeholder_name: null
-                });
-              }
-            } else {
-              participants.push({
-                match_id: matchId,
-                player_id: null,
-                position: 2,
-                score: null,
-                is_placeholder: true,
-                placeholder_name: updates.player2.name
-              });
-            }
-          }
-        }
-
-        // Insert new participants if any
-        if (participants.length > 0) {
-          console.log("Attempting to insert participants:", participants);
-          
-          const { error: insertError } = await supabase
-            .from('match_participants')
-            .insert(participants);
-          
-          if (insertError) {
-            console.error("Error inserting participants:", insertError);
-            throw insertError;
-          }
-          
-          console.log("Successfully inserted all participants");
-        } else {
-          console.log("No participants to insert - match has no valid players assigned");
-        }
-      }
-
-      // Now update the match details (including winner)
-      const matchUpdates: any = {
-        round: updates.round,
-        status: updates.status
-      };
-
-      // Set winner_id based on winner name
-      let winnerValue: string | undefined = updates.winner;
-      
-      // Handle serialization issues
-      if (typeof winnerValue === 'object' && winnerValue !== null) {
-        const objValue = winnerValue as any;
-        if ('value' in objValue) {
-          winnerValue = objValue.value;
-        } else if ('_type' in objValue && objValue._type === 'undefined') {
-          winnerValue = undefined;
-        }
-      }
-      
-      if (winnerValue && typeof winnerValue === 'string' && winnerValue !== "no-winner" && winnerValue !== "undefined") {
-        if (winnerValue !== "no-player" && !winnerValue.startsWith("no-opponent")) {
-          const winnerPlayer = players.find(p => p.name === winnerValue);
-          console.log("Looking for winner player:", winnerValue, "found:", winnerPlayer);
-          if (winnerPlayer) {
-            matchUpdates.winner_id = winnerPlayer.id;
-            console.log("Setting winner_id to:", winnerPlayer.id);
-          } else {
-            console.warn("Winner player not found in players list:", winnerValue);
-            matchUpdates.winner_id = null;
-          }
-        } else {
-          console.log("Winner is placeholder player, not setting winner_id");
-          matchUpdates.winner_id = null;
-        }
-      } else {
-        console.log("No winner specified or winner is 'no-winner'");
-        matchUpdates.winner_id = null;
-      }
-
-      console.log("About to update match with:", matchUpdates);
-
-      // Update match in database
-      const { data, error: matchError } = await supabase
-        .from('matches')
-        .update(matchUpdates)
-        .eq('id', matchId)
-        .select();
-
-      if (matchError) {
-        console.error("Database error updating match:", matchError);
-        throw new Error(`Failed to update match: ${matchError.message}`);
-      }
-
-      console.log("Successfully updated match in database. Updated data:", data);
-      
-    } catch (error) {
-      console.error('Database operation failed:', error);
-      throw error;
-    }
-  };
-    console.log("🎯 handleEditMatchDatabase called for:", matchId, "with updates:", updates);
-    
-    try {
-      // First, update match participants if players have changed
-      // Do this BEFORE updating the match to ensure consistency
-      if (updates.player1?.name !== undefined || updates.player2?.name !== undefined || 
-          updates.team1 !== undefined || updates.team2 !== undefined) {
-        
-        console.log("Updating match participants first to ensure consistency");
-        
         try {
-          // Delete existing participants
-          console.log("Deleting existing participants for match:", matchId);
-          
+          // Delete existing participants for this match
           const { error: deleteError } = await supabase
             .from('match_participants')
             .delete()
             .eq('match_id', matchId);
-
-          if (deleteError && deleteError.code !== 'PGRST116') { // PGRST116 means no rows found, which is ok
+          
+          if (deleteError) {
             console.error("Error deleting existing participants:", deleteError);
             throw deleteError;
           }
-
+          
           console.log("Successfully deleted existing participants");
-
+          
           // Prepare new participants based on the current match type
           const participants = [];
           
@@ -1242,72 +1077,80 @@ export function TournamentDashboard() {
             console.log("Processing singles match participants");
             
             // Handle player1
-            if (updates.player1?.name && updates.player1.name !== "no-player") {
-              if (!updates.player1.name.startsWith("no-opponent")) {
-                // Real player
-                console.log("Looking for player1:", updates.player1.name);
-                const player1 = players.find(p => p.name === updates.player1.name);
-                if (player1) {
-                  console.log("Found player1:", player1);
+            if (updates.player1?.name) {
+              if (updates.player1.name !== "no-player") {
+                if (!updates.player1.name.startsWith("no-opponent")) {
+                  // Real player
+                  console.log("Looking for player1:", updates.player1.name);
+                  const player1 = players.find(p => p.name === updates.player1.name);
+                  if (player1) {
+                    console.log("Found player1:", player1);
+                    participants.push({
+                      match_id: matchId,
+                      player_id: player1.id,
+                      position: 1,
+                      score: updates.player1.score || null,
+                      is_placeholder: false,
+                      placeholder_name: null
+                    });
+                  } else {
+                    console.log("Player1 not found in players list:", updates.player1.name);
+                  }
+                } else {
+                  // "no-opponent" placeholder
+                  console.log("Creating placeholder participant for no-opponent player1:", updates.player1.name);
                   participants.push({
                     match_id: matchId,
-                    player_id: player1.id,
+                    player_id: null,
                     position: 1,
-                    score: updates.player1.score || null,
-                    is_placeholder: false,
-                    placeholder_name: null
+                    score: null,
+                    is_placeholder: true,
+                    placeholder_name: updates.player1.name
                   });
-                } else {
-                  console.log("Player1 not found in players list:", updates.player1.name);
                 }
               } else {
-                // "no-opponent" placeholder
-                console.log("Creating placeholder participant for no-opponent player1:", updates.player1.name);
-                participants.push({
-                  match_id: matchId,
-                  player_id: null,
-                  position: 1,
-                  score: null,
-                  is_placeholder: true,
-                  placeholder_name: updates.player1.name
-                });
+                console.log("Skipping player1 - no player selected");
               }
             }
             
             // Handle player2
-            if (updates.player2?.name && updates.player2.name !== "no-player") {
-              if (!updates.player2.name.startsWith("no-opponent")) {
-                // Real player
-                console.log("Looking for player2:", updates.player2.name);
-                const player2 = players.find(p => p.name === updates.player2.name);
-                if (player2) {
-                  console.log("Found player2:", player2);
+            if (updates.player2?.name) {
+              if (updates.player2.name !== "no-player") {
+                if (!updates.player2.name.startsWith("no-opponent")) {
+                  // Real player
+                  console.log("Looking for player2:", updates.player2.name);
+                  const player2 = players.find(p => p.name === updates.player2.name);
+                  if (player2) {
+                    console.log("Found player2:", player2);
+                    participants.push({
+                      match_id: matchId,
+                      player_id: player2.id,
+                      position: 2,
+                      score: updates.player2.score || null,
+                      is_placeholder: false,
+                      placeholder_name: null
+                    });
+                  } else {
+                    console.log("Player2 not found in players list:", updates.player2.name);
+                  }
+                } else {
+                  // "no-opponent" placeholder
+                  console.log("Creating placeholder participant for no-opponent player2:", updates.player2.name);
                   participants.push({
                     match_id: matchId,
-                    player_id: player2.id,
+                    player_id: null,
                     position: 2,
-                    score: updates.player2.score || null,
-                    is_placeholder: false,
-                    placeholder_name: null
+                    score: null,
+                    is_placeholder: true,
+                    placeholder_name: updates.player2.name
                   });
-                } else {
-                  console.log("Player2 not found in players list:", updates.player2.name);
                 }
               } else {
-                // "no-opponent" placeholder
-                console.log("Creating placeholder participant for no-opponent player2:", updates.player2.name);
-                participants.push({
-                  match_id: matchId,
-                  player_id: null,
-                  position: 2,
-                  score: null,
-                  is_placeholder: true,
-                  placeholder_name: updates.player2.name
-                });
+                console.log("Skipping player2 - no player selected");
               }
             }
           } else if (updates.type === "foursome" || updates.team1 || updates.team2) {
-            // Handle foursome participants (keep existing logic)
+            // Handle foursome participants
             if (updates.team1) {
               const team1Player1 = players.find(p => p.name === updates.team1?.player1.name);
               const team1Player2 = players.find(p => p.name === updates.team1?.player2.name);
@@ -1438,160 +1281,12 @@ export function TournamentDashboard() {
       }
 
       console.log("Successfully updated match in database. Updated data:", data);
-
-          // Prepare new participants based on the current match type
-          const participants = [];
-          
-          if (updates.type === "singles" || (!updates.type && (updates.player1 || updates.player2))) {
-            console.log("Processing singles match participants");
-            
-            // Handle player1
-            if (updates.player1?.name) {
-              if (updates.player1.name !== "no-player") {
-                if (!updates.player1.name.startsWith("no-opponent")) {
-                  // Real player
-                  console.log("Looking for player1:", updates.player1.name);
-                  const player1 = players.find(p => p.name === updates.player1.name);
-                  if (player1) {
-                    console.log("Found player1:", player1);
-                    participants.push({
-                      match_id: matchId,
-                      player_id: player1.id,
-                      position: 1,
-                      score: updates.player1.score || null,
-                      is_placeholder: false,
-                      placeholder_name: null
-                    });
-                  } else {
-                    console.log("Player1 not found in players list:", updates.player1.name);
-                  }
-                } else {
-                  // "no-opponent" placeholder
-                  console.log("Creating placeholder participant for no-opponent player1:", updates.player1.name);
-                  participants.push({
-                    match_id: matchId,
-                    player_id: null,
-                    position: 1,
-                    score: null,
-                    is_placeholder: true,
-                    placeholder_name: updates.player1.name
-                  });
-                }
-              } else {
-                console.log("Skipping player1 - no player selected");
-              }
-            }
-            
-            // Handle player2
-            if (updates.player2?.name) {
-              if (updates.player2.name !== "no-player") {
-                if (!updates.player2.name.startsWith("no-opponent")) {
-                  // Real player
-                  console.log("Looking for player2:", updates.player2.name);
-                  const player2 = players.find(p => p.name === updates.player2.name);
-                    participants.push({
-                      match_id: matchId,
-                      player_id: player2.id,
-                      position: 2,
-                      score: updates.player2.score || null,
-                      is_placeholder: false,
-                      placeholder_name: null
-                    });
-                  }
-                } else {
-                  participants.push({
-                    match_id: matchId,
-                    player_id: null,
-                    position: 2,
-                    score: null,
-                    is_placeholder: true,
-                    placeholder_name: updates.player2.name
-                  });
-                }
-              }
-            }
-          }
-        }
-
-        // Insert new participants if any
-          if (participants.length > 0) {
-            console.log("Attempting to insert participants:", participants);
-            
-            const { error: insertError } = await supabase
-              .from('match_participants')
-              .insert(participants);
-            
-            if (insertError) {
-              console.error("Error inserting participants:", insertError);
-              throw insertError;
-            }
-            
-            console.log("Successfully inserted all participants");
-          } else {
-            console.log("No participants to insert - match has no valid players assigned");
-          }
-        }
-
-        // Now update the match details (including winner)
-        const matchUpdates: any = {
-          round: updates.round,
-          status: updates.status
-        };
-
-        // Set winner_id based on winner name
-        let winnerValue: string | undefined = updates.winner;
-        
-        // Handle serialization issues
-        if (typeof winnerValue === 'object' && winnerValue !== null) {
-          const objValue = winnerValue as any;
-          if ('value' in objValue) {
-            winnerValue = objValue.value;
-          } else if ('_type' in objValue && objValue._type === 'undefined') {
-            winnerValue = undefined;
-          }
-        }
-        
-        if (winnerValue && typeof winnerValue === 'string' && winnerValue !== "no-winner" && winnerValue !== "undefined") {
-          if (winnerValue !== "no-player" && !winnerValue.startsWith("no-opponent")) {
-            const winnerPlayer = players.find(p => p.name === winnerValue);
-            console.log("Looking for winner player:", winnerValue, "found:", winnerPlayer);
-            if (winnerPlayer) {
-              matchUpdates.winner_id = winnerPlayer.id;
-              console.log("Setting winner_id to:", winnerPlayer.id);
-            } else {
-              console.warn("Winner player not found in players list:", winnerValue);
-              matchUpdates.winner_id = null;
-            }
-          } else {
-            console.log("Winner is placeholder player, not setting winner_id");
-            matchUpdates.winner_id = null;
-          }
-        } else {
-          console.log("No winner specified or winner is 'no-winner'");
-          matchUpdates.winner_id = null;
-        }
-
-        console.log("About to update match with:", matchUpdates);
-
-        // Update match in database
-        const { data, error: matchError } = await supabase
-          .from('matches')
-          .update(matchUpdates)
-          .eq('id', matchId)
-          .select();
-
-        if (matchError) {
-          console.error("Database error updating match:", matchError);
-          throw new Error(`Failed to update match: ${matchError.message}`);
-        }
-
-        console.log("Successfully updated match in database. Updated data:", data);
-        
-      } catch (error) {
-        console.error('Database operation failed:', error);
-        throw error;
-      }
-    };
+      
+    } catch (error) {
+      console.error('Database operation failed:', error);
+      throw error;
+    }
+  };
 
   const handleEditMatch = async (matchId: string, updates: Partial<Match>) => {
     console.log("🎯 handleEditMatch called for:", matchId, "with updates:", updates);
