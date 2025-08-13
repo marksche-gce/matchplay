@@ -139,6 +139,8 @@ export function ManualMatchSetup({
   // Auto-save individual match when it changes
   const autoSaveMatch = async (matchSetup: MatchSetup) => {
     try {
+      console.log('💾 Auto-saving match:', matchSetup.matchNumber, 'isCompleted:', matchSetup.isCompleted, 'winnerId:', matchSetup.winnerId);
+      
       // Create tournament structure if not created yet - check if Round 2 exists
       const { data: round2Matches } = await supabase
         .from('matches')
@@ -162,8 +164,11 @@ export function ManualMatchSetup({
         .eq('tee', matchSetup.matchNumber)
         .maybeSingle();
 
+      console.log('🔍 Existing match found:', existingMatch?.id);
+
       if (existingMatch) {
         // Update existing match
+        console.log('📝 Updating existing match with winner_id:', matchSetup.winnerId);
         const { error: matchError } = await supabase
           .from('matches')
           .update({
@@ -172,17 +177,24 @@ export function ManualMatchSetup({
           })
           .eq('id', existingMatch.id);
 
-        if (matchError) throw matchError;
+        if (matchError) {
+          console.error('❌ Error updating match:', matchError);
+          throw matchError;
+        }
+
+        console.log('✅ Match updated successfully');
 
         // Update participants
         await updateMatchParticipants(existingMatch.id, matchSetup);
 
         // If match is completed, advance winner
         if (matchSetup.isCompleted && matchSetup.winnerId) {
+          console.log('🏆 Auto-advancing winner:', matchSetup.winnerId);
           await autoAdvanceWinner(existingMatch.id, matchSetup.winnerId);
         }
       } else {
         // Create new match
+        console.log('🆕 Creating new match with winner_id:', matchSetup.winnerId);
         const matchData = {
           tournament_id: tournamentId,
           type: "singles",
@@ -200,13 +212,19 @@ export function ManualMatchSetup({
           .select()
           .single();
 
-        if (matchError) throw matchError;
+        if (matchError) {
+          console.error('❌ Error creating match:', matchError);
+          throw matchError;
+        }
+
+        console.log('✅ New match created:', newMatch.id);
 
         // Add participants
         await updateMatchParticipants(newMatch.id, matchSetup);
 
         // If match is completed, advance winner
         if (matchSetup.isCompleted && matchSetup.winnerId) {
+          console.log('🏆 Auto-advancing winner:', matchSetup.winnerId);
           await autoAdvanceWinner(newMatch.id, matchSetup.winnerId);
         }
       }
@@ -215,7 +233,7 @@ export function ManualMatchSetup({
       onMatchesCreated();
 
     } catch (error) {
-      console.error('Auto-save error:', error);
+      console.error('💥 Auto-save error:', error);
       toast({
         title: "Save Error",
         description: "Failed to save match automatically.",
