@@ -18,8 +18,6 @@ import { TournamentBracket } from "./TournamentBracket";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useSecurePlayers } from "@/hooks/useSecurePlayers";
-import { Player, hasFullPlayerAccess } from "@/types/player";
 
 interface Tournament {
   id: string;
@@ -36,7 +34,15 @@ interface Tournament {
   players: string[];
 }
 
-// Player interface moved to @/types/player
+interface Player {
+  id: string;
+  name: string;
+  email?: string;
+  handicap: number;
+  wins: number;
+  losses: number;
+  status: "active" | "eliminated" | "champion";
+}
 
 interface MatchPlayer {
   name: string;
@@ -80,32 +86,13 @@ export function TournamentDashboard() {
   const [showEditSchedule, setShowEditSchedule] = useState(false);
   const [editableSchedule, setEditableSchedule] = useState<{[key: string]: string}>({});
   const [loading, setLoading] = useState(true);
-  const [isOrganizer, setIsOrganizer] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Check user role and fetch data
+  // Fetch tournaments, players, and matches from database
   useEffect(() => {
     fetchTournaments();
-    checkUserRole();
   }, []);
-
-  const checkUserRole = async () => {
-    if (!user) return;
-    
-    try {
-      const { data } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .single();
-        
-      setIsOrganizer(data?.role === 'admin' || data?.role === 'organizer');
-    } catch (error) {
-      console.error('Error checking user role:', error);
-      setIsOrganizer(false);
-    }
-  };
 
   useEffect(() => {
     if (selectedTournament) {
@@ -318,45 +305,31 @@ export function TournamentDashboard() {
     if (!selectedTournament) return;
 
     try {
-      // Use secure access based on user role
-      const tableName = isOrganizer ? 'players' : 'players_secure';
-      
+      // Get players registered for this tournament
       const { data, error } = await supabase
         .from('tournament_registrations')
         .select(`
           player_id,
-          ${tableName} (
+          players (
             id,
             name,
             email,
-            handicap,
-            phone,
-            emergency_contact,
-            user_id
+            handicap
           )
         `)
         .eq('tournament_id', selectedTournament);
 
       if (error) throw error;
 
-      const tournamentPlayers: Player[] = (data || []).map((reg: any) => {
-        const playerData = reg[tableName];
-        return {
-          id: playerData.id,
-          name: playerData.name,
-          handicap: playerData.handicap,
-          wins: 0, // These would need to be calculated from match results
-          losses: 0,
-          status: "active" as const,
-          // Only include contact info if accessible (organizer view or own data)
-          ...(playerData.email && { 
-            email: playerData.email,
-            phone: playerData.phone,
-            emergency_contact: playerData.emergency_contact,
-            user_id: playerData.user_id
-          })
-        };
-      });
+      const tournamentPlayers: Player[] = (data || []).map((reg: any) => ({
+        id: reg.players.id,
+        name: reg.players.name,
+        email: reg.players.email,
+        handicap: reg.players.handicap,
+        wins: 0, // These would need to be calculated from match results
+        losses: 0,
+        status: "active" as const
+      }));
 
       // Sort players by handicap (lowest to highest) immediately after fetching
       const sortedTournamentPlayers = tournamentPlayers.sort((a, b) => Number(a.handicap) - Number(b.handicap));
