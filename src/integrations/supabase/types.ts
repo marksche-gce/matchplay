@@ -91,6 +91,13 @@ export type Database = {
             referencedRelation: "players_secure"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "match_participants_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players_simple"
+            referencedColumns: ["id"]
+          },
         ]
       }
       matches: {
@@ -183,6 +190,13 @@ export type Database = {
             columns: ["winner_id"]
             isOneToOne: false
             referencedRelation: "players_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "players_simple"
             referencedColumns: ["id"]
           },
         ]
@@ -288,6 +302,13 @@ export type Database = {
             columns: ["player_id"]
             isOneToOne: false
             referencedRelation: "players_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_registrations_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players_simple"
             referencedColumns: ["id"]
           },
           {
@@ -406,6 +427,42 @@ export type Database = {
           phone?: never
           updated_at?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      players_simple: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          emergency_contact: string | null
+          handicap: number | null
+          id: string | null
+          name: string | null
+          phone: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: never
+          emergency_contact?: never
+          handicap?: number | null
+          id?: string | null
+          name?: string | null
+          phone?: never
+          updated_at?: string | null
+          user_id?: never
+        }
+        Update: {
+          created_at?: string | null
+          email?: never
+          emergency_contact?: never
+          handicap?: number | null
+          id?: string | null
+          name?: string | null
+          phone?: never
+          updated_at?: string | null
+          user_id?: never
         }
         Relationships: []
       }
