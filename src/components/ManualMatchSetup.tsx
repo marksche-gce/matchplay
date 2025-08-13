@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Save, Trash2, Users } from "lucide-react";
+import { Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -39,6 +39,7 @@ export function ManualMatchSetup({
 }: ManualMatchSetupProps) {
   const [matchSetups, setMatchSetups] = useState<MatchSetup[]>([]);
   const [availablePlayerIds, setAvailablePlayerIds] = useState<Set<string>>(new Set());
+  const [tournamentCreated, setTournamentCreated] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -120,6 +121,9 @@ export function ManualMatchSetup({
           updated.winnerId = undefined;
         }
         
+        // Auto-save this match to database
+        autoSaveMatch(updated);
+        
         return updated;
       }
       return match;
@@ -131,26 +135,57 @@ export function ManualMatchSetup({
     return players.find(p => p.id === playerId)?.name;
   };
 
-  const saveMatches = async () => {
+  // Auto-save individual match when it changes
+  const autoSaveMatch = async (matchSetup: MatchSetup) => {
     try {
-      // Calculate tournament structure
-      const totalRounds = Math.ceil(Math.log2(maxPlayers));
-      const allMatches: any[] = [];
+      // Create tournament structure if not created yet
+      if (!tournamentCreated) {
+        await createTournamentStructure();
+        setTournamentCreated(true);
+      }
 
-      // Create first round matches
-      for (const setup of matchSetups) {
+      // Check if match already exists in database
+      const { data: existingMatch } = await supabase
+        .from('matches')
+        .select('id')
+        .eq('tournament_id', tournamentId)
+        .eq('round', 'Round 1')
+        .eq('tee', matchSetup.matchNumber)
+        .maybeSingle();
+
+      if (existingMatch) {
+        // Update existing match
+        const { error: matchError } = await supabase
+          .from('matches')
+          .update({
+            status: matchSetup.isCompleted ? "completed" : "scheduled",
+            winner_id: matchSetup.winnerId || null
+          })
+          .eq('id', existingMatch.id);
+
+        if (matchError) throw matchError;
+
+        // Update participants
+        await updateMatchParticipants(existingMatch.id, matchSetup);
+
+        // If match is completed, advance winner
+        if (matchSetup.isCompleted && matchSetup.winnerId) {
+          await autoAdvanceWinner(existingMatch.id, matchSetup.winnerId);
+        }
+      } else {
+        // Create new match
         const matchData = {
           tournament_id: tournamentId,
-          type: format === "matchplay" && setup.matchNumber === 1 ? "foursome" : "singles",
+          type: "singles",
           round: "Round 1",
-          status: setup.isCompleted ? "completed" : "scheduled",
+          status: matchSetup.isCompleted ? "completed" : "scheduled",
           match_date: new Date().toISOString().split('T')[0],
           match_time: "09:00:00",
-          tee: setup.matchNumber,
-          winner_id: setup.winnerId || null
+          tee: matchSetup.matchNumber,
+          winner_id: matchSetup.winnerId || null
         };
 
-        const { data: matchResult, error: matchError } = await supabase
+        const { data: newMatch, error: matchError } = await supabase
           .from('matches')
           .insert(matchData)
           .select()
@@ -158,47 +193,41 @@ export function ManualMatchSetup({
 
         if (matchError) throw matchError;
 
-        allMatches.push(matchResult);
-
         // Add participants
-        const participants = [];
-        if (setup.player1Id) {
-          participants.push({
-            match_id: matchResult.id,
-            player_id: setup.player1Id,
-            position: 1
-          });
-        }
-        if (setup.player2Id) {
-          participants.push({
-            match_id: matchResult.id,
-            player_id: setup.player2Id,
-            position: 2
-          });
-        }
+        await updateMatchParticipants(newMatch.id, matchSetup);
 
-        if (participants.length > 0) {
-          const { error: participantError } = await supabase
-            .from('match_participants')
-            .insert(participants);
-
-          if (participantError) throw participantError;
+        // If match is completed, advance winner
+        if (matchSetup.isCompleted && matchSetup.winnerId) {
+          await autoAdvanceWinner(newMatch.id, matchSetup.winnerId);
         }
       }
 
-      // Create ALL subsequent rounds first before advancing winners
-      let currentRoundMatches = allMatches;
-      const allRoundMatches = [currentRoundMatches]; // Store all rounds for reference
+      // Trigger bracket refresh
+      onMatchesCreated();
+
+    } catch (error) {
+      console.error('Auto-save error:', error);
+      toast({
+        title: "Save Error",
+        description: "Failed to save match automatically.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Create the full tournament structure once
+  const createTournamentStructure = async () => {
+    try {
+      const totalRounds = Math.ceil(Math.log2(maxPlayers));
+      let currentRoundMatches: any[] = [];
       
+      // Create subsequent rounds structure
       for (let round = 2; round <= totalRounds; round++) {
         const roundName = getRoundName(round, totalRounds);
         const matchesInRound = Math.pow(2, totalRounds - round);
         const roundMatches = [];
 
         for (let matchIndex = 0; matchIndex < matchesInRound; matchIndex++) {
-          const prevMatch1 = currentRoundMatches[matchIndex * 2];
-          const prevMatch2 = currentRoundMatches[matchIndex * 2 + 1];
-
           const matchData = {
             tournament_id: tournamentId,
             type: "singles",
@@ -206,9 +235,7 @@ export function ManualMatchSetup({
             status: "scheduled",
             match_date: new Date().toISOString().split('T')[0],
             match_time: "09:00:00",
-            tee: matchIndex + 1,
-            previous_match_1_id: prevMatch1?.id,
-            previous_match_2_id: prevMatch2?.id
+            tee: matchIndex + 1
           };
 
           const { data: matchResult, error: matchError } = await supabase
@@ -221,77 +248,174 @@ export function ManualMatchSetup({
           roundMatches.push(matchResult);
         }
 
-        allRoundMatches.push(roundMatches);
         currentRoundMatches = roundMatches;
       }
 
-      // Wait for database consistency
-      console.log("Waiting for database consistency...");
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Set up relationships between rounds
+      await setupRoundRelationships();
 
-      // Now advance completed first round winners to Round 2
-      const completedFirstRoundMatches = allMatches.filter(match => 
-        match.status === "completed" && match.winner_id
-      );
+    } catch (error) {
+      console.error('Tournament structure creation error:', error);
+      throw error;
+    }
+  };
 
-      console.log(`Found ${completedFirstRoundMatches.length} completed matches to advance:`, 
-        completedFirstRoundMatches.map(m => ({ id: m.id, winner_id: m.winner_id })));
+  // Set up relationships between tournament rounds
+  const setupRoundRelationships = async () => {
+    try {
+      const { data: allMatches } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('tournament_id', tournamentId)
+        .order('round')
+        .order('tee');
+
+      if (!allMatches) return;
+
+      // Group by round
+      const matchesByRound = allMatches.reduce((acc, match) => {
+        if (!acc[match.round]) acc[match.round] = [];
+        acc[match.round].push(match);
+        return acc;
+      }, {} as Record<string, any[]>);
+
+      const totalRounds = Math.ceil(Math.log2(maxPlayers));
       
-      // Advance winners to Round 2 matches
-      const round2Matches = allRoundMatches[1]; // Round 2 is at index 1
-      console.log(`Round 2 matches available:`, round2Matches.map(m => ({ 
-        id: m.id, prev1: m.previous_match_1_id, prev2: m.previous_match_2_id 
-      })));
-      
-      for (let i = 0; i < completedFirstRoundMatches.length; i++) {
-        const completedMatch = completedFirstRoundMatches[i];
-        
-        // Find the Round 2 match this winner should advance to
-        const targetRound2Match = round2Matches.find(r2Match => 
-          r2Match.previous_match_1_id === completedMatch.id || 
-          r2Match.previous_match_2_id === completedMatch.id
-        );
+      // Set up previous match relationships
+      for (let round = 2; round <= totalRounds; round++) {
+        const roundName = getRoundName(round, totalRounds);
+        const currentRoundMatches = matchesByRound[roundName] || [];
+        const previousRoundName = getRoundName(round - 1, totalRounds);
+        const previousRoundMatches = matchesByRound[previousRoundName] || [];
 
-        if (targetRound2Match) {
-          // Determine position (1 or 2) based on which previous match this is
-          const position = targetRound2Match.previous_match_1_id === completedMatch.id ? 1 : 2;
-          
-          // Add the winner to the next round match
-          const { error: participantError } = await supabase
-            .from('match_participants')
-            .insert({
-              match_id: targetRound2Match.id,
-              player_id: completedMatch.winner_id,
-              position: position,
-              team_number: null,
-              score: null,
-              is_placeholder: false,
-              placeholder_name: null
-            });
+        for (let i = 0; i < currentRoundMatches.length; i++) {
+          const currentMatch = currentRoundMatches[i];
+          const prevMatch1 = previousRoundMatches[i * 2];
+          const prevMatch2 = previousRoundMatches[i * 2 + 1];
 
-          if (participantError) {
-            console.error("Error advancing winner to next round:", participantError);
-          } else {
-            console.log(`Advanced winner to Round 2 match ${targetRound2Match.id}, position ${position}`);
+          if (prevMatch1 || prevMatch2) {
+            await supabase
+              .from('matches')
+              .update({
+                previous_match_1_id: prevMatch1?.id || null,
+                previous_match_2_id: prevMatch2?.id || null
+              })
+              .eq('id', currentMatch.id);
           }
         }
       }
-
-      toast({
-        title: "Tournament Created!",
-        description: `Successfully created tournament with ${allMatches.length} first round matches. ${completedFirstRoundMatches.length} winners advanced to Round 2.`,
-      });
-
-      onMatchesCreated();
     } catch (error) {
-      console.error('Error creating matches:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create tournament matches.",
-        variant: "destructive"
-      });
+      console.error('Setup relationships error:', error);
     }
   };
+
+  // Update match participants
+  const updateMatchParticipants = async (matchId: string, matchSetup: MatchSetup) => {
+    try {
+      // Delete existing participants
+      await supabase
+        .from('match_participants')
+        .delete()
+        .eq('match_id', matchId);
+
+      // Add new participants
+      const participants = [];
+      
+      if (matchSetup.player1Id) {
+        participants.push({
+          match_id: matchId,
+          player_id: matchSetup.player1Id,
+          position: 1
+        });
+      } else {
+        participants.push({
+          match_id: matchId,
+          player_id: null,
+          position: 1,
+          is_placeholder: true,
+          placeholder_name: "No opponent"
+        });
+      }
+      
+      if (matchSetup.player2Id) {
+        participants.push({
+          match_id: matchId,
+          player_id: matchSetup.player2Id,
+          position: 2
+        });
+      } else {
+        participants.push({
+          match_id: matchId,
+          player_id: null,
+          position: 2,
+          is_placeholder: true,
+          placeholder_name: "No opponent"
+        });
+      }
+
+      if (participants.length > 0) {
+        const { error } = await supabase
+          .from('match_participants')
+          .insert(participants);
+
+        if (error) throw error;
+      }
+    } catch (error) {
+      console.error('Update participants error:', error);
+      throw error;
+    }
+  };
+
+  // Auto-advance winner to next round
+  const autoAdvanceWinner = async (matchId: string, winnerId: string) => {
+    try {
+      // Find the next round match
+      const { data: nextMatch } = await supabase
+        .from('matches')
+        .select('*')
+        .or(`previous_match_1_id.eq.${matchId},previous_match_2_id.eq.${matchId}`)
+        .maybeSingle();
+
+      if (nextMatch) {
+        const position = nextMatch.previous_match_1_id === matchId ? 1 : 2;
+        
+        // Check if participant already exists
+        const { data: existingParticipant } = await supabase
+          .from('match_participants')
+          .select('*')
+          .eq('match_id', nextMatch.id)
+          .eq('position', position)
+          .maybeSingle();
+
+        if (existingParticipant) {
+          // Update existing participant
+          await supabase
+            .from('match_participants')
+            .update({
+              player_id: winnerId,
+              is_placeholder: false,
+              placeholder_name: null
+            })
+            .eq('id', existingParticipant.id);
+        } else {
+          // Insert new participant
+          await supabase
+            .from('match_participants')
+            .insert({
+              match_id: nextMatch.id,
+              player_id: winnerId,
+              position: position,
+              is_placeholder: false
+            });
+        }
+
+        console.log(`Auto-advanced winner to Round 2, position ${position}`);
+      }
+    } catch (error) {
+      console.error('Auto-advance error:', error);
+    }
+  };
+
 
   const deleteAllMatches = async () => {
     try {
@@ -318,6 +442,8 @@ export function ManualMatchSetup({
       if (matchError) throw matchError;
 
       // Reset local state
+      setMatchSetups([]);
+      setTournamentCreated(false);
       initializeMatches();
 
       toast({
@@ -346,9 +472,12 @@ export function ManualMatchSetup({
   const getMatchStatusText = (match: MatchSetup) => {
     if (match.isCompleted) {
       const winner = getPlayerName(match.winnerId);
-      return `Auto-completed: ${winner} advances (No opponent)`;
+      return `Winner: ${winner} (automatically advanced)`;
     }
-    return "Ready for play";
+    if (match.player1Id && match.player2Id) {
+      return "Ready for play";
+    }
+    return "Waiting for player assignment";
   };
 
   return (
@@ -356,25 +485,20 @@ export function ManualMatchSetup({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Users className="h-5 w-5" />
-          Manual First Round Setup
+          Tournament Setup - Assign Players
         </CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Select players for each match. Winners will automatically advance to the next round.
+        </p>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="flex gap-3">
-          <Button 
-            onClick={saveMatches}
-            disabled={matchSetups.length === 0}
-            className="flex-1"
-          >
-            <Save className="h-4 w-4 mr-2" />
-            Save Setup 1. Round
-          </Button>
           <Button 
             variant="destructive"
             onClick={deleteAllMatches}
           >
             <Trash2 className="h-4 w-4 mr-2" />
-            Delete All Matches
+            Reset Tournament
           </Button>
         </div>
 
@@ -390,8 +514,8 @@ export function ManualMatchSetup({
                   <div className="flex items-center justify-between mb-3">
                     <Label className="font-semibold">Match {match.matchNumber}</Label>
                     {match.isCompleted && (
-                      <div className="text-sm text-muted-foreground bg-yellow-100 dark:bg-yellow-900 px-2 py-1 rounded">
-                        Auto-completed
+                      <div className="text-sm text-muted-foreground bg-green-100 dark:bg-green-900 px-2 py-1 rounded">
+                        ✓ Winner: {getPlayerName(match.winnerId)}
                       </div>
                     )}
                   </div>

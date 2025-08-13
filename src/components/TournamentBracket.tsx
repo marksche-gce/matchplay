@@ -272,14 +272,14 @@ export function TournamentBracket({
     console.log("=== BRACKET EFFECT COMPLETE ===");
   }, [matches, players, maxPlayers]);
 
-  // Disable auto-advance on matches effect to prevent conflicts with manual setup
-  // useEffect(() => {
-  //   if (matches.length > 0) {
-  //     autoAdvanceWinners(matches).catch(error => {
-  //       console.error("Failed to auto-advance winners on update:", error);
-  //     });
-  //   }
-  // }, [matches]);
+  // Re-enable auto-advance winners when matches are updated
+  useEffect(() => {
+    if (matches.length > 0) {
+      autoAdvanceWinners(matches).catch(error => {
+        console.error("Failed to auto-advance winners on update:", error);
+      });
+    }
+  }, [matches]);
 
   // Automatic winner advancement - called after any match update
   const autoAdvanceWinners = async (updatedMatches: Match[]) => {
