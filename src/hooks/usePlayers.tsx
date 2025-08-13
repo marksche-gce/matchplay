@@ -130,6 +130,32 @@ export function usePlayers({ tournamentId }: UsePlayersOptions = {}) {
     return data;
   };
 
+  const addBulkPlayers = async (playersData: {
+    name: string;
+    email?: string;
+    handicap: number;
+    phone?: string;
+    emergency_contact?: string;
+  }[]) => {
+    if (!user) throw new Error('User must be logged in');
+
+    const playersWithUserId = playersData.map(player => ({
+      ...player,
+      user_id: user.id
+    }));
+
+    const { data, error } = await supabase
+      .from('players')
+      .insert(playersWithUserId)
+      .select();
+
+    if (error) throw error;
+
+    // Refresh the players list
+    await fetchPlayers();
+    return data;
+  };
+
   useEffect(() => {
     fetchPlayers();
   }, [user, tournamentId]);
@@ -139,6 +165,7 @@ export function usePlayers({ tournamentId }: UsePlayersOptions = {}) {
     loading,
     error,
     refetch: fetchPlayers,
-    addPlayer
+    addPlayer,
+    addBulkPlayers
   };
 }

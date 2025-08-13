@@ -42,7 +42,8 @@ export function TournamentDashboard() {
     players, 
     loading: playersLoading, 
     error: playersError, 
-    addPlayer 
+    addPlayer,
+    addBulkPlayers 
   } = usePlayers({ 
     tournamentId: currentTournament?.id 
   });
@@ -159,6 +160,37 @@ export function TournamentDashboard() {
       toast({
         title: "Error",
         description: error.message || "Failed to register player",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleBulkPlayerRegistration = async (playersData: any[]) => {
+    if (!currentTournament) return;
+
+    try {
+      // Create players in bulk
+      const newPlayers = await addBulkPlayers(playersData);
+      
+      // Register all players for the tournament
+      const registrations = newPlayers.map(player => ({
+        tournament_id: currentTournament.id,
+        player_id: player.id,
+        status: 'registered' as const
+      }));
+
+      await supabase
+        .from('tournament_registrations')
+        .insert(registrations);
+
+      toast({
+        title: "Success",
+        description: `${playersData.length} players imported and registered successfully!`
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to import players",
         variant: "destructive"
       });
     }
@@ -344,7 +376,10 @@ export function TournamentDashboard() {
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold">Players ({players.length})</h3>
               {isOrganizer && currentTournament.registration_open && (
-                <CreatePlayerDialog onPlayerCreate={handlePlayerRegistration} />
+                <CreatePlayerDialog 
+                  onPlayerCreate={handlePlayerRegistration}
+                  onBulkPlayerCreate={handleBulkPlayerRegistration}
+                />
               )}
             </div>
 
