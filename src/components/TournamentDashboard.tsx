@@ -2329,16 +2329,18 @@ export function TournamentDashboard() {
                     </Button>
                   </div>
                 </div>
-                <TournamentBracketFlow
+                <TournamentBracket
                   tournamentId={currentTournament?.id || ""}
                   matches={tournamentMatches}
                   players={players}
-                  onMatchSelect={(matchId) => {
-                    const match = tournamentMatches.find(m => m.id === matchId);
-                    if (match) {
-                      setSelectedPlayer(matchId);
-                    }
+                  onMatchUpdate={(updatedMatches) => {
+                    setMatches(updatedMatches);
                   }}
+                  onCreateMatch={async (matchData) => {
+                    // Handle match creation
+                  }}
+                  format="matchplay"
+                  maxPlayers={currentTournament?.max_players || 16}
                 />
               </>
             )}
