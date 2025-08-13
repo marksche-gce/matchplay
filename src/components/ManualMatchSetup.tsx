@@ -137,17 +137,35 @@ export function ManualMatchSetup({
   };
 
   // Auto-save individual match when it changes
+  // Retry function for network errors
+  const retryWithBackoff = async (fn: () => Promise<any>, maxRetries = 3) => {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error: any) {
+        if (attempt === maxRetries || !error.message?.includes('NetworkError')) {
+          throw error;
+        }
+        console.log(`🔄 Retry attempt ${attempt}/${maxRetries} after network error`);
+        await new Promise(resolve => setTimeout(resolve, attempt * 1000)); // Exponential backoff
+      }
+    }
+  };
+
   const autoSaveMatch = async (matchSetup: MatchSetup) => {
     try {
       console.log('💾 Auto-saving match:', matchSetup.matchNumber, 'isCompleted:', matchSetup.isCompleted, 'winnerId:', matchSetup.winnerId);
       
       // Create tournament structure if not created yet - check if Round 2 exists
-      const { data: round2Matches } = await supabase
-        .from('matches')
-        .select('id')
-        .eq('tournament_id', tournamentId)
-        .neq('round', 'Round 1')
-        .limit(1);
+      const round2Matches = await retryWithBackoff(async () => {
+        const { data } = await supabase
+          .from('matches')
+          .select('id')
+          .eq('tournament_id', tournamentId)
+          .neq('round', 'Round 1')
+          .limit(1);
+        return data;
+      });
 
       if (!round2Matches || round2Matches.length === 0) {
         console.log('🏗️ Creating tournament structure - no Round 2 matches found');
@@ -156,32 +174,34 @@ export function ManualMatchSetup({
       }
 
       // Check if match already exists in database
-      const { data: existingMatch } = await supabase
-        .from('matches')
-        .select('id')
-        .eq('tournament_id', tournamentId)
-        .eq('round', 'Round 1')
-        .eq('tee', matchSetup.matchNumber)
-        .maybeSingle();
+      const existingMatch = await retryWithBackoff(async () => {
+        const { data } = await supabase
+          .from('matches')
+          .select('id')
+          .eq('tournament_id', tournamentId)
+          .eq('round', 'Round 1')
+          .eq('tee', matchSetup.matchNumber)
+          .maybeSingle();
+        return data;
+      });
 
       console.log('🔍 Existing match found:', existingMatch?.id);
 
       if (existingMatch) {
-        // Update existing match
+        // Update existing match with retry
         console.log('📝 Updating existing match with winner_id:', matchSetup.winnerId);
-        const { error: matchError } = await supabase
-          .from('matches')
-          .update({
-            status: matchSetup.isCompleted ? "completed" : 
-                   (matchSetup.player1Id || matchSetup.player2Id) ? "scheduled" : "pending",
-            winner_id: matchSetup.winnerId || null
-          })
-          .eq('id', existingMatch.id);
+        await retryWithBackoff(async () => {
+          const { error } = await supabase
+            .from('matches')
+            .update({
+              status: matchSetup.isCompleted ? "completed" : 
+                     (matchSetup.player1Id || matchSetup.player2Id) ? "pending" : "pending",
+              winner_id: matchSetup.winnerId || null
+            })
+            .eq('id', existingMatch.id);
 
-        if (matchError) {
-          console.error('❌ Error updating match:', matchError);
-          throw matchError;
-        }
+          if (error) throw error;
+        });
 
         console.log('✅ Match updated successfully');
 
@@ -194,30 +214,30 @@ export function ManualMatchSetup({
           await autoAdvanceWinner(existingMatch.id, matchSetup.winnerId);
         }
       } else {
-        // Create new match
+        // Create new match with retry
         console.log('🆕 Creating new match with winner_id:', matchSetup.winnerId);
         const matchData = {
           tournament_id: tournamentId,
           type: "singles",
           round: "Round 1",
           status: matchSetup.isCompleted ? "completed" : 
-                 (matchSetup.player1Id || matchSetup.player2Id) ? "scheduled" : "pending",
+                 (matchSetup.player1Id || matchSetup.player2Id) ? "pending" : "pending",
           match_date: new Date().toISOString().split('T')[0],
           match_time: "09:00:00",
           tee: matchSetup.matchNumber,
           winner_id: matchSetup.winnerId || null
         };
 
-        const { data: newMatch, error: matchError } = await supabase
-          .from('matches')
-          .insert(matchData)
-          .select()
-          .single();
+        const newMatch = await retryWithBackoff(async () => {
+          const { data, error } = await supabase
+            .from('matches')
+            .insert(matchData)
+            .select()
+            .single();
 
-        if (matchError) {
-          console.error('❌ Error creating match:', matchError);
-          throw matchError;
-        }
+          if (error) throw error;
+          return data;
+        });
 
         console.log('✅ New match created:', newMatch.id);
 
@@ -234,11 +254,19 @@ export function ManualMatchSetup({
       // Trigger bracket refresh
       onMatchesCreated();
 
-    } catch (error) {
+      toast({
+        title: "Match Saved",
+        description: "Match updated successfully.",
+        variant: "default"
+      });
+
+    } catch (error: any) {
       console.error('💥 Auto-save error:', error);
       toast({
         title: "Save Error",
-        description: "Failed to save match automatically.",
+        description: error.message?.includes('NetworkError') 
+          ? "Network connection failed. Please check your internet connection and try again."
+          : "Failed to save match updates. Please try again.",
         variant: "destructive"
       });
     }
