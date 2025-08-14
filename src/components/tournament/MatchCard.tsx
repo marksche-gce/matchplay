@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Users, Crown } from 'lucide-react';
+import { Trophy, Users, Crown, UserPlus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { SetWinnerDialog } from './SetWinnerDialog';
+import { AssignParticipantsDialog } from './AssignParticipantsDialog';
 
 interface Tournament {
   id: string;
@@ -56,6 +57,7 @@ export function MatchCard({ match, tournament, onMatchUpdate }: MatchCardProps) 
   const [team2, setTeam2] = useState<Team | null>(null);
   const [winner, setWinner] = useState<Player | Team | null>(null);
   const [showWinnerDialog, setShowWinnerDialog] = useState(false);
+  const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -165,6 +167,18 @@ export function MatchCard({ match, tournament, onMatchUpdate }: MatchCardProps) 
       return match.status === 'scheduled' && player1 && player2;
     } else {
       return match.status === 'scheduled' && team1 && team2;
+    }
+  };
+
+  const canAssignParticipants = () => {
+    return match.round_number === 1; // Only allow assignment in first round
+  };
+
+  const needsParticipants = () => {
+    if (tournament.type === 'singles') {
+      return !match.player1_id || !match.player2_id;
+    } else {
+      return !match.team1_id || !match.team2_id;
     }
   };
 
@@ -363,6 +377,18 @@ export function MatchCard({ match, tournament, onMatchUpdate }: MatchCardProps) 
             </>
           )}
 
+          {canAssignParticipants() && needsParticipants() && (
+            <Button 
+              onClick={() => setShowAssignDialog(true)}
+              variant="outline"
+              size="sm"
+              className="w-full"
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Assign {tournament.type === 'singles' ? 'Players' : 'Teams'}
+            </Button>
+          )}
+
           {canSetWinner() && (
             <Button 
               onClick={() => setShowWinnerDialog(true)}
@@ -395,6 +421,14 @@ export function MatchCard({ match, tournament, onMatchUpdate }: MatchCardProps) 
         team1={team1}
         team2={team2}
         onSetWinner={handleSetWinner}
+      />
+
+      <AssignParticipantsDialog
+        open={showAssignDialog}
+        onOpenChange={setShowAssignDialog}
+        match={match}
+        tournament={tournament}
+        onAssignmentComplete={onMatchUpdate}
       />
     </>
   );
