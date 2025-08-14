@@ -47,11 +47,19 @@ export class BracketGenerator {
   private generateBracketStructure(tournament: Tournament, registrations: any[]) {
     const matches: any[] = [];
     const totalRounds = tournament.max_rounds;
-    const firstRoundMatches = Math.ceil(registrations.length / 2);
     
-    // Generate all rounds first
+    console.log('Tournament details:', tournament);
+    console.log('Total registrations:', registrations.length);
+    
+    // For a proper elimination tournament:
+    // Round 1: max_players/2 matches (e.g., 32 players = 16 matches)
+    // Round 2: Round1/2 matches (e.g., 16 -> 8 matches)  
+    // etc.
+    
+    // Generate all rounds
     for (let round = 1; round <= totalRounds; round++) {
-      const matchesInRound = Math.pow(2, totalRounds - round);
+      // Calculate matches in this round: for round 1 = max_players/2, then divide by 2 each round
+      const matchesInRound = tournament.max_players / Math.pow(2, round);
       
       for (let matchNum = 1; matchNum <= matchesInRound; matchNum++) {
         const match: any = {
@@ -66,7 +74,6 @@ export class BracketGenerator {
           const nextRoundMatchNumber = Math.ceil(matchNum / 2);
           const position = matchNum % 2 === 1 ? 1 : 2;
           
-          // We'll update feeds_to_match_id after all matches are created
           match.feeds_to_position = position;
           match.next_round_match = nextRoundMatchNumber;
         }
@@ -100,6 +107,9 @@ export class BracketGenerator {
     // Get first round matches
     const firstRoundMatches = matches.filter(m => m.round_number === 1);
     
+    console.log('First round matches:', firstRoundMatches.length);
+    console.log('Registrations:', registrations.length);
+    
     // Shuffle registrations for fair bracket seeding
     const shuffledRegistrations = [...registrations].sort(() => Math.random() - 0.5);
     
@@ -108,6 +118,8 @@ export class BracketGenerator {
       const match = firstRoundMatches[i];
       const participant1 = shuffledRegistrations[i * 2];
       const participant2 = shuffledRegistrations[i * 2 + 1];
+      
+      console.log(`Match ${i + 1}: participant1=`, participant1?.player?.name || 'BYE', `participant2=`, participant2?.player?.name || 'BYE');
       
       if (participant1) {
         if (tournament.type === 'singles') {
@@ -124,7 +136,7 @@ export class BracketGenerator {
           match.team2_id = participant2.team_id;
         }
         match.status = 'scheduled'; // Both participants assigned
-      } else {
+      } else if (participant1) {
         // Bye - participant 1 automatically advances
         match.status = 'completed';
         if (tournament.type === 'singles') {
