@@ -158,9 +158,9 @@ export function MatchCard({ match, tournament, onMatchUpdate, embedded = false }
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'completed': return 'Completed';
-      case 'scheduled': return 'Scheduled';
-      case 'pending': return 'Pending';
+      case 'completed': return 'Abgeschlossen';
+      case 'scheduled': return 'Geplant';
+      case 'pending': return 'Ausstehend';
       default: return status;
     }
   };
@@ -274,8 +274,8 @@ export function MatchCard({ match, tournament, onMatchUpdate, embedded = false }
       }
 
       toast({
-        title: "Winner Set",
-        description: "Match result has been recorded successfully.",
+        title: "Gewinner gesetzt",
+        description: "Das Spielergebnis wurde erfolgreich gespeichert.",
       });
 
       onMatchUpdate();
@@ -284,8 +284,8 @@ export function MatchCard({ match, tournament, onMatchUpdate, embedded = false }
     } catch (error) {
       console.error('Error setting winner:', error);
       toast({
-        title: "Error",
-        description: "Failed to set winner. Please try again.",
+        title: "Fehler",
+        description: "Gewinner konnte nicht gesetzt werden. Bitte versuchen Sie es erneut.",
         variant: "destructive",
       });
     }
@@ -319,7 +319,7 @@ export function MatchCard({ match, tournament, onMatchUpdate, embedded = false }
       >
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm">Match {match.match_number}</CardTitle>
+            <CardTitle className="text-sm">Spiel {match.match_number}</CardTitle>
             <Badge className={getStatusColor(match.status)}>
               {getStatusText(match.status)}
             </Badge>
@@ -431,14 +431,14 @@ export function MatchCard({ match, tournament, onMatchUpdate, embedded = false }
               className="w-full"
             >
               <Trophy className="h-4 w-4 mr-2" />
-              {!embedded && (match.winner_player_id || match.winner_team_id) ? 'Change Winner' : 'Set Winner'}
+              {!embedded && (match.winner_player_id || match.winner_team_id) ? 'Gewinner ändern' : 'Gewinner setzen'}
             </Button>
           )}
 
           {match.status === 'completed' && winner && (
             <div className="text-center p-2 bg-success/10 rounded-lg border border-success/30">
               <p className="text-xs text-success font-medium">
-                Winner: {(winner as any).name}
+                Gewinner: {(winner as any).name}
               </p>
             </div>
           )}

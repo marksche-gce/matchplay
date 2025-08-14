@@ -65,8 +65,8 @@ export function CreateTournamentDialog({ onTournamentCreate, open: externalOpen,
     
     if (!formData.name || !formData.course || !formData.startDate) {
       toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields.",
+        title: "Fehlende Informationen",
+        description: "Bitte füllen Sie alle Pflichtfelder aus.",
         variant: "destructive"
       });
       return;
@@ -79,8 +79,8 @@ export function CreateTournamentDialog({ onTournamentCreate, open: externalOpen,
     });
 
     toast({
-      title: "Tournament Created!",
-      description: `${formData.name} has been successfully created.`,
+      title: "Turnier erstellt!",
+      description: `${formData.name} wurde erfolgreich erstellt.`,
     });
 
     setFormData({
@@ -104,34 +104,34 @@ export function CreateTournamentDialog({ onTournamentCreate, open: externalOpen,
       <DialogTrigger asChild>
         <Button variant="premium" className="gap-2">
           <Plus className="h-4 w-4" />
-          Create Tournament
+          Turnier erstellen
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Trophy className="h-5 w-5" />
-            Create New Tournament
+            Neues Turnier erstellen
           </DialogTitle>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Tournament Name *</Label>
+              <Label htmlFor="name">Turniername *</Label>
               <Input
                 id="name"
-                placeholder="Spring Championship 2024"
+                placeholder="Frühjahrs-Meisterschaft 2024"
                 value={formData.name}
                 onChange={(e) => handleInputChange("name", e.target.value)}
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="course">Golf Course *</Label>
+              <Label htmlFor="course">Golfplatz *</Label>
               <Input
                 id="course"
-                placeholder="Pebble Beach Golf Links"
+                placeholder="St. Leon-Rot Golf Club"
                 value={formData.course}
                 onChange={(e) => handleInputChange("course", e.target.value)}
               />
@@ -139,10 +139,10 @@ export function CreateTournamentDialog({ onTournamentCreate, open: externalOpen,
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">Beschreibung</Label>
             <Textarea
               id="description"
-              placeholder="Annual spring tournament featuring matchplay format..."
+              placeholder="Jährliches Frühjahrs-Turnier im Match-Play-Format..."
               value={formData.description}
               onChange={(e) => handleInputChange("description", e.target.value)}
               rows={3}
@@ -151,7 +151,7 @@ export function CreateTournamentDialog({ onTournamentCreate, open: externalOpen,
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="startDate">Start Date *</Label>
+              <Label htmlFor="startDate">Startdatum *</Label>
               <Input
                 id="startDate"
                 type="date"
@@ -161,7 +161,7 @@ export function CreateTournamentDialog({ onTournamentCreate, open: externalOpen,
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="endDate">End Date</Label>
+              <Label htmlFor="endDate">Enddatum</Label>
               <Input
                 id="endDate"
                 type="date"
@@ -171,30 +171,30 @@ export function CreateTournamentDialog({ onTournamentCreate, open: externalOpen,
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="maxPlayers">Max Players</Label>
+              <Label htmlFor="maxPlayers">Max. Spieler</Label>
               <Select value={formData.maxPlayers} onValueChange={(value) => handleInputChange("maxPlayers", value)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="8">8 Players</SelectItem>
-                  <SelectItem value="16">16 Players</SelectItem>
-                  <SelectItem value="32">32 Players</SelectItem>
-                  <SelectItem value="64">64 Players</SelectItem>
+                  <SelectItem value="8">8 Spieler</SelectItem>
+                  <SelectItem value="16">16 Spieler</SelectItem>
+                  <SelectItem value="32">32 Spieler</SelectItem>
+                  <SelectItem value="64">64 Spieler</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="format">Tournament Format</Label>
+            <Label htmlFor="format">Turnierformat</Label>
             <Select value={formData.format} onValueChange={(value) => handleInputChange("format", value)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="matchplay">Matchplay</SelectItem>
-                <SelectItem value="strokeplay">Stroke Play</SelectItem>
+                <SelectItem value="matchplay">Match Play</SelectItem>
+                <SelectItem value="strokeplay">Zählspiel</SelectItem>
                 <SelectItem value="scramble">Scramble</SelectItem>
               </SelectContent>
             </Select>
@@ -207,10 +207,10 @@ export function CreateTournamentDialog({ onTournamentCreate, open: externalOpen,
                   <Calendar className="h-4 w-4 text-primary" />
                 </div>
                 <div className="text-sm">
-                  <p className="font-medium mb-1">Tournament Preview</p>
+                  <p className="font-medium mb-1">Turnier-Vorschau</p>
                   <p className="text-muted-foreground">
-                    {formData.name || "Tournament Name"} at {formData.course || "Golf Course"}
-                    {formData.startDate && ` starting ${new Date(formData.startDate).toLocaleDateString()}`}
+                    {formData.name || "Turniername"} im {formData.course || "Golfplatz"}
+                    {formData.startDate && ` ab ${new Date(formData.startDate).toLocaleDateString()}`}
                   </p>
                 </div>
               </div>
@@ -219,7 +219,7 @@ export function CreateTournamentDialog({ onTournamentCreate, open: externalOpen,
 
           <div className="flex justify-end pt-4">
             <Button type="submit" variant="premium" className="w-full">
-              Create Tournament
+              Turnier erstellen
             </Button>
           </div>
         </form>

@@ -30,8 +30,8 @@ export function MatchPlayTournaments() {
             <div className="flex items-center gap-3">
               <Trophy className="h-8 w-8 text-primary" />
               <div>
-                <h1 className="text-3xl font-bold text-foreground">Match Play Tournaments</h1>
-                <p className="text-muted-foreground">Manage golf match play competitions</p>
+                <h1 className="text-3xl font-bold text-foreground">Match Play Turniere</h1>
+                <p className="text-muted-foreground">Golf Match Play Turniere verwalten</p>
               </div>
             </div>
             
@@ -41,7 +41,7 @@ export function MatchPlayTournaments() {
                 variant="default"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Create Tournament
+                Turnier erstellen
               </Button>
             )}
           </div>

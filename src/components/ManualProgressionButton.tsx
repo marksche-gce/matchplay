@@ -34,8 +34,8 @@ export function ManualProgressionButton({
 
       if (!allMatches || allMatches.length === 0) {
         toast({
-          title: "No Matches Found",
-          description: "No matches exist for this tournament.",
+          title: "Keine Spiele gefunden",
+          description: "Für dieses Turnier existieren keine Spiele.",
           variant: "destructive"
         });
         return;
@@ -81,16 +81,16 @@ export function ManualProgressionButton({
         
       } else {
         toast({
-          title: "Cannot Progress",
-          description: "Either all rounds are complete or current round matches are not finished.",
+          title: "Keine Weiterleitung möglich",
+          description: "Entweder sind alle Runden abgeschlossen oder aktuelle Rundenspiele sind nicht beendet.",
         });
       }
 
     } catch (error) {
       console.error("Error progressing round:", error);
       toast({
-        title: "Error",
-        description: "Failed to progress to next round.",
+        title: "Fehler",
+        description: "Weiterleitung zur nächsten Runde fehlgeschlagen.",
         variant: "destructive"
       });
     } finally {
@@ -166,8 +166,8 @@ export function ManualProgressionButton({
       }
 
       toast({
-        title: `${roundName} Created!`,
-        description: `Successfully created ${createdMatches.length} ${roundName} matches.`,
+        title: `${roundName} erstellt!`,
+        description: `${createdMatches.length} ${roundName} Spiele erfolgreich erstellt.`,
       });
 
       onRefreshNeeded();
@@ -190,7 +190,7 @@ export function ManualProgressionButton({
       ) : (
         <ChevronRight className="h-4 w-4" />
       )}
-      {isProgressing ? "Progressing..." : "Progress Round"}
+      {isProgressing ? "Wird weitergeleitet..." : "Runde weiterleiten"}
     </Button>
   );
 }

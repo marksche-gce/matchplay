@@ -58,9 +58,9 @@ export function SetWinnerDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Set Match Winner</DialogTitle>
+          <DialogTitle>Spielgewinner setzen</DialogTitle>
           <p className="text-sm text-muted-foreground">
-            Select the winner of Match {match.match_number}
+            Wählen Sie den Gewinner von Spiel {match.match_number}
           </p>
         </DialogHeader>
         
@@ -152,7 +152,7 @@ export function SetWinnerDialog({
         
         <div className="flex justify-end pt-4">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            Abbrechen
           </Button>
         </div>
       </DialogContent>

@@ -11,7 +11,7 @@ const Index = () => {
         <Link to="/tournaments">
           <Button variant="default" className="flex items-center gap-2">
             <Trophy className="h-4 w-4" />
-            View Tournaments
+            Turniere anzeigen
           </Button>
         </Link>
         <UserMenu />
@@ -21,11 +21,11 @@ const Index = () => {
         <div className="text-center mb-16">
           <Trophy className="h-16 w-16 text-primary mx-auto mb-6" />
           <h1 className="text-4xl font-bold text-foreground mb-4">
-            Match Play Tournament Manager
+            Match Play Turnier Manager
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Create and manage golf match play tournaments with automatic bracket generation, 
-            player registration, and winner advancement.
+            Erstellen und verwalten Sie Golf Match Play Turniere mit automatischer Bracket-Generierung, 
+            Spieler-Registrierung und Gewinner-Aufstieg.
           </p>
         </div>
 
@@ -33,7 +33,7 @@ const Index = () => {
           <Link to="/tournaments">
             <Button size="lg" variant="default" className="text-lg px-8 py-4">
               <Trophy className="h-5 w-5 mr-2" />
-              Get Started
+              Loslegen
             </Button>
           </Link>
         </div>

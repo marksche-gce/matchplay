@@ -48,7 +48,7 @@ export function TournamentList({ onTournamentSelect }: TournamentListProps) {
   };
 
   const deleteTournament = async (tournamentId: string, tournamentName: string) => {
-    if (!confirm(`Are you sure you want to delete "${tournamentName}"? This action cannot be undone.`)) {
+    if (!confirm(`Sind Sie sicher, dass Sie "${tournamentName}" löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.`)) {
       return;
     }
 
@@ -61,8 +61,8 @@ export function TournamentList({ onTournamentSelect }: TournamentListProps) {
       if (error) throw error;
 
       toast({
-        title: "Tournament Deleted",
-        description: `"${tournamentName}" has been successfully deleted.`,
+        title: "Turnier gelöscht",
+        description: `"${tournamentName}" wurde erfolgreich gelöscht.`,
       });
 
       // Refresh the tournaments list
@@ -70,8 +70,8 @@ export function TournamentList({ onTournamentSelect }: TournamentListProps) {
     } catch (error: any) {
       console.error('Error deleting tournament:', error);
       toast({
-        title: "Delete Failed",
-        description: error.message || "Failed to delete tournament.",
+        title: "Löschen fehlgeschlagen",
+        description: error.message || "Turnier konnte nicht gelöscht werden.",
         variant: "destructive",
       });
     }
@@ -86,8 +86,17 @@ export function TournamentList({ onTournamentSelect }: TournamentListProps) {
     }
   };
 
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'open': return 'Offen';
+      case 'closed': return 'Geschlossen';
+      case 'full': return 'Voll';
+      default: return status;
+    }
+  };
+
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString('de-DE', {
       month: 'short',
       day: 'numeric',
       year: 'numeric'
@@ -114,9 +123,9 @@ export function TournamentList({ onTournamentSelect }: TournamentListProps) {
       <Card className="bg-card shadow-card">
         <CardContent className="p-12 text-center">
           <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-foreground mb-2">No Tournaments Yet</h3>
+          <h3 className="text-lg font-semibold text-foreground mb-2">Noch keine Turniere</h3>
           <p className="text-muted-foreground">
-            Create your first match play tournament to get started.
+            Erstellen Sie Ihr erstes Match-Play-Turnier, um zu beginnen.
           </p>
         </CardContent>
       </Card>
@@ -125,7 +134,7 @@ export function TournamentList({ onTournamentSelect }: TournamentListProps) {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold text-foreground mb-4">Active Tournaments</h2>
+      <h2 className="text-xl font-semibold text-foreground mb-4">Aktive Turniere</h2>
       
       {tournaments.map((tournament) => (
         <Card key={tournament.id} className="bg-card shadow-card hover:shadow-elevated transition-all duration-300">
@@ -136,16 +145,16 @@ export function TournamentList({ onTournamentSelect }: TournamentListProps) {
                 <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <Users className="h-4 w-4" />
-                    {tournament.type === 'singles' ? 'Singles' : 'Foursome'} • {tournament.max_players} max
+                    {tournament.type === 'singles' ? 'Einzel' : 'Vierer'} • {tournament.max_players} max
                   </div>
                   <div className="flex items-center gap-1">
                     <Trophy className="h-4 w-4" />
-                    {tournament.max_rounds} rounds
+                    {tournament.max_rounds} Runden
                   </div>
                 </div>
               </div>
               <Badge className={getStatusColor(tournament.registration_status)}>
-                {tournament.registration_status}
+                {getStatusText(tournament.registration_status)}
               </Badge>
             </div>
           </CardHeader>
@@ -164,7 +173,7 @@ export function TournamentList({ onTournamentSelect }: TournamentListProps) {
                   onClick={() => onTournamentSelect(tournament.id)}
                   variant="default"
                 >
-                  View Tournament
+                  Turnier anzeigen
                 </Button>
                 
                 <Button

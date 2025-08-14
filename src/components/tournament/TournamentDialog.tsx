@@ -43,8 +43,8 @@ export function TournamentDialog({ open, onOpenChange }: TournamentDialogProps) 
     
     if (!formData.name || !formData.startDate || !formData.endDate) {
       toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields.",
+        title: "Fehlende Informationen",
+        description: "Bitte füllen Sie alle Pflichtfelder aus.",
         variant: "destructive",
       });
       return;
@@ -75,8 +75,8 @@ export function TournamentDialog({ open, onOpenChange }: TournamentDialogProps) 
       });
 
       toast({
-        title: "Tournament Created",
-        description: `${formData.name} has been created successfully with bracket generated.`,
+        title: "Turnier erstellt",
+        description: `${formData.name} wurde erfolgreich mit generiertem Bracket erstellt.`,
       });
 
       // Reset form and close dialog
@@ -95,8 +95,8 @@ export function TournamentDialog({ open, onOpenChange }: TournamentDialogProps) 
     } catch (error) {
       console.error('Error creating tournament:', error);
       toast({
-        title: "Error",
-        description: "Failed to create tournament. Please try again.",
+        title: "Fehler",
+        description: "Turnier konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
         variant: "destructive",
       });
     } finally {
@@ -123,56 +123,56 @@ export function TournamentDialog({ open, onOpenChange }: TournamentDialogProps) 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Create Tournament</DialogTitle>
+          <DialogTitle>Turnier erstellen</DialogTitle>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="name">Tournament Name *</Label>
+            <Label htmlFor="name">Turniername *</Label>
             <Input
               id="name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Spring Championship 2024"
+              placeholder="Frühjahrs-Meisterschaft 2024"
               className="mt-1"
             />
           </div>
 
           <div>
-            <Label htmlFor="type">Tournament Type</Label>
+            <Label htmlFor="type">Turnierart</Label>
             <Select value={formData.type} onValueChange={(value: 'singles' | 'foursome') => setFormData({ ...formData, type: value })}>
               <SelectTrigger className="mt-1">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="singles">Singles Match Play</SelectItem>
-                <SelectItem value="foursome">Foursome Match Play</SelectItem>
+                <SelectItem value="singles">Einzel Match Play</SelectItem>
+                <SelectItem value="foursome">Vierer Match Play</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground mt-1">
-              {formData.type === 'singles' ? 'Two players compete against each other' : 'Two teams of two players each compete'}
+              {formData.type === 'singles' ? 'Zwei Spieler treten gegeneinander an' : 'Zwei Teams mit je zwei Spielern treten gegeneinander an'}
             </p>
           </div>
 
           <div>
-            <Label htmlFor="maxPlayers">Maximum {formData.type === 'singles' ? 'Players' : 'Teams'}</Label>
+            <Label htmlFor="maxPlayers">Maximum {formData.type === 'singles' ? 'Spieler' : 'Teams'}</Label>
             <Select value={formData.maxPlayers.toString()} onValueChange={(value) => setFormData({ ...formData, maxPlayers: parseInt(value) })}>
               <SelectTrigger className="mt-1">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="8">8 (3 rounds - Quarterfinal, Semifinal, Final)</SelectItem>
-                <SelectItem value="16">16 (4 rounds - Round of 8, Quarterfinal, Semifinal, Final)</SelectItem>
-                <SelectItem value="32">32 (5 rounds - Round of 16, Round of 8, Quarterfinal, Semifinal, Final)</SelectItem>
-                <SelectItem value="64">64 (6 rounds - Round of 32, Round of 16, Round of 8, Quarterfinal, Semifinal, Final)</SelectItem>
-                <SelectItem value="128">128 (7 rounds - Round of 64, Round of 32, Round of 16, Round of 8, Quarterfinal, Semifinal, Final)</SelectItem>
+                <SelectItem value="8">8 (3 Runden - Viertelfinale, Halbfinale, Finale)</SelectItem>
+                <SelectItem value="16">16 (4 Runden - Achtelfinale, Viertelfinale, Halbfinale, Finale)</SelectItem>
+                <SelectItem value="32">32 (5 Runden - Sechzehntelfinale, Achtelfinale, Viertelfinale, Halbfinale, Finale)</SelectItem>
+                <SelectItem value="64">64 (6 Runden - Zweiunddreißigstelfinale, Sechzehntelfinale, Achtelfinale, Viertelfinale, Halbfinale, Finale)</SelectItem>
+                <SelectItem value="128">128 (7 Runden - Vierundsechzigstelfinale, Zweiunddreißigstelfinale, Sechzehntelfinale, Achtelfinale, Viertelfinale, Halbfinale, Finale)</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="startDate">Start Date *</Label>
+              <Label htmlFor="startDate">Startdatum *</Label>
               <Input
                 id="startDate"
                 type="date"
@@ -183,7 +183,7 @@ export function TournamentDialog({ open, onOpenChange }: TournamentDialogProps) 
             </div>
             
             <div>
-              <Label htmlFor="endDate">End Date *</Label>
+              <Label htmlFor="endDate">Enddatum *</Label>
               <Input
                 id="endDate"
                 type="date"
@@ -196,10 +196,10 @@ export function TournamentDialog({ open, onOpenChange }: TournamentDialogProps) 
 
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+              Abbrechen
             </Button>
             <Button type="submit" disabled={loading} variant="default">
-              {loading ? 'Creating Tournament & Generating Bracket...' : 'Create Tournament'}
+              {loading ? 'Turnier wird erstellt & Bracket generiert...' : 'Turnier erstellen'}
             </Button>
           </div>
         </form>

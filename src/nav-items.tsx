@@ -4,13 +4,13 @@ import { MatchPlayTournaments } from "@/pages/MatchPlayTournaments";
 
 export const navItems = [
   {
-    title: "Home",
+    title: "Startseite",
     to: "/",
     icon: <HomeIcon className="h-4 w-4" />,
     page: <Index />,
   },
   {
-    title: "Tournaments",
+    title: "Turniere",
     to: "/tournaments",
     icon: <Trophy className="h-4 w-4" />,
     page: <MatchPlayTournaments />,
