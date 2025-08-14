@@ -337,10 +337,14 @@ export function RegistrationDialog({
         </DialogHeader>
         
         <Tabs defaultValue={tournament.type === 'singles' ? 'player' : 'team'} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="player" disabled={tournament.type === 'foursome'}>
               <UserPlus className="h-4 w-4 mr-2" />
               {tournament.type === 'singles' ? 'Register Player' : 'Individual'}
+            </TabsTrigger>
+            <TabsTrigger value="team" disabled={tournament.type === 'singles'}>
+              <Users className="h-4 w-4 mr-2" />
+              Register Team
             </TabsTrigger>
             <TabsTrigger value="bulk">
               <Upload className="h-4 w-4 mr-2" />
@@ -391,8 +395,7 @@ export function RegistrationDialog({
             </TabsContent>
           )}
 
-          {tournament.type === 'foursome' && (
-            <TabsContent value="team" className="space-y-4">
+          <TabsContent value="team" className="space-y-4">
               <form onSubmit={handleTeamRegistration} className="space-y-4">
                 <div>
                   <Label htmlFor="teamName">Team Name *</Label>
@@ -486,8 +489,7 @@ export function RegistrationDialog({
                   {loading ? 'Registering...' : 'Register Team'}
                 </Button>
               </form>
-            </TabsContent>
-          )}
+          </TabsContent>
 
           <TabsContent value="bulk" className="space-y-4">
             <div className="text-center py-8 border-2 border-dashed border-border rounded-lg">
