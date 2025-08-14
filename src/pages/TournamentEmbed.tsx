@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { BracketView } from '@/components/tournament/BracketView';
+import { EmbedRegistrationForm } from '@/components/tournament/EmbedRegistrationForm';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, Users, Trophy } from 'lucide-react';
@@ -90,6 +91,17 @@ export default function TournamentEmbed() {
           <p className="text-muted-foreground">The requested tournament could not be found.</p>
         </div>
       </div>
+    );
+  }
+
+  // Show registration form if registration is open, otherwise show bracket
+  if (tournament && tournament.registration_status === 'open') {
+    return (
+      <EmbedRegistrationForm 
+        tournament={tournament}
+        registrationCount={registrationCount}
+        onRegistrationComplete={fetchRegistrationCount}
+      />
     );
   }
 

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Users, Trophy, Settings, UserPlus, Edit3, Trash2, ExternalLink, Copy } from 'lucide-react';
+import { ArrowLeft, Users, Trophy, Settings, UserPlus, Edit3, Trash2, ExternalLink, Copy, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { RegistrationDialog } from './RegistrationDialog';
@@ -108,6 +108,35 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
     }
   };
 
+  const completeRegistrationPeriod = async () => {
+    if (!tournament) return;
+    
+    try {
+      const { error } = await supabase
+        .from('tournaments_new')
+        .update({ registration_status: 'closed' })
+        .eq('id', tournament.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Registration Period Completed",
+        description: "Tournament registration has been closed. The tournament bracket is now available.",
+      });
+
+      // Refresh tournament data
+      fetchTournamentDetails();
+      
+    } catch (error: any) {
+      console.error('Error closing registration:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to close registration period.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="animate-pulse">
@@ -177,6 +206,18 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-3">
+              {tournament.registration_status === 'open' && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={completeRegistrationPeriod}
+                  className="text-warning hover:text-warning border-warning/30 hover:bg-warning/10"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Registration Period Completed
+                </Button>
+              )}
+              
               <Button 
                 variant="outline" 
                 size="sm"
