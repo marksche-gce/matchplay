@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Users, Crown, UserPlus } from 'lucide-react';
+import { Trophy, Users, Crown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { SetWinnerDialog } from './SetWinnerDialog';
@@ -182,6 +182,16 @@ export function MatchCard({ match, tournament, onMatchUpdate }: MatchCardProps) 
     }
   };
 
+  const isClickableForAssignment = () => {
+    return canAssignParticipants() && needsParticipants();
+  };
+
+  const handleCardClick = () => {
+    if (isClickableForAssignment()) {
+      setShowAssignDialog(true);
+    }
+  };
+
   const handleSetWinner = async (winnerId: string) => {
     try {
       const updateData: any = {
@@ -272,9 +282,16 @@ export function MatchCard({ match, tournament, onMatchUpdate }: MatchCardProps) 
 
   return (
     <>
-      <Card className={`bg-card shadow-card hover:shadow-elevated transition-all duration-300 ${
-        match.status === 'completed' ? 'ring-1 ring-success/30' : ''
-      }`}>
+      <Card 
+        className={`bg-card shadow-card transition-all duration-300 ${
+          match.status === 'completed' ? 'ring-1 ring-success/30' : ''
+        } ${
+          isClickableForAssignment() 
+            ? 'cursor-pointer hover:shadow-elevated hover:ring-1 hover:ring-primary/30 border-dashed border-primary/50' 
+            : 'hover:shadow-elevated'
+        }`}
+        onClick={handleCardClick}
+      >
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm">Match {match.match_number}</CardTitle>
@@ -285,6 +302,14 @@ export function MatchCard({ match, tournament, onMatchUpdate }: MatchCardProps) 
         </CardHeader>
         
         <CardContent className="pt-0 space-y-3">
+          {isClickableForAssignment() && (
+            <div className="text-center p-2 bg-primary/10 rounded-lg border border-primary/30 mb-3">
+              <p className="text-xs text-primary font-medium">
+                Click to assign {tournament.type === 'singles' ? 'players' : 'teams'}
+              </p>
+            </div>
+          )}
+
           {tournament.type === 'singles' ? (
             <>
               {/* Player 1 */}
@@ -377,21 +402,12 @@ export function MatchCard({ match, tournament, onMatchUpdate }: MatchCardProps) 
             </>
           )}
 
-          {canAssignParticipants() && needsParticipants() && (
-            <Button 
-              onClick={() => setShowAssignDialog(true)}
-              variant="outline"
-              size="sm"
-              className="w-full"
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Assign {tournament.type === 'singles' ? 'Players' : 'Teams'}
-            </Button>
-          )}
-
           {canSetWinner() && (
             <Button 
-              onClick={() => setShowWinnerDialog(true)}
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent card click when clicking button
+                setShowWinnerDialog(true);
+              }}
               variant="default"
               size="sm"
               className="w-full"
