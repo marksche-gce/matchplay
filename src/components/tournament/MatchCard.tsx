@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Trophy, Users, Crown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAdminCheck } from '@/hooks/useAdminCheck';
 import { SetWinnerDialog } from './SetWinnerDialog';
 import { AssignParticipantsDialog } from './AssignParticipantsDialog';
 
@@ -47,10 +48,12 @@ interface MatchCardProps {
   match: Match;
   tournament: Tournament;
   onMatchUpdate: () => void;
+  embedded?: boolean;
 }
 
-export function MatchCard({ match, tournament, onMatchUpdate }: MatchCardProps) {
+export function MatchCard({ match, tournament, onMatchUpdate, embedded = false }: MatchCardProps) {
   const { toast } = useToast();
+  const { isAdmin, loading: adminLoading } = useAdminCheck();
   const [player1, setPlayer1] = useState<Player | null>(null);
   const [player2, setPlayer2] = useState<Player | null>(null);
   const [team1, setTeam1] = useState<Team | null>(null);
@@ -163,6 +166,13 @@ export function MatchCard({ match, tournament, onMatchUpdate }: MatchCardProps) 
   };
 
   const canSetWinner = () => {
+    // If embedded view, don't show any management buttons
+    if (embedded) return false;
+    
+    // If match already has a winner, only admins can change it
+    const hasWinner = match.winner_player_id || match.winner_team_id;
+    if (hasWinner && !isAdmin) return false;
+    
     if (tournament.type === 'singles') {
       return match.status === 'scheduled' && player1 && player2;
     } else {
@@ -171,6 +181,8 @@ export function MatchCard({ match, tournament, onMatchUpdate }: MatchCardProps) 
   };
 
   const canAssignParticipants = () => {
+    // If embedded view, don't allow any management
+    if (embedded) return false;
     return match.round_number === 1; // Only allow assignment in first round
   };
 
@@ -413,7 +425,7 @@ export function MatchCard({ match, tournament, onMatchUpdate }: MatchCardProps) 
               className="w-full"
             >
               <Trophy className="h-4 w-4 mr-2" />
-              Set Winner
+              {(match.winner_player_id || match.winner_team_id) ? 'Change Winner' : 'Set Winner'}
             </Button>
           )}
 

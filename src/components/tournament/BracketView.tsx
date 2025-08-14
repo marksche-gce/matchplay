@@ -34,9 +34,10 @@ interface Match {
 interface BracketViewProps {
   tournamentId: string;
   tournament: Tournament;
+  embedded?: boolean;
 }
 
-export function BracketView({ tournamentId, tournament }: BracketViewProps) {
+export function BracketView({ tournamentId, tournament, embedded = false }: BracketViewProps) {
   const [matches, setMatches] = useState<Match[]>([]);
   const [registrationCount, setRegistrationCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -180,11 +181,12 @@ export function BracketView({ tournamentId, tournament }: BracketViewProps) {
                 
                 <div className="space-y-4">
                   {roundsData[roundNumber].map(match => (
-                    <MatchCard 
-                      key={match.id} 
-                      match={match} 
+                    <MatchCard
+                      key={match.id}
+                      match={match}
                       tournament={tournament}
                       onMatchUpdate={fetchMatches}
+                      embedded={embedded}
                     />
                   ))}
                 </div>
