@@ -689,6 +689,57 @@ export function TournamentDashboard() {
   };
 
   const handleBulkCreatePlayers = async (playersData: Omit<Player, "id">[]) => {
+    console.log("=== STARTING FRESH BULK IMPORT ===");
+    console.log("Players to import:", playersData.length);
+    console.log("Tournament:", selectedTournament);
+    
+    if (!selectedTournament) {
+      toast({
+        title: "No Tournament Selected",
+        description: "Please select a tournament first.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Simple approach: process one player at a time and handle errors gracefully
+    const results = { success: 0, skipped: 0, errors: 0, errorMessages: [] as string[] };
+    
+    for (let i = 0; i < playersData.length; i++) {
+      const player = playersData[i];
+      console.log(`Processing ${i + 1}/${playersData.length}: ${player.name}`);
+      
+      try {
+        const result = await registerSinglePlayer(player, selectedTournament);
+        if (result.success) {
+          results.success++;
+        } else if (result.alreadyRegistered) {
+          results.skipped++;
+        } else {
+          results.errors++;
+          results.errorMessages.push(`${player.name}: ${result.error}`);
+        }
+      } catch (error: any) {
+        results.errors++;
+        results.errorMessages.push(`${player.name}: ${error.message}`);
+        console.error(`Failed to process ${player.name}:`, error);
+      }
+    }
+
+    console.log("Import results:", results);
+    
+    toast({
+      title: "Import Complete",
+      description: `${results.success} imported, ${results.skipped} skipped, ${results.errors} errors`,
+      variant: results.errors > 0 ? "destructive" : "default"
+    });
+
+    if (results.success > 0) {
+      await fetchPlayers();
+    }
+  };
+
+  const registerSinglePlayer = async (playerData: Omit<Player, "id">, tournamentId: string) => {
     console.log("=== BULK IMPORT DEBUG ===");
     console.log("Selected tournament ID:", selectedTournament);
     console.log("User:", user?.id);
