@@ -48,43 +48,7 @@ export function MatchPlayTournaments() {
         </div>
 
         {/* Tournament Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <Card className="bg-card shadow-card">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3">
-                <Trophy className="h-8 w-8 text-primary" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Active Tournaments</p>
-                  <p className="text-2xl font-bold text-foreground">0</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-card shadow-card">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3">
-                <Users className="h-8 w-8 text-success" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Players</p>
-                  <p className="text-2xl font-bold text-foreground">0</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-card shadow-card">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3">
-                <Calendar className="h-8 w-8 text-warning" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Upcoming Matches</p>
-                  <p className="text-2xl font-bold text-foreground">0</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* TournamentList component will show tournament cards */}
 
         {/* Main Content */}
         {selectedTournamentId ? (
