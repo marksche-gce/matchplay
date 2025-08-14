@@ -60,7 +60,7 @@ export class BracketGenerator {
     // Generate all rounds
     for (let round = 1; round <= totalRounds; round++) {
       // Calculate matches in this round: for round 1 = max_players/2, then divide by 2 each round
-      const matchesInRound = tournament.max_players / Math.pow(2, round);
+      const matchesInRound = Math.pow(2, totalRounds - round);
       
       console.log(`Round ${round}: ${matchesInRound} matches`);
       
