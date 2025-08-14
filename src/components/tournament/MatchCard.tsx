@@ -421,7 +421,7 @@ export function MatchCard({ match, tournament, onMatchUpdate, embedded = false }
               className="w-full"
             >
               <Trophy className="h-4 w-4 mr-2" />
-              {(match.winner_player_id || match.winner_team_id) ? 'Change Winner' : 'Set Winner'}
+              {!embedded && (match.winner_player_id || match.winner_team_id) ? 'Change Winner' : 'Set Winner'}
             </Button>
           )}
 
