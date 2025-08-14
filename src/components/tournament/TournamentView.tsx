@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Users, Trophy, Settings, UserPlus, Edit3, Trash2 } from 'lucide-react';
+import { ArrowLeft, Users, Trophy, Settings, UserPlus, Edit3, Trash2, ExternalLink, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { RegistrationDialog } from './RegistrationDialog';
@@ -88,6 +88,26 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
     });
   };
 
+  const getEmbedUrl = () => {
+    return `${window.location.origin}/tournaments/${tournamentId}/embed`;
+  };
+
+  const copyEmbedUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(getEmbedUrl());
+      toast({
+        title: "Embed URL Copied",
+        description: "The embed URL has been copied to your clipboard.",
+      });
+    } catch (error) {
+      toast({
+        title: "Copy Failed",
+        description: "Failed to copy embed URL to clipboard.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="animate-pulse">
@@ -157,6 +177,24 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-3">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => window.open(getEmbedUrl(), '_blank')}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                View Embed
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={copyEmbedUrl}
+              >
+                <Copy className="h-4 w-4 mr-2" />
+                Copy Embed URL
+              </Button>
+              
               <Button 
                 variant="outline" 
                 size="sm"
