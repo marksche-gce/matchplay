@@ -728,7 +728,10 @@ export function TournamentDashboard() {
 
             if (checkError) {
               console.error(`Error checking existing player for ${playerData.email}:`, checkError);
-              throw checkError;
+              errorCount++;
+              const errorMsg = `${playerData.name}: Failed to check existing player - ${checkError.message}`;
+              errors.push(errorMsg);
+              continue; // Skip to next player
             }
 
             if (existingPlayer) {
@@ -749,7 +752,10 @@ export function TournamentDashboard() {
 
               if (playerError) {
                 console.error(`Error creating player ${playerData.name}:`, playerError);
-                throw playerError;
+                errorCount++;
+                const errorMsg = `${playerData.name}: Failed to create player - ${playerError.message}`;
+                errors.push(errorMsg);
+                continue; // Skip to next player
               }
               console.log(`Created new player with ID: ${newPlayer.id}`);
               playerId = newPlayer.id;
@@ -769,7 +775,10 @@ export function TournamentDashboard() {
 
             if (playerError) {
               console.error(`Error creating player ${playerData.name}:`, playerError);
-              throw playerError;
+              errorCount++;
+              const errorMsg = `${playerData.name}: Failed to create player - ${playerError.message}`;
+              errors.push(errorMsg);
+              continue; // Skip to next player
             }
             console.log(`Created new player with ID: ${newPlayer.id}`);
             playerId = newPlayer.id;
