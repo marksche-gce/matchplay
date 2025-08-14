@@ -689,7 +689,13 @@ export function TournamentDashboard() {
   };
 
   const handleBulkCreatePlayers = async (playersData: Omit<Player, "id">[]) => {
+    console.log("=== BULK IMPORT DEBUG ===");
+    console.log("Selected tournament ID:", selectedTournament);
+    console.log("User:", user?.id);
+    console.log("Players to import:", playersData.length);
+    
     if (!selectedTournament || !user) {
+      console.error("Missing selectedTournament or user:", { selectedTournament, user: user?.id });
       toast({
         title: "Cannot Add Players",
         description: "Please select a tournament and ensure you're logged in.",
@@ -791,19 +797,28 @@ export function TournamentDashboard() {
 
           // Register player for tournament
           console.log(`Registering player ${playerId} for tournament ${selectedTournament}`);
-          const { error: registrationError } = await supabase
+          console.log(`Tournament ID type: ${typeof selectedTournament}, Player ID type: ${typeof playerId}`);
+          
+          const { data: registrationResult, error: registrationError } = await supabase
             .from('tournament_registrations_new')
             .insert({
               tournament_id: selectedTournament,
               player_id: playerId
-            });
+            })
+            .select('*');
 
           if (registrationError) {
             console.error(`Error registering player ${playerData.name}:`, registrationError);
+            console.error('Registration error details:', {
+              code: registrationError.code,
+              message: registrationError.message,
+              details: registrationError.details,
+              hint: registrationError.hint
+            });
             throw registrationError;
           }
 
-          console.log(`Successfully registered player: ${playerData.name}`);
+          console.log(`Successfully registered player: ${playerData.name}`, registrationResult);
           successCount++;
         } catch (error: any) {
           errorCount++;
