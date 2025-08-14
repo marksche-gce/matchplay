@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { BracketGenerator } from '@/lib/bracketGenerator';
 
 interface TournamentDialogProps {
   open: boolean;
@@ -52,20 +53,31 @@ export function TournamentDialog({ open, onOpenChange }: TournamentDialogProps) 
     setLoading(true);
     
     try {
-      const { error } = await supabase.from('tournaments_new').insert({
+      // Create tournament with calculated max_rounds
+      const { data: tournamentData, error } = await supabase.from('tournaments_new').insert({
         name: formData.name,
         type: formData.type,
         max_players: formData.maxPlayers,
+        max_rounds: calculateMaxRounds(formData.maxPlayers),
         start_date: formData.startDate,
         end_date: formData.endDate,
         registration_status: 'open',
-      });
+      }).select().single();
 
       if (error) throw error;
 
+      // Automatically generate bracket for the new tournament
+      const generator = new BracketGenerator();
+      await generator.generateBracket(tournamentData.id, {
+        id: tournamentData.id,
+        type: formData.type,
+        max_players: formData.maxPlayers,
+        max_rounds: calculateMaxRounds(formData.maxPlayers),
+      });
+
       toast({
         title: "Tournament Created",
-        description: `${formData.name} has been created successfully.`,
+        description: `${formData.name} has been created successfully with bracket generated.`,
       });
 
       // Reset form and close dialog
@@ -102,6 +114,10 @@ export function TournamentDialog({ open, onOpenChange }: TournamentDialogProps) 
       case 128: return 7;
       default: return 4;
     }
+  };
+
+  const calculateMaxRounds = (maxPlayers: number): number => {
+    return Math.ceil(Math.log2(maxPlayers));
   };
 
   return (
@@ -184,7 +200,7 @@ export function TournamentDialog({ open, onOpenChange }: TournamentDialogProps) 
               Cancel
             </Button>
             <Button type="submit" disabled={loading} variant="default">
-              {loading ? 'Creating...' : 'Create Tournament'}
+              {loading ? 'Creating Tournament & Generating Bracket...' : 'Create Tournament'}
             </Button>
           </div>
         </form>
