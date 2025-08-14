@@ -30,101 +30,228 @@ export function EmbedRegistrationForm({ tournament, registrationCount, onRegistr
   const [email, setEmail] = useState('');
   const [handicap, setHandicap] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // Team registration state for foursome tournaments
+  const [teamName, setTeamName] = useState('');
+  const [player1Name, setPlayer1Name] = useState('');
+  const [player1Email, setPlayer1Email] = useState('');
+  const [player1Handicap, setPlayer1Handicap] = useState('');
+  const [player2Name, setPlayer2Name] = useState('');
+  const [player2Email, setPlayer2Email] = useState('');
+  const [player2Handicap, setPlayer2Handicap] = useState('');
+  
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!name.trim() || !email.trim()) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in both name and email fields.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const handicapNumber = parseFloat(handicap) || 0;
-
-    setLoading(true);
-
-    try {
-      // First, create or find the player
-      let playerId: string;
-      
-      // Check if player with this email already exists
-      const { data: existingPlayer } = await supabase
-        .from('players_new')
-        .select('id')
-        .eq('email', email.trim())
-        .single();
-
-      if (existingPlayer) {
-        playerId = existingPlayer.id;
-      } else {
-        // Create new player
-        const { data: newPlayer, error: playerError } = await supabase
-          .from('players_new')
-          .insert({
-            name: name.trim(),
-            email: email.trim(),
-            handicap: handicapNumber,
-          })
-          .select('id')
-          .single();
-
-        if (playerError) throw playerError;
-        playerId = newPlayer.id;
-      }
-
-      // Check if already registered for this tournament
-      const { data: existingRegistration } = await supabase
-        .from('tournament_registrations_new')
-        .select('id')
-        .eq('tournament_id', tournament.id)
-        .eq('player_id', playerId)
-        .single();
-
-      if (existingRegistration) {
+    if (tournament.type === 'foursome') {
+      // Handle team registration
+      if (!teamName.trim() || !player1Name.trim() || !player1Email.trim() || 
+          !player1Handicap.trim() || !player2Name.trim() || !player2Email.trim() || 
+          !player2Handicap.trim()) {
         toast({
-          title: "Already Registered",
-          description: "You are already registered for this tournament.",
+          title: "Missing Information",
+          description: "Please fill in all fields for both players.",
           variant: "destructive",
         });
         return;
       }
 
-      // Register for tournament
-      const { error: registrationError } = await supabase
-        .from('tournament_registrations_new')
-        .insert({
-          tournament_id: tournament.id,
-          player_id: playerId,
+      setLoading(true);
+
+      try {
+        // Create or get player 1
+        const { data: existingPlayer1 } = await supabase
+          .from('players_new')
+          .select('id')
+          .eq('email', player1Email.trim())
+          .single();
+
+        let player1Id = existingPlayer1?.id;
+
+        if (!player1Id) {
+          const { data: newPlayer1, error: player1Error } = await supabase
+            .from('players_new')
+            .insert({
+              name: player1Name.trim(),
+              email: player1Email.trim(),
+              handicap: parseFloat(player1Handicap),
+            })
+            .select('id')
+            .single();
+
+          if (player1Error) throw player1Error;
+          player1Id = newPlayer1.id;
+        }
+
+        // Create or get player 2
+        const { data: existingPlayer2 } = await supabase
+          .from('players_new')
+          .select('id')
+          .eq('email', player2Email.trim())
+          .single();
+
+        let player2Id = existingPlayer2?.id;
+
+        if (!player2Id) {
+          const { data: newPlayer2, error: player2Error } = await supabase
+            .from('players_new')
+            .insert({
+              name: player2Name.trim(),
+              email: player2Email.trim(),
+              handicap: parseFloat(player2Handicap),
+            })
+            .select('id')
+            .single();
+
+          if (player2Error) throw player2Error;
+          player2Id = newPlayer2.id;
+        }
+
+        // Create team
+        const { data: team, error: teamError } = await supabase
+          .from('teams')
+          .insert({
+            tournament_id: tournament.id,
+            name: teamName.trim(),
+            player1_id: player1Id,
+            player2_id: player2Id,
+          })
+          .select('id')
+          .single();
+
+        if (teamError) throw teamError;
+
+        // Register team for tournament
+        const { error: registrationError } = await supabase
+          .from('tournament_registrations_new')
+          .insert({
+            tournament_id: tournament.id,
+            team_id: team.id,
+          });
+
+        if (registrationError) throw registrationError;
+
+        toast({
+          title: "Team Registration Successful!",
+          description: `Team ${teamName} has been registered for ${tournament.name}.`,
         });
 
-      if (registrationError) throw registrationError;
+        // Reset form
+        setTeamName('');
+        setPlayer1Name('');
+        setPlayer1Email('');
+        setPlayer1Handicap('');
+        setPlayer2Name('');
+        setPlayer2Email('');
+        setPlayer2Handicap('');
+        
+        onRegistrationComplete();
+        
+      } catch (error: any) {
+        console.error('Team registration error:', error);
+        toast({
+          title: "Registration Failed",
+          description: error.message || "Failed to register team. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // Handle individual player registration
+      if (!name.trim() || !email.trim()) {
+        toast({
+          title: "Missing Information",
+          description: "Please fill in both name and email fields.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      toast({
-        title: "Registration Successful!",
-        description: `You have been registered for ${tournament.name}.`,
-      });
+      const handicapNumber = parseFloat(handicap) || 0;
 
-      // Reset form
-      setName('');
-      setEmail('');
-      setHandicap('');
-      
-      onRegistrationComplete();
-      
-    } catch (error: any) {
-      console.error('Registration error:', error);
-      toast({
-        title: "Registration Failed",
-        description: error.message || "Failed to register. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+      setLoading(true);
+
+      try {
+        // First, create or find the player
+        let playerId: string;
+        
+        // Check if player with this email already exists
+        const { data: existingPlayer } = await supabase
+          .from('players_new')
+          .select('id')
+          .eq('email', email.trim())
+          .single();
+
+        if (existingPlayer) {
+          playerId = existingPlayer.id;
+        } else {
+          // Create new player
+          const { data: newPlayer, error: playerError } = await supabase
+            .from('players_new')
+            .insert({
+              name: name.trim(),
+              email: email.trim(),
+              handicap: handicapNumber,
+            })
+            .select('id')
+            .single();
+
+          if (playerError) throw playerError;
+          playerId = newPlayer.id;
+        }
+
+        // Check if already registered for this tournament
+        const { data: existingRegistration } = await supabase
+          .from('tournament_registrations_new')
+          .select('id')
+          .eq('tournament_id', tournament.id)
+          .eq('player_id', playerId)
+          .single();
+
+        if (existingRegistration) {
+          toast({
+            title: "Already Registered",
+            description: "You are already registered for this tournament.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Register for tournament
+        const { error: registrationError } = await supabase
+          .from('tournament_registrations_new')
+          .insert({
+            tournament_id: tournament.id,
+            player_id: playerId,
+          });
+
+        if (registrationError) throw registrationError;
+
+        toast({
+          title: "Registration Successful!",
+          description: `You have been registered for ${tournament.name}.`,
+        });
+
+        // Reset form
+        setName('');
+        setEmail('');
+        setHandicap('');
+        
+        onRegistrationComplete();
+        
+      } catch (error: any) {
+        console.error('Registration error:', error);
+        toast({
+          title: "Registration Failed",
+          description: error.message || "Failed to register. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -201,52 +328,158 @@ export function EmbedRegistrationForm({ tournament, registrationCount, onRegistr
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name *</Label>
-                    <Input
-                      id="name"
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Enter your full name"
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email Address *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Enter your email"
-                      required
-                    />
-                  </div>
-                </div>
+                {tournament.type === 'foursome' ? (
+                  // Team registration form
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="teamName">Team Name *</Label>
+                      <Input
+                        id="teamName"
+                        type="text"
+                        value={teamName}
+                        onChange={(e) => setTeamName(e.target.value)}
+                        placeholder="Enter team name"
+                        required
+                      />
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="handicap">Golf Handicap</Label>
-                  <Input
-                    id="handicap"
-                    type="number"
-                    step="0.1"
-                    value={handicap}
-                    onChange={(e) => setHandicap(e.target.value)}
-                    placeholder="Enter your handicap (optional)"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Leave blank if you don't have a handicap
-                  </p>
-                </div>
+                    <div className="space-y-4">
+                      <h4 className="font-medium flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        Player 1
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="player1Name">Name *</Label>
+                          <Input
+                            id="player1Name"
+                            type="text"
+                            value={player1Name}
+                            onChange={(e) => setPlayer1Name(e.target.value)}
+                            placeholder="Player 1 name"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="player1Handicap">Handicap *</Label>
+                          <Input
+                            id="player1Handicap"
+                            type="number"
+                            step="0.1"
+                            value={player1Handicap}
+                            onChange={(e) => setPlayer1Handicap(e.target.value)}
+                            placeholder="Player 1 handicap"
+                            required
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="player1Email">Email *</Label>
+                        <Input
+                          id="player1Email"
+                          type="email"
+                          value={player1Email}
+                          onChange={(e) => setPlayer1Email(e.target.value)}
+                          placeholder="Player 1 email"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <h4 className="font-medium flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        Player 2
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="player2Name">Name *</Label>
+                          <Input
+                            id="player2Name"
+                            type="text"
+                            value={player2Name}
+                            onChange={(e) => setPlayer2Name(e.target.value)}
+                            placeholder="Player 2 name"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="player2Handicap">Handicap *</Label>
+                          <Input
+                            id="player2Handicap"
+                            type="number"
+                            step="0.1"
+                            value={player2Handicap}
+                            onChange={(e) => setPlayer2Handicap(e.target.value)}
+                            placeholder="Player 2 handicap"
+                            required
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="player2Email">Email *</Label>
+                        <Input
+                          id="player2Email"
+                          type="email"
+                          value={player2Email}
+                          onChange={(e) => setPlayer2Email(e.target.value)}
+                          placeholder="Player 2 email"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  // Individual player registration form
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Full Name *</Label>
+                        <Input
+                          id="name"
+                          type="text"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          placeholder="Enter your full name"
+                          required
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email Address *</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="Enter your email"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="handicap">Golf Handicap</Label>
+                      <Input
+                        id="handicap"
+                        type="number"
+                        step="0.1"
+                        value={handicap}
+                        onChange={(e) => setHandicap(e.target.value)}
+                        placeholder="Enter your handicap (optional)"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Leave blank if you don't have a handicap
+                      </p>
+                    </div>
+                  </>
+                )}
 
                 <div className="bg-muted/50 p-4 rounded-lg">
                   <p className="text-sm text-muted-foreground">
                     <strong>Tournament Details:</strong><br />
                     • Format: {tournament.type === 'singles' ? 'Singles Match Play' : 'Foursome Match Play'}<br />
-                    • Maximum Players: {tournament.max_players}<br />
+                    • Maximum {tournament.type === 'singles' ? 'Players' : 'Teams'}: {tournament.max_players}<br />
                     • Current Registrations: {registrationCount}<br />
                     • Available Spots: {tournament.max_players - registrationCount}
                   </p>
@@ -258,7 +491,7 @@ export function EmbedRegistrationForm({ tournament, registrationCount, onRegistr
                   disabled={loading}
                   size="lg"
                 >
-                  {loading ? 'Registering...' : 'Register for Tournament'}
+                  {loading ? 'Registering...' : tournament.type === 'foursome' ? 'Register Team' : 'Register for Tournament'}
                 </Button>
               </form>
             )}
