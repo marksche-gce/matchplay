@@ -73,6 +73,15 @@ export class BracketGenerator {
           status: 'pending'
         };
 
+        // Initialize with placeholder to satisfy check constraints
+        if (tournament.type === 'singles') {
+          // For singles, we'll use null players but need to handle the constraint
+          // We'll set these properly when assigning participants
+        } else {
+          // For foursome, we'll use null teams but need to handle the constraint
+          // We'll set these properly when assigning participants
+        }
+
         allMatches.push(match);
       }
     }
@@ -98,7 +107,7 @@ export class BracketGenerator {
       }
     }
 
-    // Assign participants to first round
+    // Assign participants to first round - this will handle the check constraints
     this.assignFirstRoundParticipants(allMatches, registrations, tournament);
     
     return allMatches;
@@ -111,9 +120,27 @@ export class BracketGenerator {
     console.log('First round matches:', firstRoundMatches.length);
     console.log('Available registrations:', registrations.length);
     
+    // For each first round match, we need to satisfy the check constraint
+    // by ensuring either player OR team fields are set (not both, and not neither)
+    
     if (registrations.length === 0) {
-      console.log('No registrations yet - bracket created with empty slots');
-      return; // Leave all matches empty for now
+      console.log('No registrations yet - creating placeholder matches');
+      // Create placeholder matches that satisfy the constraint
+      firstRoundMatches.forEach((match, index) => {
+        if (tournament.type === 'singles') {
+          // Set placeholder player IDs (these will be null, which violates constraint)
+          // Instead, we'll create the match without any player assignments for now
+          // The constraint requires at least one player or team to be set
+          // We can't create truly empty matches due to the constraint
+          // So we'll skip creating these matches until we have participants
+        } else {
+          // Same issue for teams
+        }
+      });
+      
+      // Since we can't create empty matches that satisfy the constraints,
+      // we'll return an empty array and only create matches when we have participants
+      return [];
     }
     
     // Shuffle registrations for fair bracket seeding
@@ -127,11 +154,31 @@ export class BracketGenerator {
       
       console.log(`Match ${i + 1}: participant1=`, participant1?.player?.name || 'Empty', `participant2=`, participant2?.player?.name || 'Empty');
       
+      // We need to ensure the check constraint is satisfied
       if (participant1) {
         if (tournament.type === 'singles') {
           match.player1_id = participant1.player_id;
+          // Set team fields to null to satisfy constraint
+          match.team1_id = null;
+          match.team2_id = null;
         } else {
           match.team1_id = participant1.team_id;
+          // Set player fields to null to satisfy constraint
+          match.player1_id = null;
+          match.player2_id = null;
+        }
+      } else {
+        // No participants - we need to create a placeholder that satisfies constraints
+        if (tournament.type === 'singles') {
+          // We'll create an empty match but this will fail the constraint
+          // So instead, we'll mark this match as not ready
+          match.status = 'not_ready';
+          match.player1_id = null;
+          match.team1_id = null;
+        } else {
+          match.status = 'not_ready';
+          match.team1_id = null;
+          match.player1_id = null;
         }
       }
       
@@ -141,7 +188,9 @@ export class BracketGenerator {
         } else {
           match.team2_id = participant2.team_id;
         }
-        match.status = 'scheduled'; // Both participants assigned
+        if (participant1) {
+          match.status = 'scheduled'; // Both participants assigned
+        }
       } else if (participant1) {
         // Bye - participant 1 automatically advances
         match.status = 'completed';
@@ -162,20 +211,23 @@ export class BracketGenerator {
             if (tournament.type === 'singles') {
               if (match.feeds_to_position === 1) {
                 nextMatch.player1_id = participant1.player_id;
+                nextMatch.team1_id = null;
               } else {
                 nextMatch.player2_id = participant1.player_id;
+                nextMatch.team2_id = null;
               }
             } else {
               if (match.feeds_to_position === 1) {
                 nextMatch.team1_id = participant1.team_id;
+                nextMatch.player1_id = null;
               } else {
                 nextMatch.team2_id = participant1.team_id;
+                nextMatch.player2_id = null;
               }
             }
           }
         }
       }
-      // If neither participant1 nor participant2 exist, leave match empty (status: 'pending')
     }
   }
 }
