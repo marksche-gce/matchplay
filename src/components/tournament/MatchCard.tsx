@@ -171,15 +171,25 @@ export function MatchCard({ match, tournament, onMatchUpdate, embedded = false }
     // If embedded view: can only set winner once, cannot change existing winners
     if (embedded) {
       if (hasWinner) return false; // Cannot change existing winners in embedded view
-    } else {
-      // In manager view: only admins can change existing winners
-      if (hasWinner && !isAdmin) return false;
+      // In embedded view, allow setting winner for scheduled matches with participants
+      if (tournament.type === 'singles') {
+        return match.status === 'scheduled' && player1 && player2;
+      } else {
+        return match.status === 'scheduled' && team1 && team2;
+      }
     }
     
-    if (tournament.type === 'singles') {
-      return match.status === 'scheduled' && player1 && player2;
+    // In manager view:
+    if (hasWinner) {
+      // If match has winner, only admins can change it (regardless of status)
+      return isAdmin;
     } else {
-      return match.status === 'scheduled' && team1 && team2;
+      // If no winner, allow setting for scheduled matches with participants
+      if (tournament.type === 'singles') {
+        return match.status === 'scheduled' && player1 && player2;
+      } else {
+        return match.status === 'scheduled' && team1 && team2;
+      }
     }
   };
 
