@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Trophy, Settings, Play } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { BracketGenerator } from '@/lib/bracketGenerator';
-import { getRoundDisplayName } from '@/lib/tournamentUtils';
+import { getRoundDisplayName, calculateTotalRounds } from '@/lib/tournamentUtils';
 import { MatchCard } from './MatchCard';
 
 interface Tournament {
@@ -170,7 +170,7 @@ export function BracketView({ tournamentId, tournament }: BracketViewProps) {
                 <div className="sticky top-0 bg-card z-10 pb-4 mb-4 border-b">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold text-foreground">
-                      {getRoundDisplayName(roundNumber, tournament.max_rounds)}
+                      {getRoundDisplayName(roundNumber, calculateTotalRounds(tournament.max_players))}
                     </h3>
                     <Badge variant="outline">
                       {roundsData[roundNumber].length} matches

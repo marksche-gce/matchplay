@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { calculateTotalRounds } from './tournamentUtils';
 
 interface Tournament {
   id: string;
@@ -47,11 +48,11 @@ export class BracketGenerator {
 
   private generateBracketStructure(tournament: Tournament, registrations: any[]) {
     const matches: any[] = [];
-    const totalRounds = tournament.max_rounds;
+    const totalRounds = calculateTotalRounds(tournament.max_players); // Use correct calculation
     
     console.log('Tournament details:', tournament);
     console.log('Total registrations:', registrations.length);
-    console.log('Expected rounds:', totalRounds);
+    console.log('Expected rounds (corrected):', totalRounds);
     
     // Generate all matches with proper IDs first
     const allMatches: any[] = [];
