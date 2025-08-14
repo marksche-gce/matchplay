@@ -22,7 +22,7 @@ export const getRoundDisplayName = (round: number, totalRounds: number): string 
  * Calculate total rounds needed for a tournament
  */
 export const calculateTotalRounds = (maxPlayers: number): number => {
-  return Math.ceil(Math.log2(maxPlayers));
+  return Math.ceil(Math.log2(maxPlayers)) - 1;
 };
 
 /**
