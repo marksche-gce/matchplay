@@ -709,12 +709,23 @@ export function TournamentDashboard() {
       let skipCount = 0;
       let errorCount = 0;
       const errors: string[] = [];
+      const maxIterations = playersData.length * 2; // Safety check
+      let iterations = 0;
       
       console.log(`Starting bulk import of ${playersData.length} players for tournament: ${selectedTournament}`);
       
-      for (const playerData of playersData) {
+      for (let i = 0; i < playersData.length; i++) {
+        const playerData = playersData[i];
+        console.log(`=== Processing player ${i + 1}/${playersData.length}: ${playerData.name} ===`);
+        
+        // Safety check to prevent infinite loops
+        iterations++;
+        if (iterations > maxIterations) {
+          console.error("Maximum iterations reached, breaking loop to prevent infinite loop");
+          break;
+        }
+        
         try {
-          console.log(`Processing player: ${playerData.name} (${playerData.email})`);
           
           // Check if player with this email already exists
           let playerId: string;
