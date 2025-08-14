@@ -786,7 +786,10 @@ export function TournamentDashboard() {
 
           if (regCheckError) {
             console.error(`Error checking registration for ${playerData.name}:`, regCheckError);
-            throw regCheckError;
+            errorCount++;
+            const errorMsg = `${playerData.name}: Failed to check registration - ${regCheckError.message}`;
+            errors.push(errorMsg);
+            continue; // Skip to next player instead of throwing
           }
 
           if (existingRegistration) {
@@ -821,7 +824,10 @@ export function TournamentDashboard() {
                 details: registrationError.details,
                 hint: registrationError.hint
               });
-              throw registrationError;
+              errorCount++;
+              const errorMsg = `${playerData.name}: Registration failed - ${registrationError.message}`;
+              errors.push(errorMsg);
+              continue; // Skip to next player instead of throwing
             }
           }
 
