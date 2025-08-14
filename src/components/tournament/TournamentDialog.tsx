@@ -106,17 +106,17 @@ export function TournamentDialog({ open, onOpenChange }: TournamentDialogProps) 
 
   const getRoundsForPlayers = (maxPlayers: number): number => {
     switch (maxPlayers) {
-      case 8: return 2;   // semifinal and final
-      case 16: return 3;  // quarterfinal, semifinal and final
-      case 32: return 4;  // Round of 16, quarterfinal, semifinal and final
-      case 64: return 5;  // Round of 32, Round of 16, quarterfinal, semifinal and final
-      case 128: return 6; // Round of 64, Round of 32, Round of 16, quarterfinal, semifinal and final
-      default: return Math.ceil(Math.log2(maxPlayers)) - 1;
+      case 8: return 3;   // quarterfinal, semifinal and final
+      case 16: return 4;  // Round of 8, quarterfinal, semifinal and final
+      case 32: return 5;  // Round of 16, Round of 8, quarterfinal, semifinal and final
+      case 64: return 6;  // Round of 32, Round of 16, Round of 8, quarterfinal, semifinal and final
+      case 128: return 7; // Round of 64, Round of 32, Round of 16, Round of 8, quarterfinal, semifinal and final
+      default: return Math.ceil(Math.log2(maxPlayers));
     }
   };
 
   const calculateMaxRounds = (maxPlayers: number): number => {
-    return Math.ceil(Math.log2(maxPlayers)) - 1;
+    return Math.ceil(Math.log2(maxPlayers));
   };
 
   return (
@@ -161,11 +161,11 @@ export function TournamentDialog({ open, onOpenChange }: TournamentDialogProps) 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="8">8 (2 rounds - Semifinal, Final)</SelectItem>
-                <SelectItem value="16">16 (3 rounds - Quarterfinal, Semifinal, Final)</SelectItem>
-                <SelectItem value="32">32 (4 rounds - Round of 16, Quarterfinal, Semifinal, Final)</SelectItem>
-                <SelectItem value="64">64 (5 rounds - Round of 32, Round of 16, Quarterfinal, Semifinal, Final)</SelectItem>
-                <SelectItem value="128">128 (6 rounds - Round of 64, Round of 32, Round of 16, Quarterfinal, Semifinal, Final)</SelectItem>
+                <SelectItem value="8">8 (3 rounds - Quarterfinal, Semifinal, Final)</SelectItem>
+                <SelectItem value="16">16 (4 rounds - Round of 8, Quarterfinal, Semifinal, Final)</SelectItem>
+                <SelectItem value="32">32 (5 rounds - Round of 16, Round of 8, Quarterfinal, Semifinal, Final)</SelectItem>
+                <SelectItem value="64">64 (6 rounds - Round of 32, Round of 16, Round of 8, Quarterfinal, Semifinal, Final)</SelectItem>
+                <SelectItem value="128">128 (7 rounds - Round of 64, Round of 32, Round of 16, Round of 8, Quarterfinal, Semifinal, Final)</SelectItem>
               </SelectContent>
             </Select>
           </div>

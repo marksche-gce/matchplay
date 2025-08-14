@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { getRoundName, getNextRoundName, ROUND_PROGRESSION } from '@/lib/tournamentUtils';
+import { getRoundName, getRoundDisplayName, getNextRoundName, ROUND_PROGRESSION } from '@/lib/tournamentUtils';
 import { EditMatchDialog } from "./EditMatchDialog";
 import { ManualMatchSetup } from "./ManualMatchSetup";
 import { OptimizedMatchCard } from "./OptimizedMatchCard";
@@ -737,7 +737,7 @@ export function TournamentBracket({
       }
       
       rounds.push({
-        name: roundName,
+        name: getRoundDisplayName(roundIndex + 1, totalRounds), // Use display name for UI
         matches: roundMatches,
         roundNumber: roundIndex + 1
       });
