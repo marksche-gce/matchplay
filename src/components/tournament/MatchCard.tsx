@@ -166,12 +166,15 @@ export function MatchCard({ match, tournament, onMatchUpdate, embedded = false }
   };
 
   const canSetWinner = () => {
-    // If embedded view, don't show any management buttons
-    if (embedded) return false;
-    
-    // If match already has a winner, only admins can change it
     const hasWinner = match.winner_player_id || match.winner_team_id;
-    if (hasWinner && !isAdmin) return false;
+    
+    // If embedded view: can only set winner once, cannot change existing winners
+    if (embedded) {
+      if (hasWinner) return false; // Cannot change existing winners in embedded view
+    } else {
+      // In manager view: only admins can change existing winners
+      if (hasWinner && !isAdmin) return false;
+    }
     
     if (tournament.type === 'singles') {
       return match.status === 'scheduled' && player1 && player2;
