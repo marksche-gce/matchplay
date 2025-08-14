@@ -70,11 +70,11 @@ export function AssignParticipantsDialog({
       fetchAvailableParticipants();
       // Set current assignments if they exist
       if (tournament.type === 'singles') {
-        setParticipant1Id(match.player1_id || '');
-        setParticipant2Id(match.player2_id || '');
+        setParticipant1Id(match.player1_id || 'none');
+        setParticipant2Id(match.player2_id || 'none');
       } else {
-        setParticipant1Id(match.team1_id || '');
-        setParticipant2Id(match.team2_id || '');
+        setParticipant1Id(match.team1_id || 'none');
+        setParticipant2Id(match.team2_id || 'none');
       }
     }
   }, [open, match, tournament.type]);
@@ -123,7 +123,10 @@ export function AssignParticipantsDialog({
   };
 
   const handleAssign = async () => {
-    if (!participant1Id && !participant2Id) {
+    const hasParticipant1 = participant1Id && participant1Id !== 'none';
+    const hasParticipant2 = participant2Id && participant2Id !== 'none';
+    
+    if (!hasParticipant1 && !hasParticipant2) {
       toast({
         title: "No Assignment",
         description: "Please select at least one participant.",
@@ -138,17 +141,20 @@ export function AssignParticipantsDialog({
       const updateData: any = {};
       
       if (tournament.type === 'singles') {
-        if (participant1Id) updateData.player1_id = participant1Id;
-        if (participant2Id) updateData.player2_id = participant2Id;
+        if (participant1Id && participant1Id !== 'none') updateData.player1_id = participant1Id;
+        if (participant2Id && participant2Id !== 'none') updateData.player2_id = participant2Id;
       } else {
-        if (participant1Id) updateData.team1_id = participant1Id;
-        if (participant2Id) updateData.team2_id = participant2Id;
+        if (participant1Id && participant1Id !== 'none') updateData.team1_id = participant1Id;
+        if (participant2Id && participant2Id !== 'none') updateData.team2_id = participant2Id;
       }
 
       // Update match status based on assignments
-      if (participant1Id && participant2Id) {
+      const hasParticipant1 = participant1Id && participant1Id !== 'none';
+      const hasParticipant2 = participant2Id && participant2Id !== 'none';
+      
+      if (hasParticipant1 && hasParticipant2) {
         updateData.status = 'scheduled';
-      } else if (participant1Id || participant2Id) {
+      } else if (hasParticipant1 || hasParticipant2) {
         // One participant assigned - this could be a bye scenario
         updateData.status = 'pending';
       }
@@ -193,7 +199,7 @@ export function AssignParticipantsDialog({
   };
 
   const getAvailableOptions = (excludeId?: string) => {
-    return availableParticipants.filter(p => p.id !== excludeId);
+    return availableParticipants.filter(p => p.id !== excludeId && p.id !== 'none');
   };
 
   return (
@@ -223,7 +229,7 @@ export function AssignParticipantsDialog({
                 <SelectValue placeholder={`Select ${tournament.type === 'singles' ? 'player' : 'team'} 1`} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No assignment</SelectItem>
+                <SelectItem value="none">No assignment</SelectItem>
                 {getAvailableOptions(participant2Id).map(participant => (
                   <SelectItem key={participant.id} value={participant.id}>
                     {getParticipantName(participant)}
@@ -242,7 +248,7 @@ export function AssignParticipantsDialog({
                 <SelectValue placeholder={`Select ${tournament.type === 'singles' ? 'player' : 'team'} 2`} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No assignment</SelectItem>
+                <SelectItem value="none">No assignment</SelectItem>
                 {getAvailableOptions(participant1Id).map(participant => (
                   <SelectItem key={participant.id} value={participant.id}>
                     {getParticipantName(participant)}
