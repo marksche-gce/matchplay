@@ -168,30 +168,34 @@ export function BracketView({ tournamentId, tournament }: BracketViewProps) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-8">
-          {rounds.map(roundNumber => (
-            <div key={roundNumber} className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-foreground">
-                  {getRoundName(roundNumber, tournament.max_rounds)}
-                </h3>
-                <Badge variant="outline">
-                  {roundsData[roundNumber].length} matches
-                </Badge>
+        <div className="overflow-x-auto">
+          <div className="flex gap-8 min-w-fit pb-4">
+            {rounds.map(roundNumber => (
+              <div key={roundNumber} className="flex-shrink-0 w-80">
+                <div className="sticky top-0 bg-card z-10 pb-4 mb-4 border-b">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-foreground">
+                      {getRoundName(roundNumber, tournament.max_rounds)}
+                    </h3>
+                    <Badge variant="outline">
+                      {roundsData[roundNumber].length} matches
+                    </Badge>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  {roundsData[roundNumber].map(match => (
+                    <MatchCard 
+                      key={match.id} 
+                      match={match} 
+                      tournament={tournament}
+                      onMatchUpdate={fetchMatches}
+                    />
+                  ))}
+                </div>
               </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {roundsData[roundNumber].map(match => (
-                  <MatchCard 
-                    key={match.id} 
-                    match={match} 
-                    tournament={tournament}
-                    onMatchUpdate={fetchMatches}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </CardContent>
     </Card>
