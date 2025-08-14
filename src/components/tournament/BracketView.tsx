@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Trophy, Settings, Play } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { BracketGenerator } from '@/lib/bracketGenerator';
+import { getRoundDisplayName } from '@/lib/tournamentUtils';
 import { MatchCard } from './MatchCard';
 
 interface Tournament {
@@ -100,12 +101,6 @@ export function BracketView({ tournamentId, tournament }: BracketViewProps) {
     return rounds;
   };
 
-  const getRoundName = (roundNumber: number, totalRounds: number) => {
-    if (roundNumber === totalRounds) return 'Final';
-    if (roundNumber === totalRounds - 1) return 'Semifinals';
-    if (roundNumber === totalRounds - 2) return 'Quarterfinals';
-    return `Round ${roundNumber}`;
-  };
 
   if (loading) {
     return (
@@ -175,7 +170,7 @@ export function BracketView({ tournamentId, tournament }: BracketViewProps) {
                 <div className="sticky top-0 bg-card z-10 pb-4 mb-4 border-b">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold text-foreground">
-                      {getRoundName(roundNumber, tournament.max_rounds)}
+                      {getRoundDisplayName(roundNumber, tournament.max_rounds)}
                     </h3>
                     <Badge variant="outline">
                       {roundsData[roundNumber].length} matches
