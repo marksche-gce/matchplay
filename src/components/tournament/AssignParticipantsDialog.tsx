@@ -26,6 +26,8 @@ interface Match {
   player2_id?: string;
   team1_id?: string;
   team2_id?: string;
+  feeds_to_match_id?: string;
+  feeds_to_position?: number;
 }
 
 interface Player {
@@ -93,7 +95,9 @@ export function AssignParticipantsDialog({
           .not('player_id', 'is', null);
 
         const players = registrations?.map(reg => reg.player).filter(Boolean) || [];
-        setAvailableParticipants(players);
+        // Sort players by handicap (lowest first, highest last)
+        const sortedPlayers = players.sort((a, b) => (a.handicap || 0) - (b.handicap || 0));
+        setAvailableParticipants(sortedPlayers);
       } else {
         // Fetch registered teams
         const { data: registrations } = await supabase
@@ -110,7 +114,13 @@ export function AssignParticipantsDialog({
           .not('team_id', 'is', null);
 
         const teams = registrations?.map(reg => reg.team).filter(Boolean) || [];
-        setAvailableParticipants(teams);
+        // Sort teams by average handicap of their players
+        const sortedTeams = teams.sort((a, b) => {
+          const avgHandicapA = ((a.player1?.handicap || 0) + (a.player2?.handicap || 0)) / 2;
+          const avgHandicapB = ((b.player1?.handicap || 0) + (b.player2?.handicap || 0)) / 2;
+          return avgHandicapA - avgHandicapB;
+        });
+        setAvailableParticipants(sortedTeams);
       }
     } catch (error) {
       console.error('Error fetching participants:', error);
@@ -141,22 +151,27 @@ export function AssignParticipantsDialog({
       const updateData: any = {};
       
       if (tournament.type === 'singles') {
-        if (participant1Id && participant1Id !== 'none') updateData.player1_id = participant1Id;
-        if (participant2Id && participant2Id !== 'none') updateData.player2_id = participant2Id;
+        if (hasParticipant1) updateData.player1_id = participant1Id;
+        if (hasParticipant2) updateData.player2_id = participant2Id;
       } else {
-        if (participant1Id && participant1Id !== 'none') updateData.team1_id = participant1Id;
-        if (participant2Id && participant2Id !== 'none') updateData.team2_id = participant2Id;
+        if (hasParticipant1) updateData.team1_id = participant1Id;
+        if (hasParticipant2) updateData.team2_id = participant2Id;
       }
 
       // Update match status based on assignments
-      const hasParticipant1 = participant1Id && participant1Id !== 'none';
-      const hasParticipant2 = participant2Id && participant2Id !== 'none';
-      
       if (hasParticipant1 && hasParticipant2) {
         updateData.status = 'scheduled';
       } else if (hasParticipant1 || hasParticipant2) {
-        // One participant assigned - this could be a bye scenario
-        updateData.status = 'pending';
+        // Only one participant - automatic bye (winner)
+        updateData.status = 'completed';
+        
+        // Set the winner
+        const winnerId = hasParticipant1 ? participant1Id : participant2Id;
+        if (tournament.type === 'singles') {
+          updateData.winner_player_id = winnerId;
+        } else {
+          updateData.winner_team_id = winnerId;
+        }
       }
 
       const { error } = await supabase
@@ -166,9 +181,51 @@ export function AssignParticipantsDialog({
 
       if (error) throw error;
 
+      // If there's a winner (bye scenario), advance them to next round
+      if (updateData.status === 'completed' && match.feeds_to_match_id && match.feeds_to_position) {
+        const winnerId = hasParticipant1 ? participant1Id : participant2Id;
+        const nextRoundUpdate: any = {};
+        
+        if (tournament.type === 'singles') {
+          nextRoundUpdate[`player${match.feeds_to_position}_id`] = winnerId;
+        } else {
+          nextRoundUpdate[`team${match.feeds_to_position}_id`] = winnerId;
+        }
+        
+        // Check if the receiving match should be marked as scheduled
+        const { data: nextMatch } = await supabase
+          .from('matches_new')
+          .select('*')
+          .eq('id', match.feeds_to_match_id)
+          .single();
+
+        if (nextMatch) {
+          const hasPosition1 = tournament.type === 'singles' ? 
+            nextMatch.player1_id || (match.feeds_to_position === 1 ? winnerId : null) :
+            nextMatch.team1_id || (match.feeds_to_position === 1 ? winnerId : null);
+          
+          const hasPosition2 = tournament.type === 'singles' ? 
+            nextMatch.player2_id || (match.feeds_to_position === 2 ? winnerId : null) :
+            nextMatch.team2_id || (match.feeds_to_position === 2 ? winnerId : null);
+
+          if (hasPosition1 && hasPosition2) {
+            nextRoundUpdate.status = 'scheduled';
+          }
+        }
+
+        await supabase
+          .from('matches_new')
+          .update(nextRoundUpdate)
+          .eq('id', match.feeds_to_match_id);
+      }
+
+      const message = updateData.status === 'completed' 
+        ? `Participant assigned and automatically advanced to next round (bye).`
+        : `Match participants have been assigned successfully.`;
+
       toast({
         title: "Participants Assigned",
-        description: "Match participants have been assigned successfully.",
+        description: message,
       });
 
       onAssignmentComplete();
@@ -188,13 +245,15 @@ export function AssignParticipantsDialog({
 
   const getParticipantName = (participant: Player | Team) => {
     if (tournament.type === 'singles') {
-      return (participant as Player).name;
+      const player = participant as Player;
+      return `${player.name} (HCP: ${player.handicap || 0})`;
     } else {
       const team = participant as Team;
       const playerNames = [];
       if (team.player1?.name) playerNames.push(team.player1.name);
       if (team.player2?.name) playerNames.push(team.player2.name);
-      return `${team.name} (${playerNames.join(' & ')})`;
+      const avgHandicap = ((team.player1?.handicap || 0) + (team.player2?.handicap || 0)) / 2;
+      return `${team.name} (${playerNames.join(' & ')}) - Avg HCP: ${avgHandicap.toFixed(1)}`;
     }
   };
 
