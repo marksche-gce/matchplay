@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Users, Trophy, Settings, UserPlus } from 'lucide-react';
+import { ArrowLeft, Users, Trophy, Settings, UserPlus, Edit3, Trash2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { RegistrationDialog } from './RegistrationDialog';
 import { BracketView } from './BracketView';
@@ -29,7 +30,9 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
   const [registrationCount, setRegistrationCount] = useState(0);
   const [showRegistration, setShowRegistration] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showManagement, setShowManagement] = useState(false);
   const { user } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchTournamentDetails();
@@ -133,13 +136,99 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
             Register
           </Button>
           {user && (
-            <Button variant="outline">
-              <Settings className="h-4 w-4 mr-2" />
-              Manage
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline"
+                onClick={() => setShowManagement(!showManagement)}
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Manage
+              </Button>
+            </div>
           )}
         </div>
       </div>
+
+      {/* Management Panel */}
+      {showManagement && user && (
+        <Card className="bg-card shadow-card mb-6">
+          <CardHeader>
+            <CardTitle className="text-lg text-foreground">Tournament Management</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-3">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  // TODO: Add edit tournament functionality
+                  toast({
+                    title: "Coming Soon",
+                    description: "Tournament editing will be available soon.",
+                  });
+                }}
+              >
+                <Edit3 className="h-4 w-4 mr-2" />
+                Edit Tournament
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  // TODO: Add manage registrations functionality
+                  toast({
+                    title: "Coming Soon", 
+                    description: "Registration management will be available soon.",
+                  });
+                }}
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Manage Registrations
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={async () => {
+                  if (!tournament) return;
+                  
+                  if (!confirm(`Are you sure you want to delete "${tournament.name}"? This action cannot be undone.`)) {
+                    return;
+                  }
+
+                  try {
+                    const { error } = await supabase
+                      .from('tournaments_new')
+                      .delete()
+                      .eq('id', tournament.id);
+
+                    if (error) throw error;
+
+                    toast({
+                      title: "Tournament Deleted",
+                      description: `"${tournament.name}" has been successfully deleted.`,
+                    });
+
+                    onBack(); // Go back to tournament list
+                  } catch (error: any) {
+                    console.error('Error deleting tournament:', error);
+                    toast({
+                      title: "Delete Failed",
+                      description: error.message || "Failed to delete tournament.",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+                className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Tournament
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Tournament Info */}
       <Card className="bg-card shadow-card">
