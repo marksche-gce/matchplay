@@ -131,9 +131,12 @@ export function CreatePlayerDialog({ onPlayerCreate, onBulkPlayerCreate, trigger
         console.log("Final players array:", players);
 
         if (players.length > 0) {
+          console.log(`About to import ${players.length} players using bulk handler`);
           if (onBulkPlayerCreate) {
+            console.log("Calling onBulkPlayerCreate with players:", players.map(p => p.name));
             onBulkPlayerCreate(players);
           } else {
+            console.log("No bulk handler, adding players one by one");
             // If no bulk handler, add one by one
             players.forEach(player => onPlayerCreate(player));
           }

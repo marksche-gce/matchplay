@@ -149,7 +149,7 @@ export function TournamentDashboard() {
         {
           event: '*',
           schema: 'public',
-          table: 'tournament_registrations',
+          table: 'tournament_registrations_new',
           filter: `tournament_id=eq.${selectedTournament}`
         },
         (payload) => {
@@ -162,7 +162,7 @@ export function TournamentDashboard() {
         {
           event: '*',
           schema: 'public',
-          table: 'players'
+          table: 'players_new'
         },
         (payload) => {
           console.log('Player update received:', payload);
@@ -263,9 +263,8 @@ export function TournamentDashboard() {
 
       // Get player counts for each tournament
       const { data: registrationData } = await supabase
-        .from('tournament_registrations')
-        .select('tournament_id, player_id')
-        .eq('status', 'registered');
+        .from('tournament_registrations_new')
+        .select('tournament_id, player_id');
 
       const playerCounts = (registrationData || []).reduce((acc, reg) => {
         acc[reg.tournament_id] = (acc[reg.tournament_id] || 0) + 1;
@@ -310,10 +309,10 @@ export function TournamentDashboard() {
     try {
       // Get players registered for this tournament
       const { data, error } = await supabase
-        .from('tournament_registrations')
+        .from('tournament_registrations_new')
         .select(`
           player_id,
-          players (
+          players_new (
             id,
             name,
             email,
@@ -325,10 +324,10 @@ export function TournamentDashboard() {
       if (error) throw error;
 
       const tournamentPlayers: Player[] = (data || []).map((reg: any) => ({
-        id: reg.players.id,
-        name: reg.players.name,
-        email: reg.players.email,
-        handicap: reg.players.handicap,
+        id: reg.players_new.id,
+        name: reg.players_new.name,
+        email: reg.players_new.email,
+        handicap: reg.players_new.handicap,
         wins: 0, // These would need to be calculated from match results
         losses: 0,
         status: "active" as const
@@ -592,43 +591,72 @@ export function TournamentDashboard() {
     }
 
     try {
-      // First create or find the player
+      // Check if player with this email already exists
       let playerId: string;
       
-      // Check if player already exists
-      const { data: existingPlayer } = await supabase
-        .from('players')
-        .select('id')
-        .eq('name', playerData.name)
-        .eq('email', playerData.email)
-        .maybeSingle();
+      if (playerData.email) {
+        const { data: existingPlayer } = await supabase
+          .from('players_new')
+          .select('id')
+          .eq('email', playerData.email)
+          .single();
 
-      if (existingPlayer) {
-        playerId = existingPlayer.id;
+        if (existingPlayer) {
+          playerId = existingPlayer.id;
+        } else {
+          // Create new player
+          const { data: newPlayer, error: playerError } = await supabase
+            .from('players_new')
+            .insert({
+              name: playerData.name,
+              email: playerData.email,
+              handicap: playerData.handicap
+            })
+            .select('id')
+            .single();
+
+          if (playerError) throw playerError;
+          playerId = newPlayer.id;
+        }
       } else {
-        // Create new player
+        // Create new player without email check
         const { data: newPlayer, error: playerError } = await supabase
-          .from('players')
+          .from('players_new')
           .insert({
             name: playerData.name,
             email: playerData.email,
-            handicap: playerData.handicap,
-            user_id: user.id
+            handicap: playerData.handicap
           })
-          .select()
+          .select('id')
           .single();
 
         if (playerError) throw playerError;
         playerId = newPlayer.id;
       }
 
+      // Check if already registered for this tournament
+      const { data: existingRegistration } = await supabase
+        .from('tournament_registrations_new')
+        .select('id')
+        .eq('tournament_id', selectedTournament)
+        .eq('player_id', playerId)
+        .single();
+
+      if (existingRegistration) {
+        toast({
+          title: "Already Registered",
+          description: "This player is already registered for the tournament.",
+          variant: "destructive"
+        });
+        return;
+      }
+
       // Register player for tournament
       const { error: registrationError } = await supabase
-        .from('tournament_registrations')
+        .from('tournament_registrations_new')
         .insert({
           tournament_id: selectedTournament,
-          player_id: playerId,
-          status: 'registered'
+          player_id: playerId
         });
 
       if (registrationError) throw registrationError;
@@ -662,30 +690,73 @@ export function TournamentDashboard() {
 
     try {
       let successCount = 0;
+      let skipCount = 0;
       
       for (const playerData of playersData) {
         try {
-          // Create player
-          const { data: newPlayer, error: playerError } = await supabase
-            .from('players')
-            .insert({
-              name: playerData.name,
-              email: playerData.email,
-              handicap: playerData.handicap,
-              user_id: user.id
-            })
-            .select()
+          // Check if player with this email already exists
+          let playerId: string;
+          
+          if (playerData.email) {
+            const { data: existingPlayer } = await supabase
+              .from('players_new')
+              .select('id')
+              .eq('email', playerData.email)
+              .single();
+
+            if (existingPlayer) {
+              playerId = existingPlayer.id;
+            } else {
+              // Create new player
+              const { data: newPlayer, error: playerError } = await supabase
+                .from('players_new')
+                .insert({
+                  name: playerData.name,
+                  email: playerData.email,
+                  handicap: playerData.handicap
+                })
+                .select('id')
+                .single();
+
+              if (playerError) throw playerError;
+              playerId = newPlayer.id;
+            }
+          } else {
+            // Create new player without email check
+            const { data: newPlayer, error: playerError } = await supabase
+              .from('players_new')
+              .insert({
+                name: playerData.name,
+                email: playerData.email,
+                handicap: playerData.handicap
+              })
+              .select('id')
+              .single();
+
+            if (playerError) throw playerError;
+            playerId = newPlayer.id;
+          }
+
+          // Check if already registered for this tournament
+          const { data: existingRegistration } = await supabase
+            .from('tournament_registrations_new')
+            .select('id')
+            .eq('tournament_id', selectedTournament)
+            .eq('player_id', playerId)
             .single();
 
-          if (playerError) throw playerError;
+          if (existingRegistration) {
+            console.log(`Player ${playerData.name} already registered for tournament`);
+            skipCount++;
+            continue;
+          }
 
           // Register player for tournament
           const { error: registrationError } = await supabase
-            .from('tournament_registrations')
+            .from('tournament_registrations_new')
             .insert({
               tournament_id: selectedTournament,
-              player_id: newPlayer.id,
-              status: 'registered'
+              player_id: playerId
             });
 
           if (registrationError) throw registrationError;
@@ -696,8 +767,8 @@ export function TournamentDashboard() {
       }
 
       toast({
-        title: "Players Added!",
-        description: `${successCount} players have been added to the tournament.`,
+        title: "Players Import Complete!",
+        description: `${successCount} players imported successfully. ${skipCount > 0 ? `${skipCount} players were already registered.` : ''}`,
       });
 
       // Refresh players list
