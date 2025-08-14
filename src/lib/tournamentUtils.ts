@@ -22,7 +22,7 @@ export const getRoundDisplayName = (round: number, totalRounds: number): string 
  * Calculate total rounds needed for a tournament
  */
 export const calculateTotalRounds = (maxPlayers: number): number => {
-  return Math.ceil(Math.log2(maxPlayers)) - 1;
+  return Math.ceil(Math.log2(maxPlayers));
 };
 
 /**
@@ -39,7 +39,10 @@ export const ROUND_PROGRESSION: { [key: string]: string | null } = {
   "Round 1": "Round 2",
   "Round 2": "Round 3", 
   "Round 3": "Round 4",
-  "Round 4": null // Final round
+  "Round 4": "Round 5",
+  "Round 5": "Round 6",
+  "Round 6": "Round 7",
+  "Round 7": null // Final round for 128 players
 };
 
 /**
