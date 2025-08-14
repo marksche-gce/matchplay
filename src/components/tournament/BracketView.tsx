@@ -141,7 +141,7 @@ export function BracketView({ tournamentId, tournament }: BracketViewProps) {
             {registrationCount > 0 && (
               <Button 
                 onClick={generateBracket}
-                className="bg-gradient-primary hover:opacity-90"
+                variant="default"
               >
                 <Settings className="h-4 w-4 mr-2" />
                 Generate Bracket

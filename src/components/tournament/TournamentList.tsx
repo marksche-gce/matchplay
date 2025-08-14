@@ -162,7 +162,7 @@ export function TournamentList({ onTournamentSelect }: TournamentListProps) {
               <div className="flex items-center gap-2">
                 <Button 
                   onClick={() => onTournamentSelect(tournament.id)}
-                  className="bg-gradient-primary hover:opacity-90"
+                  variant="default"
                 >
                   View Tournament
                 </Button>

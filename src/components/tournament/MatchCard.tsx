@@ -366,8 +366,9 @@ export function MatchCard({ match, tournament, onMatchUpdate }: MatchCardProps) 
           {canSetWinner() && (
             <Button 
               onClick={() => setShowWinnerDialog(true)}
-              className="w-full bg-gradient-primary hover:opacity-90"
+              variant="default"
               size="sm"
+              className="w-full"
             >
               <Trophy className="h-4 w-4 mr-2" />
               Set Winner

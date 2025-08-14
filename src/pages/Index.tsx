@@ -9,7 +9,7 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-course">
       <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
         <Link to="/tournaments">
-          <Button className="flex items-center gap-2 bg-gradient-primary">
+          <Button variant="default" className="flex items-center gap-2">
             <Trophy className="h-4 w-4" />
             View Tournaments
           </Button>
@@ -75,7 +75,7 @@ const Index = () => {
 
         <div className="text-center mt-16">
           <Link to="/tournaments">
-            <Button size="lg" className="bg-gradient-primary hover:opacity-90 text-lg px-8 py-4">
+            <Button size="lg" variant="default" className="text-lg px-8 py-4">
               <Trophy className="h-5 w-5 mr-2" />
               Get Started
             </Button>

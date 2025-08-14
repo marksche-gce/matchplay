@@ -20,7 +20,7 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
         success: "bg-success text-success-foreground hover:bg-success/90 shadow-golf hover:shadow-elevated",
         fairway: "bg-fairway text-primary-foreground hover:bg-fairway/90 shadow-golf hover:shadow-elevated",
-        premium: "bg-gradient-golf text-primary-foreground hover:scale-105 shadow-elevated border border-primary-glow/20",
+        premium: "bg-gradient-to-r from-primary to-primary-glow text-primary-foreground hover:scale-105 shadow-elevated border border-primary-glow/20",
       },
       size: {
         default: "h-10 px-4 py-2",

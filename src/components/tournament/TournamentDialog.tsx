@@ -183,7 +183,7 @@ export function TournamentDialog({ open, onOpenChange }: TournamentDialogProps) 
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading} className="bg-gradient-primary">
+            <Button type="submit" disabled={loading} variant="default">
               {loading ? 'Creating...' : 'Create Tournament'}
             </Button>
           </div>

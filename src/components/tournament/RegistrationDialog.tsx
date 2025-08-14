@@ -388,7 +388,7 @@ export function RegistrationDialog({
                   />
                 </div>
 
-                <Button type="submit" disabled={loading} className="w-full bg-gradient-primary">
+                <Button type="submit" disabled={loading} variant="default" className="w-full">
                   {loading ? 'Registering...' : 'Register Player'}
                 </Button>
               </form>
@@ -485,7 +485,7 @@ export function RegistrationDialog({
                   </div>
                 </div>
 
-                <Button type="submit" disabled={loading} className="w-full bg-gradient-primary">
+                <Button type="submit" disabled={loading} variant="default" className="w-full">
                   {loading ? 'Registering...' : 'Register Team'}
                 </Button>
               </form>
