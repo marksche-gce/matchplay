@@ -595,11 +595,16 @@ export function TournamentDashboard() {
       let playerId: string;
       
       if (playerData.email) {
-        const { data: existingPlayer } = await supabase
+        const { data: existingPlayer, error: checkError } = await supabase
           .from('players_new')
           .select('id')
           .eq('email', playerData.email)
-          .single();
+          .maybeSingle();
+
+        if (checkError) {
+          console.error(`Error checking existing player for ${playerData.email}:`, checkError);
+          throw checkError;
+        }
 
         if (existingPlayer) {
           playerId = existingPlayer.id;
@@ -635,12 +640,17 @@ export function TournamentDashboard() {
       }
 
       // Check if already registered for this tournament
-      const { data: existingRegistration } = await supabase
+      const { data: existingRegistration, error: regCheckError } = await supabase
         .from('tournament_registrations_new')
         .select('id')
         .eq('tournament_id', selectedTournament)
         .eq('player_id', playerId)
-        .single();
+        .maybeSingle();
+
+      if (regCheckError) {
+        console.error(`Error checking registration for ${playerData.name}:`, regCheckError);
+        throw regCheckError;
+      }
 
       if (existingRegistration) {
         toast({
@@ -691,22 +701,35 @@ export function TournamentDashboard() {
     try {
       let successCount = 0;
       let skipCount = 0;
+      let errorCount = 0;
+      const errors: string[] = [];
+      
+      console.log(`Starting bulk import of ${playersData.length} players for tournament: ${selectedTournament}`);
       
       for (const playerData of playersData) {
         try {
+          console.log(`Processing player: ${playerData.name} (${playerData.email})`);
+          
           // Check if player with this email already exists
           let playerId: string;
           
           if (playerData.email) {
-            const { data: existingPlayer } = await supabase
+            const { data: existingPlayer, error: checkError } = await supabase
               .from('players_new')
               .select('id')
               .eq('email', playerData.email)
-              .single();
+              .maybeSingle();
+
+            if (checkError) {
+              console.error(`Error checking existing player for ${playerData.email}:`, checkError);
+              throw checkError;
+            }
 
             if (existingPlayer) {
+              console.log(`Found existing player for ${playerData.email}:`, existingPlayer.id);
               playerId = existingPlayer.id;
             } else {
+              console.log(`Creating new player: ${playerData.name}`);
               // Create new player
               const { data: newPlayer, error: playerError } = await supabase
                 .from('players_new')
@@ -718,10 +741,15 @@ export function TournamentDashboard() {
                 .select('id')
                 .single();
 
-              if (playerError) throw playerError;
+              if (playerError) {
+                console.error(`Error creating player ${playerData.name}:`, playerError);
+                throw playerError;
+              }
+              console.log(`Created new player with ID: ${newPlayer.id}`);
               playerId = newPlayer.id;
             }
           } else {
+            console.log(`Creating new player without email: ${playerData.name}`);
             // Create new player without email check
             const { data: newPlayer, error: playerError } = await supabase
               .from('players_new')
@@ -733,17 +761,27 @@ export function TournamentDashboard() {
               .select('id')
               .single();
 
-            if (playerError) throw playerError;
+            if (playerError) {
+              console.error(`Error creating player ${playerData.name}:`, playerError);
+              throw playerError;
+            }
+            console.log(`Created new player with ID: ${newPlayer.id}`);
             playerId = newPlayer.id;
           }
 
           // Check if already registered for this tournament
-          const { data: existingRegistration } = await supabase
+          console.log(`Checking registration for player ${playerId} in tournament ${selectedTournament}`);
+          const { data: existingRegistration, error: regCheckError } = await supabase
             .from('tournament_registrations_new')
             .select('id')
             .eq('tournament_id', selectedTournament)
             .eq('player_id', playerId)
-            .single();
+            .maybeSingle();
+
+          if (regCheckError) {
+            console.error(`Error checking registration for ${playerData.name}:`, regCheckError);
+            throw regCheckError;
+          }
 
           if (existingRegistration) {
             console.log(`Player ${playerData.name} already registered for tournament`);
@@ -752,6 +790,7 @@ export function TournamentDashboard() {
           }
 
           // Register player for tournament
+          console.log(`Registering player ${playerId} for tournament ${selectedTournament}`);
           const { error: registrationError } = await supabase
             .from('tournament_registrations_new')
             .insert({
@@ -759,22 +798,37 @@ export function TournamentDashboard() {
               player_id: playerId
             });
 
-          if (registrationError) throw registrationError;
+          if (registrationError) {
+            console.error(`Error registering player ${playerData.name}:`, registrationError);
+            throw registrationError;
+          }
+
+          console.log(`Successfully registered player: ${playerData.name}`);
           successCount++;
-        } catch (error) {
+        } catch (error: any) {
+          errorCount++;
+          const errorMsg = `${playerData.name}: ${error.message || 'Unknown error'}`;
+          errors.push(errorMsg);
           console.error(`Error adding player ${playerData.name}:`, error);
         }
       }
 
+      console.log(`Import complete - Success: ${successCount}, Skipped: ${skipCount}, Errors: ${errorCount}`);
+      
+      if (errors.length > 0) {
+        console.error('Import errors:', errors);
+      }
+
       toast({
         title: "Players Import Complete!",
-        description: `${successCount} players imported successfully. ${skipCount > 0 ? `${skipCount} players were already registered.` : ''}`,
+        description: `${successCount} players imported successfully. ${skipCount > 0 ? `${skipCount} players were already registered. ` : ''}${errorCount > 0 ? `${errorCount} players had errors.` : ''}`,
+        variant: errorCount > 0 ? "destructive" : "default"
       });
 
       // Refresh players list
       await fetchPlayers();
     } catch (error) {
-      console.error('Error adding players:', error);
+      console.error('Error in bulk player import:', error);
       toast({
         title: "Error",
         description: "Failed to add players to tournament.",
