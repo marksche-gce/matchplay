@@ -2589,7 +2589,7 @@ export function TournamentBracket({
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Trophy className="h-5 w-5" />
-                Tournament Bracket
+                Turnier-Tableau
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
                 Progress: {progress.completed}/{progress.total} matches completed

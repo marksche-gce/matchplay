@@ -2292,7 +2292,7 @@ export function TournamentDashboard() {
             {matches.length === 0 ? (
               <Card className="shadow-card">
                 <CardHeader>
-                  <CardTitle>Generate Tournament Bracket</CardTitle>
+                  <CardTitle>Generate Turnier-Tableau</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="text-center py-8">
@@ -2316,7 +2316,7 @@ export function TournamentDashboard() {
             ) : (
               <>
                 <div className="flex justify-between items-center">
-                  <h2 className="text-2xl font-bold">Tournament Bracket</h2>
+                  <h2 className="text-2xl font-bold">Turnier-Tableau</h2>
                   <div className="flex gap-2">
                     <Button 
                       onClick={resetAllMatches}

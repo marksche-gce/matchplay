@@ -121,7 +121,7 @@ export function BracketView({ tournamentId, tournament, embedded = false }: Brac
       <Card className="bg-card shadow-card">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            Tournament Bracket
+            Turnier-Tableau
             <Badge variant="outline">Not Generated</Badge>
           </CardTitle>
         </CardHeader>
@@ -157,7 +157,7 @@ export function BracketView({ tournamentId, tournament, embedded = false }: Brac
     <Card className="bg-card shadow-card">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          Tournament Bracket
+          Turnier-Tableau
           <Badge className="bg-success/10 text-success border-success/30">
             Active
           </Badge>
