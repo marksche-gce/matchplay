@@ -110,13 +110,13 @@ export function CreatePlayerDialog({ onPlayerCreate, onBulkPlayerCreate, trigger
           
           console.log(`Row ${index} - Name: ${name}, Email: ${email}, Handicap: ${handicap}`);
           
-          if (name) {
+          if (name && String(name).trim()) {
             const handicapValue = parseFloat(handicap) || 10;
             console.log(`Row ${index} - Parsed handicap: ${handicapValue}`);
             if (handicapValue >= 0 && handicapValue <= 36) {
               const player = {
-                name: String(name),
-                email: email ? String(email) : undefined,
+                name: String(name).trim(),
+                email: email ? String(email).trim() : undefined,
                 handicap: handicapValue,
                 wins: 0,
                 losses: 0,
@@ -124,7 +124,11 @@ export function CreatePlayerDialog({ onPlayerCreate, onBulkPlayerCreate, trigger
               };
               console.log(`Row ${index} - Adding player:`, player);
               players.push(player);
+            } else {
+              console.log(`Row ${index} - Invalid handicap ${handicapValue}, skipping player ${name}`);
             }
+          } else {
+            console.log(`Row ${index} - No valid name found, skipping row`);
           }
         });
 

@@ -790,9 +790,9 @@ export function TournamentDashboard() {
           }
 
           if (existingRegistration) {
-            console.log(`Player ${playerData.name} already registered for tournament`);
+            console.log(`Player ${playerData.name} already registered for tournament - SKIPPING`);
             skipCount++;
-            continue;
+            continue; // This should skip to the next player
           }
 
           // Register player for tournament
