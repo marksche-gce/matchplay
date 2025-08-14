@@ -133,10 +133,17 @@ export function BracketView({ tournamentId, tournament }: BracketViewProps) {
           <div className="text-center py-12">
             <Trophy className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-foreground mb-2">Bracket Not Generated</h3>
-            <p className="text-muted-foreground mb-6">
-              Generate the tournament bracket to start the competition. 
-              You currently have {registrationCount} registered {tournament.type === 'singles' ? 'players' : 'teams'}.
-            </p>
+            {registrationCount === 0 ? (
+              <p className="text-muted-foreground mb-6">
+                Please register {tournament.type === 'singles' ? 'players' : 'teams'} first before generating the tournament bracket.
+                You can register participants individually or import them from an Excel file.
+              </p>
+            ) : (
+              <p className="text-muted-foreground mb-6">
+                Generate the tournament bracket to start the competition. 
+                You currently have {registrationCount} registered {tournament.type === 'singles' ? 'players' : 'teams'}.
+              </p>
+            )}
             
             {registrationCount > 0 && (
               <Button 
@@ -146,6 +153,12 @@ export function BracketView({ tournamentId, tournament }: BracketViewProps) {
                 <Settings className="h-4 w-4 mr-2" />
                 Generate Bracket
               </Button>
+            )}
+
+            {registrationCount === 0 && (
+              <p className="text-sm text-warning mt-4">
+                ⚠️ Bracket generation is only available after player registration or import
+              </p>
             )}
             
             {registrationCount === 0 && (
