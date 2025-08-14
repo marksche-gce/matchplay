@@ -53,12 +53,11 @@ export function TournamentDialog({ open, onOpenChange }: TournamentDialogProps) 
     setLoading(true);
     
     try {
-      // Create tournament with calculated max_rounds
+      // Create tournament (max_rounds is generated automatically by database)
       const { data: tournamentData, error } = await supabase.from('tournaments_new').insert({
         name: formData.name,
         type: formData.type,
         max_players: formData.maxPlayers,
-        max_rounds: calculateMaxRounds(formData.maxPlayers),
         start_date: formData.startDate,
         end_date: formData.endDate,
         registration_status: 'open',
@@ -72,7 +71,7 @@ export function TournamentDialog({ open, onOpenChange }: TournamentDialogProps) 
         id: tournamentData.id,
         type: formData.type,
         max_players: formData.maxPlayers,
-        max_rounds: calculateMaxRounds(formData.maxPlayers),
+        max_rounds: tournamentData.max_rounds, // Use the generated value from database
       });
 
       toast({
