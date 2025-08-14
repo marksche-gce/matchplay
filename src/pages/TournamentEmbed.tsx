@@ -98,58 +98,42 @@ export default function TournamentEmbed() {
       {/* Tournament Header */}
       <div className="bg-gradient-to-r from-primary/10 to-primary/20 border-b">
         <div className="max-w-7xl mx-auto p-6">
-          <Card className="bg-card/80 backdrop-blur-sm border-primary/20">
-            <CardHeader>
-              <div className="flex flex-col gap-4">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-2">
-                    <CardTitle className="text-2xl text-foreground">{tournament.name}</CardTitle>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        {format(new Date(tournament.start_date), 'MMM dd')} - {format(new Date(tournament.end_date), 'MMM dd, yyyy')}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Users className="h-4 w-4" />
-                        {registrationCount}/{tournament.max_players} Players
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Trophy className="h-4 w-4" />
-                        {tournament.type === 'singles' ? 'Singles' : 'Foursome'}
-                      </div>
-                    </div>
-                  </div>
-                  <Badge className={getRegistrationStatusColor(tournament.registration_status)}>
-                    {tournament.registration_status === 'open' ? 'Open for Registration' : 
-                     tournament.registration_status === 'closed' ? 'Registration Closed' : 
-                     'Tournament Full'}
-                  </Badge>
-                </div>
+          <div className="space-y-4">
+            <h1 className="text-3xl font-bold text-foreground">{tournament.name}</h1>
+            <div className="flex items-center gap-6 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <Calendar className="h-4 w-4" />
+                {format(new Date(tournament.start_date), 'MMM dd')} - {format(new Date(tournament.end_date), 'MMM dd, yyyy')}
               </div>
-            </CardHeader>
-          </Card>
+              <div className="flex items-center gap-1">
+                <Users className="h-4 w-4" />
+                {registrationCount}/{tournament.max_players} Players
+              </div>
+              <div className="flex items-center gap-1">
+                <Trophy className="h-4 w-4" />
+                {tournament.type === 'singles' ? 'Singles' : 'Foursome'}
+              </div>
+              <Badge className={getRegistrationStatusColor(tournament.registration_status)}>
+                {tournament.registration_status === 'open' ? 'Open for Registration' : 
+                 tournament.registration_status === 'closed' ? 'Registration Closed' : 
+                 'Tournament Full'}
+              </Badge>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Tournament Bracket */}
       <div className="max-w-7xl mx-auto p-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Trophy className="h-5 w-5" />
-              Tournament Bracket
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            {tournament && (
-              <BracketView 
-                tournamentId={tournament.id} 
-                tournament={tournament}
-                embedded={true}
-              />
-            )}
-          </CardContent>
-        </Card>
+        <div className="bg-card rounded-lg border shadow-sm p-6">
+          {tournament && (
+            <BracketView 
+              tournamentId={tournament.id} 
+              tournament={tournament}
+              embedded={true}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
