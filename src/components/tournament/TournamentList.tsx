@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, Users, Trophy } from 'lucide-react';
+import { Calendar, Users, Trophy, Trash2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Tournament {
@@ -24,6 +25,7 @@ interface TournamentListProps {
 export function TournamentList({ onTournamentSelect }: TournamentListProps) {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchTournaments();
@@ -42,6 +44,36 @@ export function TournamentList({ onTournamentSelect }: TournamentListProps) {
       console.error('Error fetching tournaments:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const deleteTournament = async (tournamentId: string, tournamentName: string) => {
+    if (!confirm(`Are you sure you want to delete "${tournamentName}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('tournaments_new')
+        .delete()
+        .eq('id', tournamentId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Tournament Deleted",
+        description: `"${tournamentName}" has been successfully deleted.`,
+      });
+
+      // Refresh the tournaments list
+      fetchTournaments();
+    } catch (error: any) {
+      console.error('Error deleting tournament:', error);
+      toast({
+        title: "Delete Failed",
+        description: error.message || "Failed to delete tournament.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -127,12 +159,26 @@ export function TournamentList({ onTournamentSelect }: TournamentListProps) {
                 </div>
               </div>
               
-              <Button 
-                onClick={() => onTournamentSelect(tournament.id)}
-                className="bg-gradient-primary hover:opacity-90"
-              >
-                View Tournament
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button 
+                  onClick={() => onTournamentSelect(tournament.id)}
+                  className="bg-gradient-primary hover:opacity-90"
+                >
+                  View Tournament
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteTournament(tournament.id, tournament.name);
+                  }}
+                  className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
