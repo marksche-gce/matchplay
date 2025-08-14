@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { getRoundName, getRoundDisplayName, getNextRoundName, ROUND_PROGRESSION } from '@/lib/tournamentUtils';
+import { getRoundName, getRoundDisplayName, getNextRoundName, calculateTotalRounds, ROUND_PROGRESSION } from '@/lib/tournamentUtils';
 import { EditMatchDialog } from "./EditMatchDialog";
 import { ManualMatchSetup } from "./ManualMatchSetup";
 import { OptimizedMatchCard } from "./OptimizedMatchCard";
@@ -676,7 +676,7 @@ export function TournamentBracket({
     console.log("All tournament matches:", tournamentMatches);
     
     // Calculate proper bracket structure based on max players
-    const totalRounds = Math.ceil(Math.log2(maxPlayers));
+    const totalRounds = calculateTotalRounds(maxPlayers);
     console.log(`Generating bracket for ${maxPlayers} players with ${totalRounds} rounds`);
     
     // Define round names in correct order - use consistent numbering
@@ -1295,7 +1295,7 @@ export function TournamentBracket({
       console.log("Matches by round:", Object.keys(matchesByRound));
 
       // Set up relationships between rounds - handle both new and legacy naming
-      const totalRounds = Math.ceil(Math.log2(maxPlayers));
+      const totalRounds = calculateTotalRounds(maxPlayers);
       
       // First get all unique round names from the database to determine naming convention
       const { data: existingRounds } = await supabase
@@ -2011,7 +2011,7 @@ export function TournamentBracket({
       console.log("First round matches found:", firstRoundMatches.length);
       
       // Calculate total rounds needed
-      const totalRounds = Math.ceil(Math.log2(maxPlayers));
+      const totalRounds = calculateTotalRounds(maxPlayers);
       console.log("Total rounds needed:", totalRounds);
       
       // Delete any existing matches beyond Round 1

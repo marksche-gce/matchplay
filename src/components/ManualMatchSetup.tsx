@@ -277,7 +277,7 @@ export function ManualMatchSetup({
   const createTournamentStructure = async () => {
     try {
       console.log('🏗️ Creating tournament structure for', maxPlayers, 'players');
-      const totalRounds = Math.ceil(Math.log2(maxPlayers));
+      const totalRounds = calculateTotalRounds(maxPlayers);
       console.log('Total rounds needed:', totalRounds);
       
       // Create subsequent rounds structure (Round 2, Semifinals, Final)
@@ -343,7 +343,7 @@ export function ManualMatchSetup({
         return acc;
       }, {} as Record<string, any[]>);
 
-      const totalRounds = Math.ceil(Math.log2(maxPlayers));
+      const totalRounds = calculateTotalRounds(maxPlayers);
       
       console.log('Setting up relationships for', totalRounds, 'rounds');
       console.log('Matches by round:', matchesByRound);
