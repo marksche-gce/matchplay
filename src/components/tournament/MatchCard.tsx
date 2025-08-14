@@ -166,12 +166,9 @@ export function MatchCard({ match, tournament, onMatchUpdate, embedded = false }
   };
 
   const canSetWinner = () => {
-    // If embedded view, don't show any management buttons
-    if (embedded) return false;
-    
-    // If match already has a winner, only admins can change it
+    // If match already has a winner, only admins can change it (except in embedded view)
     const hasWinner = match.winner_player_id || match.winner_team_id;
-    if (hasWinner && !isAdmin) return false;
+    if (hasWinner && !isAdmin && !embedded) return false;
     
     if (tournament.type === 'singles') {
       return match.status === 'scheduled' && player1 && player2;
