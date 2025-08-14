@@ -314,13 +314,6 @@ export function MatchCard({ match, tournament, onMatchUpdate, embedded = false }
         </CardHeader>
         
         <CardContent className="pt-0 space-y-3">
-          {isClickableForAssignment() && (
-            <div className="text-center p-2 bg-primary/10 rounded-lg border border-primary/30 mb-3">
-              <p className="text-xs text-primary font-medium">
-                Click to assign {tournament.type === 'singles' ? 'players' : 'teams'}
-              </p>
-            </div>
-          )}
 
           {tournament.type === 'singles' ? (
             <>
