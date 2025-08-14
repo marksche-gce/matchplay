@@ -808,14 +808,21 @@ export function TournamentDashboard() {
             .select('*');
 
           if (registrationError) {
-            console.error(`Error registering player ${playerData.name}:`, registrationError);
-            console.error('Registration error details:', {
-              code: registrationError.code,
-              message: registrationError.message,
-              details: registrationError.details,
-              hint: registrationError.hint
-            });
-            throw registrationError;
+            // Check if it's a duplicate registration error (23505 is duplicate key constraint)
+            if (registrationError.code === '23505') {
+              console.log(`Player ${playerData.name} already registered (caught duplicate) - SKIPPING`);
+              skipCount++;
+              continue; // Skip to next player instead of throwing error
+            } else {
+              console.error(`Error registering player ${playerData.name}:`, registrationError);
+              console.error('Registration error details:', {
+                code: registrationError.code,
+                message: registrationError.message,
+                details: registrationError.details,
+                hint: registrationError.hint
+              });
+              throw registrationError;
+            }
           }
 
           console.log(`Successfully registered player: ${playerData.name}`, registrationResult);
