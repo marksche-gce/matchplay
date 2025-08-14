@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface Tournament {
   id: string;
+  name?: string;
   type: 'singles' | 'foursome';
   max_players: number;
   max_rounds: number;
@@ -10,7 +11,7 @@ interface Tournament {
 export class BracketGenerator {
   async generateBracket(tournamentId: string, tournament: Tournament) {
     try {
-      // First, get all registrations
+      // Get registrations (optional - bracket can be generated without them)
       const { data: registrations, error: regError } = await supabase
         .from('tournament_registrations_new')
         .select(`
@@ -22,12 +23,12 @@ export class BracketGenerator {
 
       if (regError) throw regError;
 
-      if (!registrations || registrations.length === 0) {
-        throw new Error('No registrations found for this tournament');
-      }
+      console.log('Generating bracket for tournament:', tournament.name);
+      console.log('Max players:', tournament.max_players);
+      console.log('Current registrations:', registrations?.length || 0);
 
-      // Generate the bracket structure
-      const matches = this.generateBracketStructure(tournament, registrations);
+      // Generate the bracket structure based on max_players (not current registrations)
+      const matches = this.generateBracketStructure(tournament, registrations || []);
       
       // Insert all matches
       const { error: matchError } = await supabase
@@ -108,7 +109,12 @@ export class BracketGenerator {
     const firstRoundMatches = matches.filter(m => m.round_number === 1);
     
     console.log('First round matches:', firstRoundMatches.length);
-    console.log('Registrations:', registrations.length);
+    console.log('Available registrations:', registrations.length);
+    
+    if (registrations.length === 0) {
+      console.log('No registrations yet - bracket created with empty slots');
+      return; // Leave all matches empty for now
+    }
     
     // Shuffle registrations for fair bracket seeding
     const shuffledRegistrations = [...registrations].sort(() => Math.random() - 0.5);
@@ -119,7 +125,7 @@ export class BracketGenerator {
       const participant1 = shuffledRegistrations[i * 2];
       const participant2 = shuffledRegistrations[i * 2 + 1];
       
-      console.log(`Match ${i + 1}: participant1=`, participant1?.player?.name || 'BYE', `participant2=`, participant2?.player?.name || 'BYE');
+      console.log(`Match ${i + 1}: participant1=`, participant1?.player?.name || 'Empty', `participant2=`, participant2?.player?.name || 'Empty');
       
       if (participant1) {
         if (tournament.type === 'singles') {
@@ -169,6 +175,7 @@ export class BracketGenerator {
           }
         }
       }
+      // If neither participant1 nor participant2 exist, leave match empty (status: 'pending')
     }
   }
 }

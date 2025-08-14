@@ -132,40 +132,22 @@ export function BracketView({ tournamentId, tournament }: BracketViewProps) {
         <CardContent>
           <div className="text-center py-12">
             <Trophy className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">Bracket Not Generated</h3>
-            {registrationCount === 0 ? (
-              <p className="text-muted-foreground mb-6">
-                Please register {tournament.type === 'singles' ? 'players' : 'teams'} first before generating the tournament bracket.
-                You can register participants individually or import them from an Excel file.
-              </p>
-            ) : (
-              <p className="text-muted-foreground mb-6">
-                Generate the tournament bracket to start the competition. 
-                You currently have {registrationCount} registered {tournament.type === 'singles' ? 'players' : 'teams'}.
-              </p>
-            )}
+            <h3 className="text-lg font-semibold text-foreground mb-2">No Bracket Generated</h3>
+            <p className="text-muted-foreground mb-6">
+              Generate the tournament bracket structure to begin organizing matches.
+              The bracket will be created with {tournament.max_players} {tournament.type === 'singles' ? 'player' : 'team'} slots.
+            </p>
+            <p className="text-sm text-muted-foreground mb-6">
+              Current registrations: {registrationCount} / {tournament.max_players}
+            </p>
             
-            {registrationCount > 0 && (
-              <Button 
-                onClick={generateBracket}
-                variant="default"
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Generate Bracket
-              </Button>
-            )}
-
-            {registrationCount === 0 && (
-              <p className="text-sm text-warning mt-4">
-                ⚠️ Bracket generation is only available after player registration or import
-              </p>
-            )}
-            
-            {registrationCount === 0 && (
-              <p className="text-sm text-warning">
-                At least one {tournament.type === 'singles' ? 'player' : 'team'} must be registered to generate the bracket.
-              </p>
-            )}
+            <Button 
+              onClick={generateBracket}
+              variant="default"
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Generate Bracket
+            </Button>
           </div>
         </CardContent>
       </Card>
