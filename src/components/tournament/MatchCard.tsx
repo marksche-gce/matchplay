@@ -1,0 +1,400 @@
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Trophy, Users, Crown } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { SetWinnerDialog } from './SetWinnerDialog';
+
+interface Tournament {
+  id: string;
+  type: 'singles' | 'foursome';
+}
+
+interface Match {
+  id: string;
+  tournament_id: string;
+  round_number: number;
+  match_number: number;
+  status: 'pending' | 'scheduled' | 'completed';
+  player1_id?: string;
+  player2_id?: string;
+  team1_id?: string;
+  team2_id?: string;
+  winner_player_id?: string;
+  winner_team_id?: string;
+  feeds_to_match_id?: string;
+  feeds_to_position?: number;
+}
+
+interface Player {
+  id: string;
+  name: string;
+  email: string;
+  handicap: number;
+}
+
+interface Team {
+  id: string;
+  name: string;
+  player1?: Player;
+  player2?: Player;
+}
+
+interface MatchCardProps {
+  match: Match;
+  tournament: Tournament;
+  onMatchUpdate: () => void;
+}
+
+export function MatchCard({ match, tournament, onMatchUpdate }: MatchCardProps) {
+  const { toast } = useToast();
+  const [player1, setPlayer1] = useState<Player | null>(null);
+  const [player2, setPlayer2] = useState<Player | null>(null);
+  const [team1, setTeam1] = useState<Team | null>(null);
+  const [team2, setTeam2] = useState<Team | null>(null);
+  const [winner, setWinner] = useState<Player | Team | null>(null);
+  const [showWinnerDialog, setShowWinnerDialog] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchMatchData();
+  }, [match]);
+
+  const fetchMatchData = async () => {
+    try {
+      if (tournament.type === 'singles') {
+        // Fetch players
+        if (match.player1_id) {
+          const { data: p1 } = await supabase
+            .from('players_new')
+            .select('*')
+            .eq('id', match.player1_id)
+            .single();
+          setPlayer1(p1);
+        }
+        
+        if (match.player2_id) {
+          const { data: p2 } = await supabase
+            .from('players_new')
+            .select('*')
+            .eq('id', match.player2_id)
+            .single();
+          setPlayer2(p2);
+        }
+
+        // Fetch winner
+        if (match.winner_player_id) {
+          const { data: winnerData } = await supabase
+            .from('players_new')
+            .select('*')
+            .eq('id', match.winner_player_id)
+            .single();
+          setWinner(winnerData);
+        }
+      } else {
+        // Fetch teams with players
+        if (match.team1_id) {
+          const { data: t1 } = await supabase
+            .from('teams')
+            .select(`
+              *,
+              player1:players_new!teams_player1_id_fkey(*),
+              player2:players_new!teams_player2_id_fkey(*)
+            `)
+            .eq('id', match.team1_id)
+            .single();
+          setTeam1(t1);
+        }
+        
+        if (match.team2_id) {
+          const { data: t2 } = await supabase
+            .from('teams')
+            .select(`
+              *,
+              player1:players_new!teams_player1_id_fkey(*),
+              player2:players_new!teams_player2_id_fkey(*)
+            `)
+            .eq('id', match.team2_id)
+            .single();
+          setTeam2(t2);
+        }
+
+        // Fetch winner team
+        if (match.winner_team_id) {
+          const { data: winnerData } = await supabase
+            .from('teams')
+            .select(`
+              *,
+              player1:players_new!teams_player1_id_fkey(*),
+              player2:players_new!teams_player2_id_fkey(*)
+            `)
+            .eq('id', match.winner_team_id)
+            .single();
+          setWinner(winnerData);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching match data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-success/10 text-success border-success/30';
+      case 'scheduled': return 'bg-primary/10 text-primary border-primary/30';
+      case 'pending': return 'bg-warning/10 text-warning border-warning/30';
+      default: return 'bg-secondary/10 text-secondary-foreground border-secondary/30';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'completed': return 'Completed';
+      case 'scheduled': return 'Scheduled';
+      case 'pending': return 'Pending';
+      default: return status;
+    }
+  };
+
+  const canSetWinner = () => {
+    if (tournament.type === 'singles') {
+      return match.status === 'scheduled' && player1 && player2;
+    } else {
+      return match.status === 'scheduled' && team1 && team2;
+    }
+  };
+
+  const handleSetWinner = async (winnerId: string) => {
+    try {
+      const updateData: any = {
+        status: 'completed'
+      };
+
+      if (tournament.type === 'singles') {
+        updateData.winner_player_id = winnerId;
+      } else {
+        updateData.winner_team_id = winnerId;
+      }
+
+      const { error } = await supabase
+        .from('matches_new')
+        .update(updateData)
+        .eq('id', match.id);
+
+      if (error) throw error;
+
+      // If this match feeds into another match, update that match
+      if (match.feeds_to_match_id && match.feeds_to_position) {
+        const feedsToUpdate: any = {};
+        
+        if (tournament.type === 'singles') {
+          feedsToUpdate[`player${match.feeds_to_position}_id`] = winnerId;
+        } else {
+          feedsToUpdate[`team${match.feeds_to_position}_id`] = winnerId;
+        }
+        
+        // Check if the receiving match should be marked as scheduled
+        const { data: nextMatch } = await supabase
+          .from('matches_new')
+          .select('*')
+          .eq('id', match.feeds_to_match_id)
+          .single();
+
+        if (nextMatch) {
+          const hasPosition1 = tournament.type === 'singles' ? 
+            nextMatch.player1_id || (match.feeds_to_position === 1 ? winnerId : null) :
+            nextMatch.team1_id || (match.feeds_to_position === 1 ? winnerId : null);
+          
+          const hasPosition2 = tournament.type === 'singles' ? 
+            nextMatch.player2_id || (match.feeds_to_position === 2 ? winnerId : null) :
+            nextMatch.team2_id || (match.feeds_to_position === 2 ? winnerId : null);
+
+          if (hasPosition1 && hasPosition2) {
+            feedsToUpdate.status = 'scheduled';
+          }
+        }
+
+        await supabase
+          .from('matches_new')
+          .update(feedsToUpdate)
+          .eq('id', match.feeds_to_match_id);
+      }
+
+      toast({
+        title: "Winner Set",
+        description: "Match result has been recorded successfully.",
+      });
+
+      onMatchUpdate();
+      setShowWinnerDialog(false);
+      
+    } catch (error) {
+      console.error('Error setting winner:', error);
+      toast({
+        title: "Error",
+        description: "Failed to set winner. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <Card className="bg-card shadow-card animate-pulse">
+        <CardContent className="p-4">
+          <div className="space-y-2">
+            <div className="h-4 bg-muted rounded w-1/2"></div>
+            <div className="h-8 bg-muted rounded"></div>
+            <div className="h-8 bg-muted rounded"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <>
+      <Card className={`bg-card shadow-card hover:shadow-elevated transition-all duration-300 ${
+        match.status === 'completed' ? 'ring-1 ring-success/30' : ''
+      }`}>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm">Match {match.match_number}</CardTitle>
+            <Badge className={getStatusColor(match.status)}>
+              {getStatusText(match.status)}
+            </Badge>
+          </div>
+        </CardHeader>
+        
+        <CardContent className="pt-0 space-y-3">
+          {tournament.type === 'singles' ? (
+            <>
+              {/* Player 1 */}
+              <div className={`p-3 rounded-lg border ${
+                match.winner_player_id === player1?.id ? 'bg-success/10 border-success/30' : 'bg-muted/50 border-border'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-foreground">
+                      {player1?.name || 'TBD'}
+                      {match.winner_player_id === player1?.id && (
+                        <Crown className="h-4 w-4 inline ml-2 text-success" />
+                      )}
+                    </p>
+                    {player1?.handicap && (
+                      <p className="text-xs text-muted-foreground">HCP: {player1.handicap}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-center text-xs text-muted-foreground">vs</div>
+
+              {/* Player 2 */}
+              <div className={`p-3 rounded-lg border ${
+                match.winner_player_id === player2?.id ? 'bg-success/10 border-success/30' : 'bg-muted/50 border-border'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-foreground">
+                      {player2?.name || 'TBD'}
+                      {match.winner_player_id === player2?.id && (
+                        <Crown className="h-4 w-4 inline ml-2 text-success" />
+                      )}
+                    </p>
+                    {player2?.handicap && (
+                      <p className="text-xs text-muted-foreground">HCP: {player2.handicap}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Team 1 */}
+              <div className={`p-3 rounded-lg border ${
+                match.winner_team_id === team1?.id ? 'bg-success/10 border-success/30' : 'bg-muted/50 border-border'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-foreground flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      {team1?.name || 'TBD'}
+                      {match.winner_team_id === team1?.id && (
+                        <Crown className="h-4 w-4 text-success" />
+                      )}
+                    </p>
+                    {team1?.player1 && team1?.player2 && (
+                      <p className="text-xs text-muted-foreground">
+                        {team1.player1.name} & {team1.player2.name}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-center text-xs text-muted-foreground">vs</div>
+
+              {/* Team 2 */}
+              <div className={`p-3 rounded-lg border ${
+                match.winner_team_id === team2?.id ? 'bg-success/10 border-success/30' : 'bg-muted/50 border-border'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-foreground flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      {team2?.name || 'TBD'}
+                      {match.winner_team_id === team2?.id && (
+                        <Crown className="h-4 w-4 text-success" />
+                      )}
+                    </p>
+                    {team2?.player1 && team2?.player2 && (
+                      <p className="text-xs text-muted-foreground">
+                        {team2.player1.name} & {team2.player2.name}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {canSetWinner() && (
+            <Button 
+              onClick={() => setShowWinnerDialog(true)}
+              className="w-full bg-gradient-primary hover:opacity-90"
+              size="sm"
+            >
+              <Trophy className="h-4 w-4 mr-2" />
+              Set Winner
+            </Button>
+          )}
+
+          {match.status === 'completed' && winner && (
+            <div className="text-center p-2 bg-success/10 rounded-lg border border-success/30">
+              <p className="text-xs text-success font-medium">
+                Winner: {(winner as any).name}
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <SetWinnerDialog 
+        open={showWinnerDialog}
+        onOpenChange={setShowWinnerDialog}
+        match={match}
+        tournament={tournament}
+        player1={player1}
+        player2={player2}
+        team1={team1}
+        team2={team2}
+        onSetWinner={handleSetWinner}
+      />
+    </>
+  );
+}
