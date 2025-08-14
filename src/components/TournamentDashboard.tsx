@@ -2127,52 +2127,12 @@ export function TournamentDashboard() {
           </div>
 
           <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="shadow-card">
-                <CardHeader>
-                  <CardTitle>Tournament Progress</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="text-center py-8">
-                    <Trophy className="h-12 w-12 text-primary mx-auto mb-3" />
-                    <p className="text-lg font-semibold">Use the Bracket tab to manage all matches</p>
-                    <p className="text-muted-foreground">Complete tournament bracket with match editing</p>
-                    <Button 
-                      variant="premium" 
-                      className="mt-4"
-                      onClick={() => setActiveTab("bracket")}
-                    >
-                      View Bracket
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card className="shadow-card">
-                <CardHeader>
-                  <CardTitle>Top Players</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {tournamentPlayers.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Users className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                      <p className="text-muted-foreground">No players added yet</p>
-                    </div>
-                  ) : (
-                    tournamentPlayers
-                      .sort((a, b) => (b.wins / (b.wins + b.losses || 1)) - (a.wins / (a.wins + a.losses || 1)))
-                      .slice(0, 4)
-                      .map(player => (
-                        <PlayerCard 
-                          key={player.id} 
-                          player={player}
-                          onSelect={() => setSelectedPlayer(player.id)}
-                          selected={selectedPlayer === player.id}
-                        />
-                      ))
-                  )}
-                </CardContent>
-              </Card>
+            <div className="text-center py-12">
+              <Trophy className="h-16 w-16 text-primary mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Tournament Dashboard</h3>
+              <p className="text-muted-foreground">
+                Use the tabs above to manage players, view schedules, and bracket progression.
+              </p>
             </div>
           </TabsContent>
 
