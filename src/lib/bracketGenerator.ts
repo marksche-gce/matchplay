@@ -60,7 +60,15 @@ export class BracketGenerator {
     // Generate all rounds
     for (let round = 1; round <= totalRounds; round++) {
       // Calculate matches in this round: for round 1 = max_players/2, then divide by 2 each round
-      const matchesInRound = Math.pow(2, totalRounds - round);
+      const matchesInRound = tournament.max_players / Math.pow(2, round);
+      
+      console.log(`Tournament ${tournament.max_players} players - Round ${round}: ${matchesInRound} matches (should be integer: ${Number.isInteger(matchesInRound)})`);
+      
+      // Add validation to catch the issue
+      if (!Number.isInteger(matchesInRound) || matchesInRound <= 0) {
+        console.error(`Invalid matchesInRound calculation for ${tournament.max_players} players, round ${round}: ${matchesInRound}`);
+        throw new Error(`Invalid bracket structure: Round ${round} would have ${matchesInRound} matches`);
+      }
       
       console.log(`Round ${round}: ${matchesInRound} matches`);
       
