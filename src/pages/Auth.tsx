@@ -14,16 +14,27 @@ export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [resetEmail, setResetEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [recovering, setRecovering] = useState(false);
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setRecovering(true);
+      }
+    });
+
+    if (user && !recovering) {
       navigate('/');
     }
-  }, [user, navigate]);
+
+    return () => subscription.unsubscribe();
+  }, [user, navigate, recovering]);
 
   const cleanupAuthState = () => {
     Object.keys(localStorage).forEach((key) => {
@@ -100,6 +111,88 @@ export default function Auth() {
       setLoading(false);
     }
   };
+
+  const handleUpdateNewPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmNewPassword) {
+      toast({
+        title: 'Fehler',
+        description: 'Die Passwörter stimmen nicht überein.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        title: 'Fehler',
+        description: 'Das neue Passwort muss mindestens 6 Zeichen haben.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+
+      toast({ title: 'Erfolg', description: 'Passwort aktualisiert. Bitte melden Sie sich erneut an.' });
+      window.location.href = '/auth';
+    } catch (error: any) {
+      toast({
+        title: 'Fehler',
+        description: error.message || 'Passwort konnte nicht aktualisiert werden',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (recovering) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-secondary/20 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold">Neues Passwort setzen</CardTitle>
+            <CardDescription>Bitte vergeben Sie ein neues Passwort für Ihr Konto</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleUpdateNewPassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="new-password">Neues Passwort</Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  placeholder="Neues Passwort"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm-new-password">Neues Passwort bestätigen</Label>
+                <Input
+                  id="confirm-new-password"
+                  type="password"
+                  placeholder="Neues Passwort bestätigen"
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Aktualisiere...' : 'Passwort aktualisieren'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (user) {
     return null;
