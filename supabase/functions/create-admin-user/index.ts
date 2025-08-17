@@ -41,21 +41,23 @@ Deno.serve(async (req) => {
       throw new Error('User not authenticated')
     }
 
-    // Parse request body
-    const { email, password, displayName, role } = await req.json()
+    // Check if user has tenant_admin role
+    const { data: adminCheck, error: adminError } = await supabaseAdmin
+      .from('user_roles')
+      .select('role, tenant_id')
+      .eq('user_id', user.id)
+      .eq('role', 'tenant_admin')
+      .maybeSingle()
 
-    // Validate admin permissions using the database function
-    const { data: validationResult, error: validationError } = await supabaseClient
-      .rpc('create_admin_user', {
-        user_email: email,
-        user_password: password,
-        user_display_name: displayName,
-        user_role: role
-      })
-
-    if (validationError || !validationResult.success) {
-      throw new Error(validationResult?.error || validationError?.message || 'Validation failed')
+    if (adminError || !adminCheck) {
+      throw new Error('Access denied. Tenant admin privileges required.')
     }
+
+    // Parse request body
+    const { email, password, displayName, role, tenantId } = await req.json()
+
+    // Use admin's tenant if no tenant specified
+    const targetTenantId = tenantId || adminCheck.tenant_id
 
     // Create the user using admin client
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
@@ -84,11 +86,12 @@ Deno.serve(async (req) => {
       // Continue despite profile error - it might already exist
     }
 
-    // Assign role
+    // Assign role to tenant
     const { error: roleError } = await supabaseAdmin
       .from('user_roles')
       .insert({
         user_id: authData.user.id,
+        tenant_id: targetTenantId,
         role: role
       })
 
@@ -103,7 +106,8 @@ Deno.serve(async (req) => {
           id: authData.user.id,
           email: authData.user.email,
           display_name: displayName,
-          role
+          role,
+          tenant_id: targetTenantId
         }
       }),
       {

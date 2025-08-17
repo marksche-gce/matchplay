@@ -39,12 +39,12 @@ serve(async (req) => {
       });
     }
 
-    // Check admin role using service role (bypass RLS safely)
+    // Check if user has tenant_admin role in any tenant
     const { data: roleData, error: roleErr } = await adminClient
       .from("user_roles")
-      .select("role")
+      .select("role, tenant_id")
       .eq("user_id", user.id)
-      .eq("role", "admin")
+      .eq("role", "tenant_admin")
       .maybeSingle();
 
     if (roleErr) {
@@ -56,11 +56,15 @@ serve(async (req) => {
     }
 
     if (!roleData) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), {
+      return new Response(JSON.stringify({ error: "Forbidden - Tenant admin required" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // For now, return all users but in the future we should filter by tenant
+    // Get tenant_id from admin user to limit results to their tenant
+    const adminTenantId = roleData.tenant_id;
 
     // List auth users (requires service role)
     const { data: authUsers, error: authErr } = await adminClient.auth.admin.listUsers();
@@ -72,10 +76,21 @@ serve(async (req) => {
       );
     }
 
-    // Fetch profiles and roles
+    // Fetch profiles and roles with tenant information
     const [profilesRes, rolesRes] = await Promise.all([
       adminClient.from("profiles").select("id, display_name"),
-      adminClient.from("user_roles").select("user_id, role"),
+      adminClient
+        .from("user_roles")
+        .select(`
+          user_id, 
+          role, 
+          tenant_id,
+          tenants:tenant_id (
+            name,
+            slug
+          )
+        `)
+        .eq("tenant_id", adminTenantId), // Only get users from the admin's tenant
     ]);
 
     if (profilesRes.error || rolesRes.error) {
@@ -89,15 +104,27 @@ serve(async (req) => {
     const profiles = profilesRes.data || [];
     const roles = rolesRes.data || [];
 
-    const combined = authUsers.users.map((u: any) => {
+    // Filter auth users to only include those in the admin's tenant
+    const tenantUserIds = roles.map(r => r.user_id);
+    const filteredAuthUsers = authUsers.users.filter(u => tenantUserIds.includes(u.id));
+
+    const combined = filteredAuthUsers.map((u: any) => {
       const profile = profiles.find((p: any) => p.id === u.id);
-      const roleRow = roles.find((r: any) => r.user_id === u.id);
+      const userRoles = roles.filter((r: any) => r.user_id === u.id);
+      
       return {
         id: u.id,
         email: u.email ?? "",
         display_name: profile?.display_name ?? u.user_metadata?.display_name ?? null,
         created_at: u.created_at,
-        role: roleRow?.role ?? "player",
+        roles: userRoles.map(r => ({
+          role: r.role,
+          tenant_id: r.tenant_id,
+          tenant_name: r.tenants?.name || 'Unknown',
+          tenant_slug: r.tenants?.slug || 'unknown'
+        })),
+        // For backwards compatibility, include primary role
+        role: userRoles[0]?.role || "player"
       };
     });
 
