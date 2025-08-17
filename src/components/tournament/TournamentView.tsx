@@ -313,7 +313,7 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
       <Card className="bg-card shadow-card">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            Tournament Information
+            Turnierinformationen
             <Badge className={getStatusColor(tournament.registration_status)}>
               {tournament.registration_status}
             </Badge>
