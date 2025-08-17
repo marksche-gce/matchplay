@@ -154,32 +154,32 @@ export function BracketView({ tournamentId, tournament, embedded = false }: Brac
   const rounds = Object.keys(roundsData).map(Number).sort((a, b) => a - b);
 
   return (
-    <Card className="bg-card shadow-card">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
+    <Card className={`bg-card ${embedded ? 'shadow-sm' : 'shadow-card'}`}>
+      <CardHeader className={embedded ? 'p-3 md:p-4' : 'p-6'}>
+        <CardTitle className={`flex items-center justify-between ${embedded ? 'text-lg md:text-xl' : 'text-2xl'}`}>
           Turnier-Tableau
-          <Badge className="bg-success/10 text-success border-success/30">
+          <Badge className="bg-success/10 text-success border-success/30 text-xs">
             Active
           </Badge>
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className={embedded ? 'p-2 md:p-4' : 'p-6'}>
         <div className="overflow-x-auto">
-          <div className="flex gap-8 min-w-fit pb-4">
+          <div className={`flex ${embedded ? 'gap-3 md:gap-6' : 'gap-8'} min-w-fit pb-4`}>
             {rounds.map(roundNumber => (
-              <div key={roundNumber} className="flex-shrink-0 w-80">
-                <div className="sticky top-0 bg-card z-10 pb-4 mb-4 border-b">
+              <div key={roundNumber} className={`flex-shrink-0 ${embedded ? 'w-64 md:w-72' : 'w-80'}`}>
+                <div className={`sticky top-0 bg-card z-10 ${embedded ? 'pb-2 mb-2' : 'pb-4 mb-4'} border-b`}>
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-foreground">
+                    <h3 className={`${embedded ? 'text-sm md:text-base' : 'text-lg'} font-semibold text-foreground`}>
                       {getRoundDisplayName(roundNumber, calculateTotalRounds(tournament.max_players))}
                     </h3>
-                    <Badge variant="outline">
+                    <Badge variant="outline" className="text-xs">
                       {roundsData[roundNumber].length} matches
                     </Badge>
                   </div>
                 </div>
                 
-                <div className="space-y-4">
+                <div className={`${embedded ? 'space-y-2 md:space-y-3' : 'space-y-4'}`}>
                   {roundsData[roundNumber].map(match => (
                     <MatchCard
                       key={match.id}

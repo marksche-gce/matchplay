@@ -271,23 +271,23 @@ export function EmbedRegistrationForm({ tournament, registrationCount, onRegistr
     <div className="min-h-screen bg-background">
       {/* Tournament Header */}
       <div className="bg-gradient-to-r from-primary/10 to-primary/20 border-b">
-        <div className="max-w-4xl mx-auto p-6">
-          <div className="space-y-4">
-            <h1 className="text-3xl font-bold text-foreground">{tournament.name}</h1>
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
+        <div className="max-w-full mx-auto p-3 md:p-4">
+          <div className="space-y-2">
+            <h1 className="text-lg md:text-2xl font-bold text-foreground">{tournament.name}</h1>
+            <div className="flex flex-wrap items-center gap-3 md:gap-4 text-xs md:text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
-                <Calendar className="h-4 w-4" />
-                {format(new Date(tournament.start_date), 'MMM dd')} - {format(new Date(tournament.end_date), 'MMM dd, yyyy')}
+                <Calendar className="h-3 w-3 md:h-4 md:w-4" />
+                <span className="whitespace-nowrap">{format(new Date(tournament.start_date), 'MMM dd')} - {format(new Date(tournament.end_date), 'MMM dd, yyyy')}</span>
               </div>
               <div className="flex items-center gap-1">
-                <Users className="h-4 w-4" />
-                {registrationCount}/{tournament.max_players} Players
+                <Users className="h-3 w-3 md:h-4 md:w-4" />
+                <span>{registrationCount}/{tournament.max_players} Players</span>
               </div>
               <div className="flex items-center gap-1">
-                <Trophy className="h-4 w-4" />
-                {tournament.type === 'singles' ? 'Singles' : 'Foursome'}
+                <Trophy className="h-3 w-3 md:h-4 md:w-4" />
+                <span>{tournament.type === 'singles' ? 'Singles' : 'Foursome'}</span>
               </div>
-              <Badge className={getRegistrationStatusColor(tournament.registration_status)}>
+              <Badge className={`${getRegistrationStatusColor(tournament.registration_status)} text-xs`}>
                 {tournament.registration_status === 'open' ? 'Open for Registration' : 
                  tournament.registration_status === 'closed' ? 'Registration Closed' : 
                  'Tournament Full'}
@@ -298,15 +298,15 @@ export function EmbedRegistrationForm({ tournament, registrationCount, onRegistr
       </div>
 
       {/* Registration Form */}
-      <div className="max-w-4xl mx-auto p-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserPlus className="h-5 w-5" />
+      <div className="max-w-full mx-auto p-2 md:p-4">
+        <Card className="shadow-sm">
+          <CardHeader className="p-3 md:p-6">
+            <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+              <UserPlus className="h-4 w-4 md:h-5 md:w-5" />
               Tournament Registration
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4 md:space-y-6 p-3 md:p-6 pt-0">
             {isRegistrationClosed || isFull ? (
               <div className="text-center py-8">
                 <div className="mb-4">
