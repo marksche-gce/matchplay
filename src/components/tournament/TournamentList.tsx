@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar, Users, Trophy, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useTenant } from '@/hooks/useTenantContext';
 
 interface Tournament {
   id: string;
@@ -26,26 +27,34 @@ export function TournamentList({ onTournamentSelect }: TournamentListProps) {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { currentTenant } = useTenant();
 
   useEffect(() => {
-    fetchTournaments();
-  }, []);
-
-  const fetchTournaments = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('tournaments_new')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setTournaments(data || []);
-    } catch (error) {
-      console.error('Error fetching tournaments:', error);
-    } finally {
+    if (currentTenant) {
+      fetchTournaments();
+    } else {
+      setTournaments([]);
       setLoading(false);
     }
-  };
+  }, [currentTenant?.id]);
+
+const fetchTournaments = async () => {
+  try {
+    if (!currentTenant) return;
+    const { data, error } = await supabase
+      .from('tournaments_new')
+      .select('*')
+      .eq('tenant_id', currentTenant.id)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    setTournaments(data || []);
+  } catch (error) {
+    console.error('Error fetching tournaments:', error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const deleteTournament = async (tournamentId: string, tournamentName: string) => {
     if (!confirm(`Sind Sie sicher, dass Sie "${tournamentName}" löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.`)) {
