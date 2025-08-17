@@ -1,5 +1,6 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useAdminCheck } from '@/hooks/useAdminCheck';
+import { useSystemAdminCheck } from '@/hooks/useSystemAdminCheck';
 import { useTenant } from '@/hooks/useTenantContext';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,7 +15,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { LogOut, User, Shield, Key, Building2 } from 'lucide-react';
+import { LogOut, User, Shield, Key, Building2, Crown } from 'lucide-react';
 import { TenantSelector } from '@/components/TenantSelector';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
@@ -24,6 +25,7 @@ import { supabase } from '@/integrations/supabase/client';
 export function UserMenu() {
   const { user, signOut } = useAuth();
   const { isAdmin } = useAdminCheck();
+  const { isSystemAdmin } = useSystemAdminCheck();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
@@ -133,6 +135,16 @@ export function UserMenu() {
           <TenantSelector />
         </div>
         <DropdownMenuSeparator />
+        
+        {isSystemAdmin && (
+          <>
+            <DropdownMenuItem onClick={() => navigate('/system-admin')}>
+              <Crown className="mr-2 h-4 w-4" />
+              <span>System-Administration</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
         
         {isAdmin && (
           <>

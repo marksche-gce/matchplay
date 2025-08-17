@@ -439,6 +439,27 @@ export type Database = {
           },
         ]
       }
+      system_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["system_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["system_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["system_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       teams: {
         Row: {
           created_at: string | null
@@ -880,6 +901,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      get_current_user_system_role: {
+        Args: Record<PropertyKey, never>
+        Returns: Database["public"]["Enums"]["system_role"]
+      }
       get_current_user_tenant_role: {
         Args: { _tenant_id: string }
         Returns: Database["public"]["Enums"]["tenant_role"]
@@ -907,6 +932,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_system_admin: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       is_tenant_admin: {
         Args: { _tenant_id: string; _user_id: string }
         Returns: boolean
@@ -924,7 +953,8 @@ export type Database = {
       app_role: "admin" | "organizer" | "player"
       match_status: "pending" | "scheduled" | "completed"
       registration_status: "open" | "closed" | "full"
-      tenant_role: "tenant_admin" | "organizer" | "player"
+      system_role: "system_admin"
+      tenant_role: "tenant_admin" | "organizer" | "player" | "manager"
       tournament_type: "singles" | "foursome"
     }
     CompositeTypes: {
@@ -1056,7 +1086,8 @@ export const Constants = {
       app_role: ["admin", "organizer", "player"],
       match_status: ["pending", "scheduled", "completed"],
       registration_status: ["open", "closed", "full"],
-      tenant_role: ["tenant_admin", "organizer", "player"],
+      system_role: ["system_admin"],
+      tenant_role: ["tenant_admin", "organizer", "player", "manager"],
       tournament_type: ["singles", "foursome"],
     },
   },

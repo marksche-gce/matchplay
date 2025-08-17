@@ -15,7 +15,7 @@ interface UserTenant {
   tenant_id: string;
   tenant_name: string;
   tenant_slug: string;
-  user_role: 'tenant_admin' | 'organizer' | 'player';
+  user_role: 'tenant_admin' | 'manager' | 'organizer' | 'player';
 }
 
 interface TenantContextType {
