@@ -8,6 +8,7 @@ import { TournamentList } from '@/components/tournament/TournamentList';
 import { TournamentView } from '@/components/tournament/TournamentView';
 import { useAuth } from '@/hooks/useAuth';
 import { useAdminCheck } from '@/hooks/useAdminCheck';
+import { useOrganizerCheck } from '@/hooks/useOrganizerCheck';
 import { useNavigate } from 'react-router-dom';
 
 export function MatchPlayTournaments() {
@@ -15,6 +16,7 @@ export function MatchPlayTournaments() {
   const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
   const { user } = useAuth();
   const { isAdmin } = useAdminCheck();
+  const { isOrganizer } = useOrganizerCheck();
   const navigate = useNavigate();
 
   const handleTournamentSelect = (tournamentId: string) => {
@@ -39,7 +41,7 @@ export function MatchPlayTournaments() {
               </div>
             </div>
             
-            {user && (
+            {user && isOrganizer && (
               <div className="flex gap-2">
                 {isAdmin && (
                   <Button 

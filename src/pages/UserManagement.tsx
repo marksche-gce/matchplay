@@ -157,7 +157,7 @@ export default function UserManagement() {
 
   const getRoleDisplayName = (role: string) => {
     switch (role) {
-      case 'admin': return 'Administrator';
+      case 'admin': return 'Systemadmin';
       case 'organizer': return 'Manager';
       case 'player': return 'Spieler';
       default: return role;
@@ -194,7 +194,7 @@ export default function UserManagement() {
                 <Shield className="h-8 w-8 text-primary" />
                 Benutzerverwaltung
               </h1>
-              <p className="text-muted-foreground">Manager und Administratoren verwalten</p>
+              <p className="text-muted-foreground">Systemadministratoren und Manager verwalten</p>
             </div>
           </div>
           
@@ -209,7 +209,7 @@ export default function UserManagement() {
               <DialogHeader>
                 <DialogTitle>Neuen Benutzer erstellen</DialogTitle>
                 <DialogDescription>
-                  Erstellen Sie einen neuen Manager oder Administrator für das System.
+                  Erstellen Sie einen neuen Manager oder Systemadministrator für das System.
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleCreateUser} className="space-y-4">
@@ -253,8 +253,8 @@ export default function UserManagement() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="organizer">Manager</SelectItem>
-                      <SelectItem value="admin">Administrator</SelectItem>
+                      <SelectItem value="organizer">Manager (Turniere verwalten)</SelectItem>
+                      <SelectItem value="admin">Systemadmin (Vollzugriff)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -278,7 +278,7 @@ export default function UserManagement() {
               System-Benutzer ({users.length})
             </CardTitle>
             <CardDescription>
-              Alle registrierten Manager und Administratoren im System
+              Alle registrierten Manager und Systemadministratoren im System
             </CardDescription>
           </CardHeader>
           <CardContent>
