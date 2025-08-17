@@ -127,8 +127,12 @@ export default function UserManagement() {
     }
 
     try {
-      const { error } = await supabase.auth.admin.deleteUser(userId);
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: { userId }
+      });
+
       if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Unbekannter Fehler');
 
       toast({
         title: "Erfolg",
@@ -140,7 +144,7 @@ export default function UserManagement() {
       console.error('Error deleting user:', error);
       toast({
         title: "Fehler",
-        description: "Benutzer konnte nicht gelöscht werden.",
+        description: error.message || "Benutzer konnte nicht gelöscht werden.",
         variant: "destructive"
       });
     }
