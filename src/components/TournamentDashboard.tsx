@@ -555,7 +555,8 @@ export function TournamentDashboard() {
           format: tournamentData.format,
           status: "upcoming",
           registration_open: true,
-          entry_fee: tournamentData.entry_fee || 0
+          entry_fee: tournamentData.entry_fee || 0,
+          tenant_id: "default-tenant-id" // TODO: Get from tenant context
         })
         .select()
         .single();
