@@ -21,10 +21,10 @@ const Index = () => {
         <div className="text-center mb-16">
           <Trophy className="h-16 w-16 text-primary mx-auto mb-6" />
           <h1 className="text-4xl font-bold text-foreground mb-4">
-            Match Play Turnier Manager
+            Matchplay Turnier Manager
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Erstellen und verwalten Sie Golf Match Play Turniere mit automatischer Bracket-Generierung, 
+            Erstellen und verwalten Sie Golf Matchplay Turniere mit automatischer Bracket-Generierung, 
             Spieler-Registrierung und Gewinner-Aufstieg.
           </p>
         </div>
