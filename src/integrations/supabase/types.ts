@@ -775,6 +775,15 @@ export type Database = {
       }
     }
     Functions: {
+      create_admin_user: {
+        Args: {
+          user_display_name: string
+          user_email: string
+          user_password: string
+          user_role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: Json
+      }
       get_current_user_player_id: {
         Args: Record<PropertyKey, never>
         Returns: string

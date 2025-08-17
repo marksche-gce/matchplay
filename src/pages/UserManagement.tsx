@@ -108,27 +108,18 @@ export default function UserManagement() {
 
     setCreating(true);
     try {
-      // Create user via admin API
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: newUserEmail,
-        password: newUserPassword,
-        user_metadata: {
-          display_name: newUserDisplayName
-        },
-        email_confirm: true
+      // Use Edge Function to create user with proper admin validation
+      const { data, error } = await supabase.functions.invoke('create-admin-user', {
+        body: {
+          email: newUserEmail,
+          password: newUserPassword,
+          displayName: newUserDisplayName,
+          role: newUserRole
+        }
       });
 
-      if (authError) throw authError;
-
-      // Assign role to the new user
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: authData.user.id,
-          role: newUserRole
-        });
-
-      if (roleError) throw roleError;
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error);
 
       toast({
         title: "Erfolg",
