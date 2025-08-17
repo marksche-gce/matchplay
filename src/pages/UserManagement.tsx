@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { UserPlus, Users, Shield, Trash2, ArrowLeft } from 'lucide-react';
+import { UserPlus, Users, Shield, Trash2, ArrowLeft, Edit } from 'lucide-react';
 import { useAdminCheck } from '@/hooks/useAdminCheck';
 
 interface User {
@@ -26,11 +26,16 @@ export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
+  const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserDisplayName, setNewUserDisplayName] = useState('');
   const [newUserRole, setNewUserRole] = useState<'admin' | 'organizer'>('organizer');
+  const [editDisplayName, setEditDisplayName] = useState('');
+  const [editRole, setEditRole] = useState<'admin' | 'organizer'>('organizer');
   const [creating, setCreating] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -118,6 +123,55 @@ export default function UserManagement() {
       });
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleEditUser = (userData: User) => {
+    setEditingUser(userData);
+    setEditDisplayName(userData.display_name || '');
+    setEditRole(userData.role as 'admin' | 'organizer');
+    setEditUserDialogOpen(true);
+  };
+
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser || !editDisplayName) return;
+
+    setUpdating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('update-user', {
+        body: {
+          userId: editingUser.id,
+          displayName: editDisplayName,
+          role: editRole
+        }
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Unbekannter Fehler');
+
+      toast({
+        title: "Erfolg",
+        description: `Benutzer ${editDisplayName} wurde erfolgreich aktualisiert.`,
+      });
+
+      // Reset form and close dialog
+      setEditDisplayName('');
+      setEditRole('organizer');
+      setEditingUser(null);
+      setEditUserDialogOpen(false);
+
+      // Refresh users list
+      fetchUsers();
+    } catch (error: any) {
+      console.error('Error updating user:', error);
+      toast({
+        title: "Fehler",
+        description: error.message || "Benutzer konnte nicht aktualisiert werden.",
+        variant: "destructive"
+      });
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -275,6 +329,50 @@ export default function UserManagement() {
           </Dialog>
         </div>
 
+        {/* Edit User Dialog */}
+        <Dialog open={editUserDialogOpen} onOpenChange={setEditUserDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Benutzer bearbeiten</DialogTitle>
+              <DialogDescription>
+                Bearbeiten Sie die Daten von {editingUser?.email}
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleUpdateUser} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="editDisplayName">Anzeigename *</Label>
+                <Input
+                  id="editDisplayName"
+                  value={editDisplayName}
+                  onChange={(e) => setEditDisplayName(e.target.value)}
+                  placeholder="Max Mustermann"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editRole">Rolle *</Label>
+                <Select value={editRole} onValueChange={(value: 'admin' | 'organizer') => setEditRole(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="organizer">Manager (Turniere verwalten)</SelectItem>
+                    <SelectItem value="admin">Systemadmin (Vollzugriff)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setEditUserDialogOpen(false)}>
+                  Abbrechen
+                </Button>
+                <Button type="submit" disabled={updating}>
+                  {updating ? "Aktualisiere..." : "Benutzer aktualisieren"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -312,15 +410,24 @@ export default function UserManagement() {
                       {new Date(userData.created_at).toLocaleDateString('de-DE')}
                     </TableCell>
                     <TableCell className="text-right">
-                      {userData.id !== user?.id && (
+                      <div className="flex gap-2 justify-end">
                         <Button
-                          variant="destructive"
+                          variant="outline"
                           size="sm"
-                          onClick={() => handleDeleteUser(userData.id, userData.email)}
+                          onClick={() => handleEditUser(userData)}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Edit className="h-4 w-4" />
                         </Button>
-                      )}
+                        {userData.id !== user?.id && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteUser(userData.id, userData.email)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
