@@ -73,8 +73,8 @@ export function TournamentList({ onRegister }: TournamentListProps) {
     } catch (error) {
       console.error('Error fetching tournaments:', error);
       toast({
-        title: "Error",
-        description: "Failed to load tournaments.",
+        title: "Fehler",
+        description: "Turniere konnten nicht geladen werden.",
         variant: "destructive"
       });
     }
@@ -144,7 +144,7 @@ export function TournamentList({ onRegister }: TournamentListProps) {
       <div className="min-h-screen bg-gradient-course">
         <div className="container mx-auto px-4 py-6">
           <div className="text-center">
-            <p>Loading tournaments...</p>
+            <p>Lade Turniere...</p>
           </div>
         </div>
       </div>
@@ -155,8 +155,8 @@ export function TournamentList({ onRegister }: TournamentListProps) {
     <div className="min-h-screen bg-gradient-course">
       <div className="container mx-auto px-4 py-6">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">Tournament Registration</h1>
-          <p className="text-muted-foreground">Browse and register for upcoming golf tournaments</p>
+          <h1 className="text-3xl font-bold mb-2">Turnier-Registrierung</h1>
+          <p className="text-muted-foreground">Durchsuchen und registrieren Sie sich für kommende Golf-Turniere</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -186,7 +186,7 @@ export function TournamentList({ onRegister }: TournamentListProps) {
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-primary" />
                       <div>
-                        <p className="font-medium">Start Date</p>
+                        <p className="font-medium">Startdatum</p>
                         <p className="text-muted-foreground">
                           {new Date(tournament.start_date).toLocaleDateString()}
                         </p>
@@ -204,7 +204,7 @@ export function TournamentList({ onRegister }: TournamentListProps) {
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4 text-primary" />
                       <div>
-                        <p className="font-medium">Players</p>
+                        <p className="font-medium">Spieler</p>
                         <p className="text-muted-foreground">
                           {registrationCount}/{tournament.max_players}
                         </p>
@@ -215,7 +215,7 @@ export function TournamentList({ onRegister }: TournamentListProps) {
                       <div className="flex items-center gap-2">
                         <DollarSign className="h-4 w-4 text-primary" />
                         <div>
-                          <p className="font-medium">Entry Fee</p>
+                          <p className="font-medium">Startgeld</p>
                           <p className="text-muted-foreground">${tournament.entry_fee}</p>
                         </div>
                       </div>
@@ -233,7 +233,7 @@ export function TournamentList({ onRegister }: TournamentListProps) {
                     <div className="flex items-center gap-2 text-sm">
                       <Clock className="h-4 w-4 text-warning" />
                       <span className="text-warning">
-                        Registration closes: {new Date(tournament.registration_deadline).toLocaleDateString()}
+                        Anmeldeschluss: {new Date(tournament.registration_deadline).toLocaleDateString()}
                       </span>
                     </div>
                   )}
@@ -241,11 +241,11 @@ export function TournamentList({ onRegister }: TournamentListProps) {
                   <div className="pt-2">
                     {isTournamentFull(tournament) ? (
                       <Badge variant="destructive" className="w-full justify-center py-2">
-                        Tournament Full
+                        Turnier voll
                       </Badge>
                     ) : !isRegistrationOpen(tournament) ? (
                       <Badge variant="secondary" className="w-full justify-center py-2">
-                        Registration Closed
+                        Anmeldung geschlossen
                       </Badge>
                     ) : (
                       <Button 
@@ -253,7 +253,7 @@ export function TournamentList({ onRegister }: TournamentListProps) {
                         className="w-full"
                         variant="default"
                       >
-                        Register Now
+                        Jetzt registrieren
                       </Button>
                     )}
                   </div>
@@ -267,9 +267,9 @@ export function TournamentList({ onRegister }: TournamentListProps) {
           <Card className="shadow-card">
             <CardContent className="p-8 text-center">
               <Trophy className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">No Tournaments Available</h3>
+              <h3 className="text-xl font-semibold mb-2">Keine Turniere verfügbar</h3>
               <p className="text-muted-foreground">
-                There are currently no tournaments open for registration. Check back later!
+                Derzeit sind keine Turniere für die Anmeldung geöffnet. Schauen Sie später wieder vorbei!
               </p>
             </CardContent>
           </Card>

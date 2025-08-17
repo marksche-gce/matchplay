@@ -104,8 +104,8 @@ export function TournamentManagement({
     onTournamentUpdate(tournamentForm);
     setEditingTournament(false);
     toast({
-      title: "Tournament Updated",
-      description: "Tournament settings have been saved successfully.",
+      title: "Turnier aktualisiert",
+      description: "Turniereinstellungen wurden erfolgreich gespeichert.",
     });
   };
 
@@ -116,8 +116,8 @@ export function TournamentManagement({
     };
     onTournamentUpdate(updatedTournament);
     toast({
-      title: "Player Removed",
-      description: "Player has been removed from the tournament.",
+      title: "Spieler entfernt",
+      description: "Spieler wurde vom Turnier entfernt.",
     });
   };
 
@@ -168,9 +168,9 @@ export function TournamentManagement({
         <div className="mb-6 flex items-center justify-between">
           <div>
             <Button variant="ghost" onClick={onBack} className="mb-2">
-              ← Back to Dashboard
+              ← Zurück zum Dashboard
             </Button>
-            <h1 className="text-3xl font-bold">Tournament Management</h1>
+            <h1 className="text-3xl font-bold">Turnierverwaltung</h1>
             <p className="text-muted-foreground">{tournament.name}</p>
           </div>
           <Badge className={getStatusColor(tournament.status)}>
@@ -180,11 +180,11 @@ export function TournamentManagement({
 
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-            <TabsTrigger value="players">Players</TabsTrigger>
-            <TabsTrigger value="matches">Matches</TabsTrigger>
-            <TabsTrigger value="statistics">Statistics</TabsTrigger>
+            <TabsTrigger value="overview">Übersicht</TabsTrigger>
+            <TabsTrigger value="settings">Einstellungen</TabsTrigger>
+            <TabsTrigger value="players">Spieler</TabsTrigger>
+            <TabsTrigger value="matches">Spiele</TabsTrigger>
+            <TabsTrigger value="statistics">Statistiken</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -194,7 +194,7 @@ export function TournamentManagement({
                   <div className="flex items-center gap-2">
                     <Users className="h-5 w-5 text-primary" />
                     <div>
-                      <p className="text-sm text-muted-foreground">Players</p>
+                      <p className="text-sm text-muted-foreground">Spieler</p>
                       <p className="text-2xl font-bold">{tournamentPlayers.length}/{tournament.maxPlayers}</p>
                     </div>
                   </div>
@@ -206,7 +206,7 @@ export function TournamentManagement({
                   <div className="flex items-center gap-2">
                     <Calendar className="h-5 w-5 text-primary" />
                     <div>
-                      <p className="text-sm text-muted-foreground">Matches</p>
+                      <p className="text-sm text-muted-foreground">Spiele</p>
                       <p className="text-2xl font-bold">{tournamentMatches.length}</p>
                     </div>
                   </div>
@@ -218,7 +218,7 @@ export function TournamentManagement({
                   <div className="flex items-center gap-2">
                     <Clock className="h-5 w-5 text-primary" />
                     <div>
-                      <p className="text-sm text-muted-foreground">Completed</p>
+                      <p className="text-sm text-muted-foreground">Abgeschlossen</p>
                       <p className="text-2xl font-bold">
                         {tournamentMatches.filter(m => m.status === "completed").length}
                       </p>
@@ -242,23 +242,23 @@ export function TournamentManagement({
 
             <Card>
               <CardHeader>
-                <CardTitle>Tournament Details</CardTitle>
+                <CardTitle>Turnierdetails</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Course</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Platz</Label>
                     <p className="text-lg">{tournament.course}</p>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Duration</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Dauer</Label>
                     <p className="text-lg">
                       {new Date(tournament.startDate).toLocaleDateString()} - {new Date(tournament.endDate).toLocaleDateString()}
                     </p>
                   </div>
                   {tournament.description && (
                     <div className="md:col-span-2">
-                      <Label className="text-sm font-medium text-muted-foreground">Description</Label>
+                      <Label className="text-sm font-medium text-muted-foreground">Beschreibung</Label>
                       <p className="text-lg">{tournament.description}</p>
                     </div>
                   )}
@@ -271,20 +271,20 @@ export function TournamentManagement({
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>Tournament Settings</CardTitle>
+                  <CardTitle>Turniereinstellungen</CardTitle>
                   <Button
                     variant={editingTournament ? "default" : "outline"}
                     onClick={() => editingTournament ? handleSaveTournament() : setEditingTournament(true)}
                   >
                     {editingTournament ? <Save className="h-4 w-4 mr-2" /> : <Edit className="h-4 w-4 mr-2" />}
-                    {editingTournament ? "Save Changes" : "Edit Tournament"}
+                    {editingTournament ? "Änderungen speichern" : "Turnier bearbeiten"}
                   </Button>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="name">Tournament Name</Label>
+                    <Label htmlFor="name">Turniername</Label>
                     <Input
                       id="name"
                       value={tournamentForm.name}
@@ -293,7 +293,7 @@ export function TournamentManagement({
                     />
                   </div>
                   <div>
-                    <Label htmlFor="course">Course</Label>
+                    <Label htmlFor="course">Platz</Label>
                     <Input
                       id="course"
                       value={tournamentForm.course}
@@ -302,7 +302,7 @@ export function TournamentManagement({
                     />
                   </div>
                   <div>
-                    <Label htmlFor="startDate">Start Date</Label>
+                    <Label htmlFor="startDate">Startdatum</Label>
                     <Input
                       id="startDate"
                       type="date"
@@ -312,7 +312,7 @@ export function TournamentManagement({
                     />
                   </div>
                   <div>
-                    <Label htmlFor="endDate">End Date</Label>
+                    <Label htmlFor="endDate">Enddatum</Label>
                     <Input
                       id="endDate"
                       type="date"
@@ -322,7 +322,7 @@ export function TournamentManagement({
                     />
                   </div>
                   <div>
-                    <Label htmlFor="maxPlayers">Max Players</Label>
+                    <Label htmlFor="maxPlayers">Max. Spieler</Label>
                     <Input
                       id="maxPlayers"
                       type="number"
@@ -352,7 +352,7 @@ export function TournamentManagement({
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description">Beschreibung</Label>
                   <Textarea
                     id="description"
                     value={tournamentForm.description || ""}
@@ -368,7 +368,7 @@ export function TournamentManagement({
                       setEditingTournament(false);
                     }}>
                       <X className="h-4 w-4 mr-2" />
-                      Cancel
+                      Abbrechen
                     </Button>
                   </div>
                 )}
@@ -380,10 +380,10 @@ export function TournamentManagement({
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>Tournament Players ({tournamentPlayers.length}/{tournament.maxPlayers})</CardTitle>
+                  <CardTitle>Turnierspieler ({tournamentPlayers.length}/{tournament.maxPlayers})</CardTitle>
                   <Button>
                     <Plus className="h-4 w-4 mr-2" />
-                    Add Player
+                    Spieler hinzufügen
                   </Button>
                 </div>
               </CardHeader>
@@ -411,17 +411,17 @@ export function TournamentManagement({
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Remove Player</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to remove {player.name} from this tournament?
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleRemovePlayer(player.id)}>
-                                Remove
-                              </AlertDialogAction>
+                             <AlertDialogHeader>
+                               <AlertDialogTitle>Spieler entfernen</AlertDialogTitle>
+                               <AlertDialogDescription>
+                                 Sind Sie sicher, dass Sie {player.name} von diesem Turnier entfernen möchten?
+                               </AlertDialogDescription>
+                             </AlertDialogHeader>
+                             <AlertDialogFooter>
+                               <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                               <AlertDialogAction onClick={() => handleRemovePlayer(player.id)}>
+                                 Entfernen
+                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
@@ -437,7 +437,7 @@ export function TournamentManagement({
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>Tournament Matches</CardTitle>
+                  <CardTitle>Turnierspiele</CardTitle>
                   <CreateMatchDialog
                     tournamentId={tournament.id}
                     availablePlayers={tournamentPlayers}
@@ -504,7 +504,7 @@ export function TournamentManagement({
                         <div className="mt-3 text-center">
                           <Badge className="bg-success text-success-foreground">
                             <Award className="h-3 w-3 mr-1" />
-                            Winner: {match.winner}
+                            Gewinner: {match.winner}
                           </Badge>
                         </div>
                       )}
@@ -514,8 +514,8 @@ export function TournamentManagement({
                   {tournamentMatches.length === 0 && (
                     <div className="text-center py-8 text-muted-foreground">
                       <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>No matches scheduled yet</p>
-                      <p className="text-sm">Create matches to get the tournament started</p>
+                      <p>Noch keine Spiele geplant</p>
+                      <p className="text-sm">Erstellen Sie Spiele, um das Turnier zu starten</p>
                     </div>
                   )}
                 </div>
@@ -529,21 +529,21 @@ export function TournamentManagement({
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <BarChart3 className="h-5 w-5" />
-                    Match Statistics
+                    Spiel-Statistiken
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex justify-between">
-                      <span>Total Matches:</span>
+                      <span>Gesamt Spiele:</span>
                       <span className="font-bold">{tournamentMatches.length}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Completed:</span>
+                      <span>Abgeschlossen:</span>
                       <span className="font-bold">{tournamentMatches.filter(m => m.status === "completed").length}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Scheduled:</span>
+                      <span>Geplant:</span>
                       <span className="font-bold">{tournamentMatches.filter(m => m.status === "scheduled").length}</span>
                     </div>
                   </div>
@@ -554,25 +554,25 @@ export function TournamentManagement({
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Users className="h-5 w-5" />
-                    Player Statistics
+                    Spieler-Statistiken
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex justify-between">
-                      <span>Active Players:</span>
+                      <span>Aktive Spieler:</span>
                       <span className="font-bold">{tournamentPlayers.filter(p => p.status === "active").length}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Eliminated:</span>
+                      <span>Ausgeschieden:</span>
                       <span className="font-bold">{tournamentPlayers.filter(p => p.status === "eliminated").length}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Champions:</span>
+                      <span>Sieger:</span>
                       <span className="font-bold">{tournamentPlayers.filter(p => p.status === "champion").length}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Capacity:</span>
+                      <span>Kapazität:</span>
                       <span className="font-bold">{Math.round((tournamentPlayers.length / tournament.maxPlayers) * 100)}%</span>
                     </div>
                   </div>
@@ -582,7 +582,7 @@ export function TournamentManagement({
 
             <Card>
               <CardHeader>
-                <CardTitle>Leaderboard</CardTitle>
+                <CardTitle>Rangliste</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
@@ -602,7 +602,7 @@ export function TournamentManagement({
                         </div>
                         <div className="text-right">
                           <p className="font-bold">{player.wins}W - {player.losses}L</p>
-                          <p className="text-sm text-muted-foreground">{player.completed}/{player.totalMatches} matches</p>
+                          <p className="text-sm text-muted-foreground">{player.completed}/{player.totalMatches} Spiele</p>
                         </div>
                       </div>
                     ))}
