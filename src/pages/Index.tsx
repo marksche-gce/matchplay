@@ -1,20 +1,18 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Trophy, Play, Users, Calendar } from "lucide-react";
-import { UserMenu } from "@/components/UserMenu";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-course">
-      <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
+      <div className="fixed top-4 left-4 z-50">
         <Link to="/tournaments">
           <Button variant="default" className="flex items-center gap-2">
             <Trophy className="h-4 w-4" />
             Turniere anzeigen
           </Button>
         </Link>
-        <UserMenu />
       </div>
       
       <div className="container mx-auto px-4 py-16">

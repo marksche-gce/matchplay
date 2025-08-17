@@ -28,7 +28,7 @@ export function MatchPlayTournaments() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-course p-4">
+    <div className="min-h-screen bg-gradient-course p-4 pt-20">{/* pt-20 to account for fixed header */}
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">

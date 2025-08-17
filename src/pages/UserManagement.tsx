@@ -223,8 +223,8 @@ export default function UserManagement() {
   };
 
   if (adminCheckLoading || loading) {
-    return (
-      <div className="min-h-screen bg-gradient-course">
+  return (
+    <div className="min-h-screen bg-gradient-course pt-20">{/* pt-20 to account for fixed header */}
         <div className="container mx-auto px-4 py-6">
           <div className="text-center">
             <p>Lade Benutzerverwaltung...</p>
