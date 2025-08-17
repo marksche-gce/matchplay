@@ -145,8 +145,8 @@ export function TournamentDialog({ open, onOpenChange }: TournamentDialogProps) 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="singles">Einzel Match Play</SelectItem>
-                <SelectItem value="foursome">Vierer Match Play</SelectItem>
+                <SelectItem value="singles">Einzel Matchplay</SelectItem>
+                <SelectItem value="foursome">Vierer Matchplay</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground mt-1">

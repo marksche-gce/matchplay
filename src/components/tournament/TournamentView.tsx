@@ -171,7 +171,7 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
           <div>
             <h1 className="text-2xl font-bold text-foreground">{tournament.name}</h1>
             <p className="text-muted-foreground">
-              {tournament.type === 'singles' ? 'Singles' : 'Foursome'} Match Play Tournament
+              {tournament.type === 'singles' ? 'Singles' : 'Foursome'} Matchplay Tournament
             </p>
           </div>
         </div>

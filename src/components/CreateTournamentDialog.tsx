@@ -193,7 +193,7 @@ export function CreateTournamentDialog({ onTournamentCreate, open: externalOpen,
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="matchplay">Match Play</SelectItem>
+                <SelectItem value="matchplay">Matchplay</SelectItem>
                 <SelectItem value="strokeplay">Zählspiel</SelectItem>
                 <SelectItem value="scramble">Scramble</SelectItem>
               </SelectContent>

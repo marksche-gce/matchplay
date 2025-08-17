@@ -344,8 +344,8 @@ export function TournamentManagement({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="matchplay">Match Play</SelectItem>
-                        <SelectItem value="strokeplay">Stroke Play</SelectItem>
+                        <SelectItem value="matchplay">Matchplay</SelectItem>
+                        <SelectItem value="strokeplay">Strokeplay</SelectItem>
                         <SelectItem value="scramble">Scramble</SelectItem>
                       </SelectContent>
                     </Select>

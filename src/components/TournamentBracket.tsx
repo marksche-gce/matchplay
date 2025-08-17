@@ -2573,7 +2573,7 @@ export function TournamentBracket({
           <Trophy className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
           <h3 className="text-lg font-semibold mb-2">Bracket View</h3>
           <p className="text-muted-foreground">
-            Bracket visualization is only available for Match Play tournaments.
+            Bracket visualization is only available for Matchplay tournaments.
           </p>
         </CardContent>
       </Card>
