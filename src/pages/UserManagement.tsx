@@ -21,7 +21,8 @@ interface User {
   email: string;
   display_name?: string;
   created_at: string;
-  role?: 'tenant_admin' | 'organizer' | 'player' | 'system_admin';
+  role?: 'system_admin' | 'tenant_admin' | 'organizer' | 'player';
+  tenant_id?: string;
 }
 
 export default function UserManagement() {
@@ -33,9 +34,9 @@ export default function UserManagement() {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserDisplayName, setNewUserDisplayName] = useState('');
-  const [newUserRole, setNewUserRole] = useState<'tenant_admin' | 'organizer'>('organizer');
+  const [newUserRole, setNewUserRole] = useState<'system_admin' | 'tenant_admin' | 'organizer'>('organizer');
   const [editDisplayName, setEditDisplayName] = useState('');
-  const [editRole, setEditRole] = useState<'tenant_admin' | 'organizer'>('organizer');
+  const [editRole, setEditRole] = useState<'system_admin' | 'tenant_admin' | 'organizer'>('organizer');
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
   const { user } = useAuth();
@@ -96,7 +97,8 @@ useEffect(() => {
           email: newUserEmail,
           password: newUserPassword,
           displayName: newUserDisplayName,
-          role: newUserRole
+          role: newUserRole,
+          tenantId: newUserRole === 'system_admin' ? null : currentTenant?.id
         }
       });
 
@@ -132,7 +134,7 @@ useEffect(() => {
   const handleEditUser = (userData: User) => {
     setEditingUser(userData);
     setEditDisplayName(userData.display_name || '');
-    setEditRole(userData.role as 'tenant_admin' | 'organizer');
+    setEditRole(userData.role as 'system_admin' | 'tenant_admin' | 'organizer');
     setEditUserDialogOpen(true);
   };
 
@@ -312,13 +314,16 @@ useEffect(() => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="role">Rolle *</Label>
-                  <Select value={newUserRole} onValueChange={(value: 'tenant_admin' | 'organizer') => setNewUserRole(value)}>
+                  <Select value={newUserRole} onValueChange={(value: 'system_admin' | 'tenant_admin' | 'organizer') => setNewUserRole(value)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="organizer">Manager (Turniere verwalten)</SelectItem>
-                      <SelectItem value="tenant_admin">Mandanten-Admin (Vollzugriff)</SelectItem>
+                      <SelectItem value="tenant_admin">Mandanten-Admin (Vollzugriff im Mandanten)</SelectItem>
+                      {isSystemAdmin && (
+                        <SelectItem value="system_admin">System-Admin (Vollzugriff über alle Mandanten)</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -357,13 +362,16 @@ useEffect(() => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="editRole">Rolle *</Label>
-                <Select value={editRole} onValueChange={(value: 'tenant_admin' | 'organizer') => setEditRole(value)}>
+                <Select value={editRole} onValueChange={(value: 'system_admin' | 'tenant_admin' | 'organizer') => setEditRole(value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="organizer">Manager (Turniere verwalten)</SelectItem>
-                    <SelectItem value="tenant_admin">Mandanten-Admin (Vollzugriff)</SelectItem>
+                    <SelectItem value="tenant_admin">Mandanten-Admin (Vollzugriff im Mandanten)</SelectItem>
+                    {isSystemAdmin && (
+                      <SelectItem value="system_admin">System-Admin (Vollzugriff über alle Mandanten)</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
