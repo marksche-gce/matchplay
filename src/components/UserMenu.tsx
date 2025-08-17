@@ -1,4 +1,5 @@
 import { useAuth } from '@/hooks/useAuth';
+import { useAdminCheck } from '@/hooks/useAdminCheck';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -9,10 +10,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { LogOut, User } from 'lucide-react';
+import { LogOut, User, Shield } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export function UserMenu() {
   const { user, signOut } = useAuth();
+  const { isAdmin } = useAdminCheck();
+  const navigate = useNavigate();
 
   if (!user) {
     return null;
@@ -47,9 +51,18 @@ export function UserMenu() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {isAdmin && (
+          <>
+            <DropdownMenuItem onClick={() => navigate('/user-management')}>
+              <Shield className="mr-2 h-4 w-4" />
+              <span>Benutzerverwaltung</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuItem onClick={signOut}>
           <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
+          <span>Abmelden</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

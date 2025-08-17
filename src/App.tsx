@@ -8,6 +8,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { navItems } from "./nav-items";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
+import UserManagement from "./pages/UserManagement";
 import TournamentEmbed from "./pages/TournamentEmbed";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,11 @@ const App = () => (
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/tournaments/:id/embed" element={<TournamentEmbed />} />
+            <Route path="/user-management" element={
+              <ProtectedRoute>
+                <UserManagement />
+              </ProtectedRoute>
+            } />
             {navItems.map(({ to, page }) => (
               <Route key={to} path={to} element={
                 <ProtectedRoute>

@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from './useAuth';
 
 export function useAdminCheck() {
-  const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   useEffect(() => {
-    const checkAdminRole = async () => {
+    const checkAdminStatus = async () => {
       if (!user) {
         setIsAdmin(false);
         setLoading(false);
@@ -20,20 +20,23 @@ export function useAdminCheck() {
           .from('user_roles')
           .select('role')
           .eq('user_id', user.id)
-          .in('role', ['admin', 'organizer']);
+          .eq('role', 'admin')
+          .single();
 
-        if (error) throw error;
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error checking admin status:', error);
+        }
 
-        setIsAdmin(data && data.length > 0);
+        setIsAdmin(!!data);
       } catch (error) {
-        console.error('Error checking admin role:', error);
+        console.error('Error checking admin status:', error);
         setIsAdmin(false);
       } finally {
         setLoading(false);
       }
     };
 
-    checkAdminRole();
+    checkAdminStatus();
   }, [user]);
 
   return { isAdmin, loading };

@@ -13,7 +13,6 @@ import { useEffect } from 'react';
 export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
   const [resetEmail, setResetEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
@@ -55,57 +54,15 @@ export default function Auth() {
       if (error) throw error;
 
       toast({
-        title: "Success",
-        description: "Signed in successfully!",
+        title: "Erfolg",
+        description: "Erfolgreich angemeldet!",
       });
 
       window.location.href = '/';
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to sign in",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      cleanupAuthState();
-      
-      const redirectUrl = `${window.location.origin}/`;
-      
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            display_name: displayName
-          }
-        }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Account created! Please check your email to confirm your account.",
-      });
-
-      // Reset form
-      setEmail('');
-      setPassword('');
-      setDisplayName('');
-    } catch (error: any) {
-      toast({
-        title: "Error", 
-        description: error.message || "Failed to create account",
+        title: "Fehler",
+        description: error.message || "Anmeldung fehlgeschlagen",
         variant: "destructive",
       });
     } finally {
@@ -127,16 +84,16 @@ export default function Auth() {
       if (error) throw error;
 
       toast({
-        title: "Success",
-        description: "Password reset email sent! Please check your email for further instructions.",
+        title: "Erfolg",
+        description: "E-Mail zum Zurücksetzen des Passworts gesendet! Bitte überprüfen Sie Ihre E-Mails für weitere Anweisungen.",
       });
 
       // Reset form
       setResetEmail('');
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to send password reset email",
+        title: "Fehler",
+        description: error.message || "E-Mail zum Zurücksetzen des Passworts konnte nicht gesendet werden",
         variant: "destructive",
       });
     } finally {
@@ -153,84 +110,41 @@ export default function Auth() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Golf Tournament Manager</CardTitle>
-          <CardDescription>Sign in to your account or create a new one</CardDescription>
+          <CardDescription>Melden Sie sich bei Ihrem Konto an</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="signin" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="signin">Sign In</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
-              <TabsTrigger value="reset">Reset</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="signin">Anmelden</TabsTrigger>
+              <TabsTrigger value="reset">Passwort zurücksetzen</TabsTrigger>
             </TabsList>
             
             <TabsContent value="signin">
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="signin-email">Email</Label>
+                  <Label htmlFor="signin-email">E-Mail</Label>
                   <Input
                     id="signin-email"
                     type="email"
-                    placeholder="Enter your email"
+                    placeholder="Geben Sie Ihre E-Mail ein"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signin-password">Password</Label>
+                  <Label htmlFor="signin-password">Passwort</Label>
                   <Input
                     id="signin-password"
                     type="password"
-                    placeholder="Enter your password"
+                    placeholder="Geben Sie Ihr Passwort ein"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Signing in..." : "Sign In"}
-                </Button>
-              </form>
-            </TabsContent>
-            
-            <TabsContent value="signup">
-              <form onSubmit={handleSignUp} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-name">Display Name</Label>
-                  <Input
-                    id="signup-name"
-                    type="text"
-                    placeholder="Enter your display name"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">Password</Label>
-                  <Input
-                    id="signup-password"
-                    type="password"
-                    placeholder="Create a password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    minLength={6}
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Creating account..." : "Create Account"}
+                  {loading ? "Anmeldung läuft..." : "Anmelden"}
                 </Button>
               </form>
             </TabsContent>
@@ -238,21 +152,21 @@ export default function Auth() {
             <TabsContent value="reset">
               <form onSubmit={handlePasswordReset} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="reset-email">Email</Label>
+                  <Label htmlFor="reset-email">E-Mail</Label>
                   <Input
                     id="reset-email"
                     type="email"
-                    placeholder="Enter your email"
+                    placeholder="Geben Sie Ihre E-Mail ein"
                     value={resetEmail}
                     onChange={(e) => setResetEmail(e.target.value)}
                     required
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Sending reset email..." : "Send Reset Email"}
+                  {loading ? "E-Mail wird gesendet..." : "Reset-E-Mail senden"}
                 </Button>
                 <p className="text-sm text-muted-foreground text-center">
-                  Enter your email address and we'll send you a link to reset your password.
+                  Geben Sie Ihre E-Mail-Adresse ein und wir senden Ihnen einen Link zum Zurücksetzen Ihres Passworts.
                 </p>
               </form>
             </TabsContent>
