@@ -288,8 +288,9 @@ export default function UserManagement() {
                     type="email"
                     value={newUserEmail}
                     onChange={(e) => setNewUserEmail(e.target.value)}
-                    placeholder="max@beispiel.de"
+                    placeholder="max@outlook.com"
                     required
+                    pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
                   />
                 </div>
                 <div className="space-y-2">
