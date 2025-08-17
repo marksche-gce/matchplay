@@ -275,8 +275,8 @@ export function TournamentRegistrationDialog({
 
   const getFormatDisplay = (format: string) => {
     switch (format) {
-      case "matchplay": return "Match Play";
-      case "strokeplay": return "Stroke Play";
+      case "matchplay": return "Matchplay";
+      case "strokeplay": return "Strokeplay";
       case "scramble": return "Scramble";
       default: return format;
     }

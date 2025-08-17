@@ -478,7 +478,7 @@ export function EmbedRegistrationForm({ tournament, registrationCount, onRegistr
                 <div className="bg-muted/50 p-4 rounded-lg">
                   <p className="text-sm text-muted-foreground">
                     <strong>Turnierdetails:</strong><br />
-                    • Format: {tournament.type === 'singles' ? 'Einzel Match Play' : 'Vierer Match Play'}<br />
+                    • Format: {tournament.type === 'singles' ? 'Einzel Matchplay' : 'Vierer Matchplay'}<br />
                     • Maximum {tournament.type === 'singles' ? 'Spieler' : 'Teams'}: {tournament.max_players}<br />
                     • Aktuelle Anmeldungen: {registrationCount}<br />
                     • Verfügbare Plätze: {tournament.max_players - registrationCount}
