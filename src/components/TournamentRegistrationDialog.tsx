@@ -86,11 +86,11 @@ export function TournamentRegistrationDialog({
       });
     } catch (error) {
       console.error('Error fetching tournament:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load tournament details.",
-        variant: "destructive"
-      });
+        toast({
+          title: "Fehler",
+          description: "Turnierdetails konnten nicht geladen werden.",
+          variant: "destructive"
+        });
     }
   };
 
@@ -126,8 +126,8 @@ export function TournamentRegistrationDialog({
     try {
       if (!user) {
         toast({
-          title: "Authentication Required",
-          description: "Please sign in to register for tournaments.",
+          title: "Anmeldung erforderlich",
+          description: "Bitte melden Sie sich an, um sich für Turniere zu registrieren.",
           variant: "destructive"
         });
         setLoading(false);
@@ -137,8 +137,8 @@ export function TournamentRegistrationDialog({
       // Validation
       if (!playerData.name.trim() || !playerData.email.trim()) {
         toast({
-          title: "Missing Information",
-          description: "Please fill in all required fields.",
+          title: "Fehlende Informationen",
+          description: "Bitte füllen Sie alle Pflichtfelder aus.",
           variant: "destructive"
         });
         setLoading(false);
@@ -147,8 +147,8 @@ export function TournamentRegistrationDialog({
 
       if (!validateEmail(playerData.email)) {
         toast({
-          title: "Invalid Email",
-          description: "Please enter a valid email address.",
+          title: "Ungültige E-Mail",
+          description: "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
           variant: "destructive"
         });
         setLoading(false);
@@ -158,8 +158,8 @@ export function TournamentRegistrationDialog({
       // Only validate phone if it's provided (it's optional)
       if (playerData.phone && !validatePhone(playerData.phone)) {
         toast({
-          title: "Invalid Phone Number",
-          description: "Please enter a valid phone number.",
+          title: "Ungültige Telefonnummer",
+          description: "Bitte geben Sie eine gültige Telefonnummer ein.",
           variant: "destructive"
         });
         setLoading(false);
@@ -168,8 +168,8 @@ export function TournamentRegistrationDialog({
 
       if (!validateHandicap(playerData.handicap)) {
         toast({
-          title: "Invalid Handicap",
-          description: "Handicap must be between 0 and 36.",
+          title: "Ungültiges Handicap",
+          description: "Das Handicap muss zwischen 0 und 36 liegen.",
           variant: "destructive"
         });
         setLoading(false);
@@ -232,8 +232,8 @@ export function TournamentRegistrationDialog({
       if (registrationError) {
         if (registrationError.code === '23505') { // Unique constraint violation
           toast({
-            title: "Already Registered",
-            description: "You are already registered for this tournament.",
+            title: "Bereits registriert",
+            description: "Sie sind bereits für dieses Turnier registriert.",
             variant: "destructive"
           });
         } else {
@@ -244,8 +244,8 @@ export function TournamentRegistrationDialog({
       }
 
       toast({
-        title: "Registration Successful!",
-        description: `You have been registered for ${tournament?.name}.`,
+        title: "Registrierung erfolgreich!",
+        description: `Sie wurden für ${tournament?.name} registriert.`,
       });
 
       onRegistrationComplete();
@@ -264,8 +264,8 @@ export function TournamentRegistrationDialog({
     } catch (error) {
       console.error('Registration error:', error);
       toast({
-        title: "Registration Failed",
-        description: "Something went wrong. Please try again.",
+        title: "Registrierung fehlgeschlagen",
+        description: "Etwas ist schief gelaufen. Bitte versuchen Sie es erneut.",
         variant: "destructive"
       });
     } finally {
@@ -286,9 +286,9 @@ export function TournamentRegistrationDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Tournament Registration</DialogTitle>
+          <DialogTitle>Turnier-Registrierung</DialogTitle>
           <DialogDescription>
-            Complete your registration for {tournament?.name}
+            Vervollständigen Sie Ihre Registrierung für {tournament?.name}
           </DialogDescription>
         </DialogHeader>
 
@@ -300,20 +300,20 @@ export function TournamentRegistrationDialog({
             <CardContent>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="font-medium">Course:</span> {tournament.course}
+                  <span className="font-medium">Platz:</span> {tournament.course}
                 </div>
                 <div>
                   <span className="font-medium">Format:</span> {getFormatDisplay(tournament.format)}
                 </div>
                 <div>
-                  <span className="font-medium">Start Date:</span> {new Date(tournament.start_date).toLocaleDateString()}
+                  <span className="font-medium">Startdatum:</span> {new Date(tournament.start_date).toLocaleDateString()}
                 </div>
                 <div>
-                  <span className="font-medium">Max Players:</span> {tournament.max_players}
+                  <span className="font-medium">Max. Spieler:</span> {tournament.max_players}
                 </div>
                 {tournament.entry_fee && tournament.entry_fee > 0 && (
                   <div className="col-span-2">
-                    <span className="font-medium">Entry Fee:</span> ${tournament.entry_fee}
+                    <span className="font-medium">Startgeld:</span> ${tournament.entry_fee}
                   </div>
                 )}
               </div>
@@ -328,33 +328,33 @@ export function TournamentRegistrationDialog({
           <div>
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <User className="h-5 w-5" />
-              Player Information
+              Spieler-Informationen
             </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="name">Full Name *</Label>
+                <Label htmlFor="name">Vollständiger Name *</Label>
                 <Input
                   id="name"
                   value={playerData.name}
                   onChange={(e) => setPlayerData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Enter your full name"
+                  placeholder="Geben Sie Ihren vollständigen Namen ein"
                 />
               </div>
               
               <div>
-                <Label htmlFor="email">Email Address *</Label>
+                <Label htmlFor="email">E-Mail-Adresse *</Label>
                 <Input
                   id="email"
                   type="email"
                   value={playerData.email}
                   onChange={(e) => setPlayerData(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="Enter your email"
+                  placeholder="Geben Sie Ihre E-Mail ein"
                 />
               </div>
               
               <div>
-                <Label htmlFor="handicap">Golf Handicap *</Label>
+                <Label htmlFor="handicap">Golf-Handicap *</Label>
                 <Input
                   id="handicap"
                   type="number"
@@ -367,35 +367,35 @@ export function TournamentRegistrationDialog({
               </div>
               
               <div>
-                <Label htmlFor="phone">Phone Number</Label>
+                <Label htmlFor="phone">Telefonnummer</Label>
                 <Input
                   id="phone"
                   type="tel"
                   value={playerData.phone}
                   onChange={(e) => setPlayerData(prev => ({ ...prev, phone: e.target.value }))}
-                  placeholder="Enter your phone number"
+                  placeholder="Geben Sie Ihre Telefonnummer ein"
                 />
               </div>
               
               <div className="md:col-span-2">
-                <Label htmlFor="emergency_contact">Emergency Contact</Label>
+                <Label htmlFor="emergency_contact">Notfallkontakt</Label>
                 <Input
                   id="emergency_contact"
                   value={playerData.emergency_contact}
                   onChange={(e) => setPlayerData(prev => ({ ...prev, emergency_contact: e.target.value }))}
-                  placeholder="Name and phone number of emergency contact"
+                  placeholder="Name und Telefonnummer des Notfallkontakts"
                 />
               </div>
             </div>
           </div>
 
           <div>
-            <Label htmlFor="notes">Additional Notes (Optional)</Label>
+            <Label htmlFor="notes">Zusätzliche Anmerkungen (Optional)</Label>
             <Textarea
               id="notes"
               value={playerData.notes}
               onChange={(e) => setPlayerData(prev => ({ ...prev, notes: e.target.value }))}
-              placeholder="Any special requests or dietary requirements..."
+              placeholder="Besondere Wünsche oder Diätanforderungen..."
               rows={3}
             />
           </div>
@@ -404,7 +404,7 @@ export function TournamentRegistrationDialog({
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                This tournament has an entry fee of ${tournament.entry_fee}. Payment details will be provided after registration.
+                Dieses Turnier hat ein Startgeld von ${tournament.entry_fee}. Zahlungsdetails werden nach der Registrierung bereitgestellt.
               </AlertDescription>
             </Alert>
           )}
@@ -412,10 +412,10 @@ export function TournamentRegistrationDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            Abbrechen
           </Button>
           <Button onClick={handleRegister} disabled={loading}>
-            {loading ? "Registering..." : "Complete Registration"}
+            {loading ? "Registriere..." : "Registrierung abschließen"}
           </Button>
         </DialogFooter>
       </DialogContent>

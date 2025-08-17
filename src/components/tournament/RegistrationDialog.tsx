@@ -71,8 +71,8 @@ export function RegistrationDialog({
     
     if (!playerForm.name || !playerForm.email || !playerForm.handicap) {
       toast({
-        title: "Missing Information",
-        description: "Please fill in all fields.",
+        title: "Fehlende Informationen",
+        description: "Bitte füllen Sie alle Felder aus.",
         variant: "destructive",
       });
       return;
@@ -116,8 +116,8 @@ export function RegistrationDialog({
       if (error) throw error;
 
       toast({
-        title: "Registration Successful",
-        description: `${playerForm.name} has been registered for the tournament.`,
+        title: "Registrierung erfolgreich",
+        description: `${playerForm.name} wurde für das Turnier registriert.`,
       });
 
       setPlayerForm({ name: '', email: '', handicap: '' });
@@ -126,8 +126,8 @@ export function RegistrationDialog({
     } catch (error: any) {
       console.error('Error registering player:', error);
       toast({
-        title: "Registration Failed",
-        description: error.message || "Please try again.",
+        title: "Registrierung fehlgeschlagen",
+        description: error.message || "Bitte versuchen Sie es erneut.",
         variant: "destructive",
       });
     } finally {
@@ -142,8 +142,8 @@ export function RegistrationDialog({
         !teamForm.player1Email || !teamForm.player2Email || 
         !teamForm.player1Handicap || !teamForm.player2Handicap) {
       toast({
-        title: "Missing Information",
-        description: "Please fill in all fields.",
+        title: "Fehlende Informationen",
+        description: "Bitte füllen Sie alle Felder aus.",
         variant: "destructive",
       });
       return;
@@ -225,8 +225,8 @@ export function RegistrationDialog({
       if (error) throw error;
 
       toast({
-        title: "Team Registration Successful",
-        description: `Team ${teamForm.teamName} has been registered for the tournament.`,
+        title: "Team-Registrierung erfolgreich",
+        description: `Team ${teamForm.teamName} wurde für das Turnier registriert.`,
       });
 
       setTeamForm({
@@ -243,8 +243,8 @@ export function RegistrationDialog({
     } catch (error: any) {
       console.error('Error registering team:', error);
       toast({
-        title: "Registration Failed",
-        description: error.message || "Please try again.",
+        title: "Registrierung fehlgeschlagen",
+        description: error.message || "Bitte versuchen Sie es erneut.",
         variant: "destructive",
       });
     } finally {
@@ -308,8 +308,8 @@ export function RegistrationDialog({
       }
 
       toast({
-        title: "Bulk Registration Successful",
-        description: `Imported ${jsonData.length} players from Excel file.`,
+        title: "Massenregistrierung erfolgreich",
+        description: `${jsonData.length} Spieler aus Excel-Datei importiert.`,
       });
 
       onRegistrationComplete();
@@ -317,8 +317,8 @@ export function RegistrationDialog({
     } catch (error) {
       console.error('Error importing Excel:', error);
       toast({
-        title: "Import Failed",
-        description: "Please check your Excel file format.",
+        title: "Import fehlgeschlagen",
+        description: "Bitte überprüfen Sie das Format Ihrer Excel-Datei.",
         variant: "destructive",
       });
     } finally {
@@ -332,7 +332,7 @@ export function RegistrationDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            Register for {tournament.type === 'singles' ? 'Singles' : 'Foursome'} Tournament
+            Registrierung für {tournament.type === 'singles' ? 'Einzel' : 'Vierer'} Turnier
           </DialogTitle>
         </DialogHeader>
         
@@ -340,15 +340,15 @@ export function RegistrationDialog({
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="player" disabled={tournament.type === 'foursome'}>
               <UserPlus className="h-4 w-4 mr-2" />
-              {tournament.type === 'singles' ? 'Register Player' : 'Individual'}
+              {tournament.type === 'singles' ? 'Spieler registrieren' : 'Einzelperson'}
             </TabsTrigger>
             <TabsTrigger value="team" disabled={tournament.type === 'singles'}>
               <Users className="h-4 w-4 mr-2" />
-              Register Team
+              Team registrieren
             </TabsTrigger>
             <TabsTrigger value="bulk">
               <Upload className="h-4 w-4 mr-2" />
-              Import Excel
+              Excel importieren
             </TabsTrigger>
           </TabsList>
 
@@ -356,23 +356,23 @@ export function RegistrationDialog({
             <TabsContent value="player" className="space-y-4">
               <form onSubmit={handlePlayerRegistration} className="space-y-4">
                 <div>
-                  <Label htmlFor="playerName">Player Name *</Label>
+                  <Label htmlFor="playerName">Spielername *</Label>
                   <Input
                     id="playerName"
                     value={playerForm.name}
                     onChange={(e) => setPlayerForm({ ...playerForm, name: e.target.value })}
-                    placeholder="John Doe"
+                    placeholder="Max Mustermann"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="playerEmail">Email Address *</Label>
+                  <Label htmlFor="playerEmail">E-Mail-Adresse *</Label>
                   <Input
                     id="playerEmail"
                     type="email"
                     value={playerForm.email}
                     onChange={(e) => setPlayerForm({ ...playerForm, email: e.target.value })}
-                    placeholder="john@example.com"
+                    placeholder="max@beispiel.de"
                   />
                 </div>
 
@@ -389,7 +389,7 @@ export function RegistrationDialog({
                 </div>
 
                 <Button type="submit" disabled={loading} variant="default" className="w-full">
-                  {loading ? 'Registering...' : 'Register Player'}
+                  {loading ? 'Registriere...' : 'Spieler registrieren'}
                 </Button>
               </form>
             </TabsContent>
@@ -398,7 +398,7 @@ export function RegistrationDialog({
           <TabsContent value="team" className="space-y-4">
               <form onSubmit={handleTeamRegistration} className="space-y-4">
                 <div>
-                  <Label htmlFor="teamName">Team Name *</Label>
+                  <Label htmlFor="teamName">Teamname *</Label>
                   <Input
                     id="teamName"
                     value={teamForm.teamName}
@@ -410,7 +410,7 @@ export function RegistrationDialog({
                 <div className="space-y-3">
                   <h4 className="font-medium flex items-center gap-2">
                     <Users className="h-4 w-4" />
-                    Player 1
+                    Spieler 1
                   </h4>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -419,7 +419,7 @@ export function RegistrationDialog({
                         id="player1Name"
                         value={teamForm.player1Name}
                         onChange={(e) => setTeamForm({ ...teamForm, player1Name: e.target.value })}
-                        placeholder="John Doe"
+                        placeholder="Max Mustermann"
                       />
                     </div>
                     <div>
@@ -435,13 +435,13 @@ export function RegistrationDialog({
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="player1Email">Email *</Label>
+                    <Label htmlFor="player1Email">E-Mail *</Label>
                     <Input
                       id="player1Email"
                       type="email"
                       value={teamForm.player1Email}
                       onChange={(e) => setTeamForm({ ...teamForm, player1Email: e.target.value })}
-                      placeholder="john@example.com"
+                      placeholder="max@beispiel.de"
                     />
                   </div>
                 </div>
@@ -449,7 +449,7 @@ export function RegistrationDialog({
                 <div className="space-y-3">
                   <h4 className="font-medium flex items-center gap-2">
                     <Users className="h-4 w-4" />
-                    Player 2
+                    Spieler 2
                   </h4>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -458,7 +458,7 @@ export function RegistrationDialog({
                         id="player2Name"
                         value={teamForm.player2Name}
                         onChange={(e) => setTeamForm({ ...teamForm, player2Name: e.target.value })}
-                        placeholder="Jane Smith"
+                        placeholder="Anna Müller"
                       />
                     </div>
                     <div>
@@ -474,19 +474,19 @@ export function RegistrationDialog({
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="player2Email">Email *</Label>
+                    <Label htmlFor="player2Email">E-Mail *</Label>
                     <Input
                       id="player2Email"
                       type="email"
                       value={teamForm.player2Email}
                       onChange={(e) => setTeamForm({ ...teamForm, player2Email: e.target.value })}
-                      placeholder="jane@example.com"
+                      placeholder="anna@beispiel.de"
                     />
                   </div>
                 </div>
 
                 <Button type="submit" disabled={loading} variant="default" className="w-full">
-                  {loading ? 'Registering...' : 'Register Team'}
+                  {loading ? 'Registriere...' : 'Team registrieren'}
                 </Button>
               </form>
           </TabsContent>
@@ -494,9 +494,9 @@ export function RegistrationDialog({
           <TabsContent value="bulk" className="space-y-4">
             <div className="text-center py-8 border-2 border-dashed border-border rounded-lg">
               <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-foreground mb-2">Import Players from Excel</h3>
+              <h3 className="text-lg font-medium text-foreground mb-2">Spieler aus Excel importieren</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Upload an Excel file with columns: Name, Email, Handicap
+                Laden Sie eine Excel-Datei mit den Spalten: Name, E-Mail, Handicap hoch
               </p>
               <Input
                 type="file"

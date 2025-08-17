@@ -51,8 +51,8 @@ export function EmbedRegistrationForm({ tournament, registrationCount, onRegistr
           !player1Handicap.trim() || !player2Name.trim() || !player2Email.trim() || 
           !player2Handicap.trim()) {
         toast({
-          title: "Missing Information",
-          description: "Please fill in all fields for both players.",
+          title: "Fehlende Informationen",
+          description: "Bitte füllen Sie alle Felder für beide Spieler aus.",
           variant: "destructive",
         });
         return;
@@ -134,8 +134,8 @@ export function EmbedRegistrationForm({ tournament, registrationCount, onRegistr
         if (registrationError) throw registrationError;
 
         toast({
-          title: "Team Registration Successful!",
-          description: `Team ${teamName} has been registered for ${tournament.name}.`,
+          title: "Team-Registrierung erfolgreich!",
+          description: `Team ${teamName} wurde für ${tournament.name} registriert.`,
         });
 
         // Reset form
@@ -152,8 +152,8 @@ export function EmbedRegistrationForm({ tournament, registrationCount, onRegistr
       } catch (error: any) {
         console.error('Team registration error:', error);
         toast({
-          title: "Registration Failed",
-          description: error.message || "Failed to register team. Please try again.",
+          title: "Registrierung fehlgeschlagen",
+          description: error.message || "Team-Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.",
           variant: "destructive",
         });
       } finally {
@@ -163,8 +163,8 @@ export function EmbedRegistrationForm({ tournament, registrationCount, onRegistr
       // Handle individual player registration
       if (!name.trim() || !email.trim()) {
         toast({
-          title: "Missing Information",
-          description: "Please fill in both name and email fields.",
+          title: "Fehlende Informationen",
+          description: "Bitte füllen Sie Name und E-Mail-Felder aus.",
           variant: "destructive",
         });
         return;
@@ -213,8 +213,8 @@ export function EmbedRegistrationForm({ tournament, registrationCount, onRegistr
 
         if (existingRegistration) {
           toast({
-            title: "Already Registered",
-            description: "You are already registered for this tournament.",
+            title: "Bereits registriert",
+            description: "Sie sind bereits für dieses Turnier registriert.",
             variant: "destructive",
           });
           return;
@@ -231,8 +231,8 @@ export function EmbedRegistrationForm({ tournament, registrationCount, onRegistr
         if (registrationError) throw registrationError;
 
         toast({
-          title: "Registration Successful!",
-          description: `You have been registered for ${tournament.name}.`,
+          title: "Registrierung erfolgreich!",
+          description: `Sie wurden für ${tournament.name} registriert.`,
         });
 
         // Reset form
@@ -245,8 +245,8 @@ export function EmbedRegistrationForm({ tournament, registrationCount, onRegistr
       } catch (error: any) {
         console.error('Registration error:', error);
         toast({
-          title: "Registration Failed",
-          description: error.message || "Failed to register. Please try again.",
+          title: "Registrierung fehlgeschlagen",
+          description: error.message || "Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.",
           variant: "destructive",
         });
       } finally {
@@ -281,16 +281,16 @@ export function EmbedRegistrationForm({ tournament, registrationCount, onRegistr
               </div>
               <div className="flex items-center gap-1">
                 <Users className="h-3 w-3 md:h-4 md:w-4" />
-                <span>{registrationCount}/{tournament.max_players} Players</span>
+                <span>{registrationCount}/{tournament.max_players} Spieler</span>
               </div>
               <div className="flex items-center gap-1">
                 <Trophy className="h-3 w-3 md:h-4 md:w-4" />
-                <span>{tournament.type === 'singles' ? 'Singles' : 'Foursome'}</span>
+                <span>{tournament.type === 'singles' ? 'Einzel' : 'Vierer'}</span>
               </div>
               <Badge className={`${getRegistrationStatusColor(tournament.registration_status)} text-xs`}>
-                {tournament.registration_status === 'open' ? 'Open for Registration' : 
-                 tournament.registration_status === 'closed' ? 'Registration Closed' : 
-                 'Tournament Full'}
+                {tournament.registration_status === 'open' ? 'Anmeldung offen' : 
+                 tournament.registration_status === 'closed' ? 'Anmeldung geschlossen' : 
+                 'Turnier voll'}
               </Badge>
             </div>
           </div>
@@ -303,7 +303,7 @@ export function EmbedRegistrationForm({ tournament, registrationCount, onRegistr
           <CardHeader className="p-3 md:p-6">
             <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
               <UserPlus className="h-4 w-4 md:h-5 md:w-5" />
-              Tournament Registration
+              Turnier-Registrierung
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 md:space-y-6 p-3 md:p-6 pt-0">
@@ -312,18 +312,18 @@ export function EmbedRegistrationForm({ tournament, registrationCount, onRegistr
                 <div className="mb-4">
                   {isFull ? (
                     <Badge className="bg-warning/10 text-warning border-warning/30 text-lg px-4 py-2">
-                      Tournament Full
+                      Turnier voll
                     </Badge>
                   ) : (
                     <Badge className="bg-destructive/10 text-destructive border-destructive/30 text-lg px-4 py-2">
-                      Registration Closed
+                      Anmeldung geschlossen
                     </Badge>
                   )}
                 </div>
                 <p className="text-muted-foreground">
                   {isFull 
-                    ? 'This tournament has reached its maximum capacity.' 
-                    : 'Registration for this tournament has ended.'}
+                    ? 'Dieses Turnier hat seine maximale Kapazität erreicht.' 
+                    : 'Die Anmeldung für dieses Turnier ist beendet.'}
                 </p>
               </div>
             ) : (
@@ -332,13 +332,13 @@ export function EmbedRegistrationForm({ tournament, registrationCount, onRegistr
                   // Team registration form
                   <>
                     <div className="space-y-2">
-                      <Label htmlFor="teamName">Team Name *</Label>
+                      <Label htmlFor="teamName">Teamname *</Label>
                       <Input
                         id="teamName"
                         type="text"
                         value={teamName}
                         onChange={(e) => setTeamName(e.target.value)}
-                        placeholder="Enter team name"
+                        placeholder="Teamnamen eingeben"
                         required
                       />
                     </div>
@@ -346,7 +346,7 @@ export function EmbedRegistrationForm({ tournament, registrationCount, onRegistr
                     <div className="space-y-4">
                       <h4 className="font-medium flex items-center gap-2">
                         <Users className="h-4 w-4" />
-                        Player 1
+                        Spieler 1
                       </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
@@ -356,7 +356,7 @@ export function EmbedRegistrationForm({ tournament, registrationCount, onRegistr
                             type="text"
                             value={player1Name}
                             onChange={(e) => setPlayer1Name(e.target.value)}
-                            placeholder="Player 1 name"
+                            placeholder="Name von Spieler 1"
                             required
                           />
                         </div>
@@ -368,19 +368,19 @@ export function EmbedRegistrationForm({ tournament, registrationCount, onRegistr
                             step="0.1"
                             value={player1Handicap}
                             onChange={(e) => setPlayer1Handicap(e.target.value)}
-                            placeholder="Player 1 handicap"
+                            placeholder="Handicap von Spieler 1"
                             required
                           />
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="player1Email">Email *</Label>
+                        <Label htmlFor="player1Email">E-Mail *</Label>
                         <Input
                           id="player1Email"
                           type="email"
                           value={player1Email}
                           onChange={(e) => setPlayer1Email(e.target.value)}
-                          placeholder="Player 1 email"
+                          placeholder="E-Mail von Spieler 1"
                           required
                         />
                       </div>
@@ -389,7 +389,7 @@ export function EmbedRegistrationForm({ tournament, registrationCount, onRegistr
                     <div className="space-y-4">
                       <h4 className="font-medium flex items-center gap-2">
                         <Users className="h-4 w-4" />
-                        Player 2
+                        Spieler 2
                       </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
@@ -399,7 +399,7 @@ export function EmbedRegistrationForm({ tournament, registrationCount, onRegistr
                             type="text"
                             value={player2Name}
                             onChange={(e) => setPlayer2Name(e.target.value)}
-                            placeholder="Player 2 name"
+                            placeholder="Name von Spieler 2"
                             required
                           />
                         </div>
@@ -411,19 +411,19 @@ export function EmbedRegistrationForm({ tournament, registrationCount, onRegistr
                             step="0.1"
                             value={player2Handicap}
                             onChange={(e) => setPlayer2Handicap(e.target.value)}
-                            placeholder="Player 2 handicap"
+                            placeholder="Handicap von Spieler 2"
                             required
                           />
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="player2Email">Email *</Label>
+                        <Label htmlFor="player2Email">E-Mail *</Label>
                         <Input
                           id="player2Email"
                           type="email"
                           value={player2Email}
                           onChange={(e) => setPlayer2Email(e.target.value)}
-                          placeholder="Player 2 email"
+                          placeholder="E-Mail von Spieler 2"
                           required
                         />
                       </div>
@@ -434,42 +434,42 @@ export function EmbedRegistrationForm({ tournament, registrationCount, onRegistr
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="name">Full Name *</Label>
+                        <Label htmlFor="name">Vollständiger Name *</Label>
                         <Input
                           id="name"
                           type="text"
                           value={name}
                           onChange={(e) => setName(e.target.value)}
-                          placeholder="Enter your full name"
+                          placeholder="Geben Sie Ihren vollständigen Namen ein"
                           required
                         />
                       </div>
                       
                       <div className="space-y-2">
-                        <Label htmlFor="email">Email Address *</Label>
+                        <Label htmlFor="email">E-Mail-Adresse *</Label>
                         <Input
                           id="email"
                           type="email"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          placeholder="Enter your email"
+                          placeholder="Geben Sie Ihre E-Mail ein"
                           required
                         />
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="handicap">Golf Handicap</Label>
+                      <Label htmlFor="handicap">Golf-Handicap</Label>
                       <Input
                         id="handicap"
                         type="number"
                         step="0.1"
                         value={handicap}
                         onChange={(e) => setHandicap(e.target.value)}
-                        placeholder="Enter your handicap (optional)"
+                        placeholder="Geben Sie Ihr Handicap ein (optional)"
                       />
                       <p className="text-xs text-muted-foreground">
-                        Leave blank if you don't have a handicap
+                        Lassen Sie das Feld leer, wenn Sie kein Handicap haben
                       </p>
                     </div>
                   </>
@@ -477,11 +477,11 @@ export function EmbedRegistrationForm({ tournament, registrationCount, onRegistr
 
                 <div className="bg-muted/50 p-4 rounded-lg">
                   <p className="text-sm text-muted-foreground">
-                    <strong>Tournament Details:</strong><br />
-                    • Format: {tournament.type === 'singles' ? 'Singles Match Play' : 'Foursome Match Play'}<br />
-                    • Maximum {tournament.type === 'singles' ? 'Players' : 'Teams'}: {tournament.max_players}<br />
-                    • Current Registrations: {registrationCount}<br />
-                    • Available Spots: {tournament.max_players - registrationCount}
+                    <strong>Turnierdetails:</strong><br />
+                    • Format: {tournament.type === 'singles' ? 'Einzel Match Play' : 'Vierer Match Play'}<br />
+                    • Maximum {tournament.type === 'singles' ? 'Spieler' : 'Teams'}: {tournament.max_players}<br />
+                    • Aktuelle Anmeldungen: {registrationCount}<br />
+                    • Verfügbare Plätze: {tournament.max_players - registrationCount}
                   </p>
                 </div>
 
@@ -491,7 +491,7 @@ export function EmbedRegistrationForm({ tournament, registrationCount, onRegistr
                   disabled={loading}
                   size="lg"
                 >
-                  {loading ? 'Registering...' : tournament.type === 'foursome' ? 'Register Team' : 'Register for Tournament'}
+                  {loading ? 'Registriere...' : tournament.type === 'foursome' ? 'Team registrieren' : 'Für Turnier registrieren'}
                 </Button>
               </form>
             )}
