@@ -55,46 +55,20 @@ export default function UserManagement() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      
-      // Get auth.users data via admin API
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-      
-      if (authError) throw authError;
 
-      // Fetch profiles separately
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, display_name');
+      const { data, error } = await supabase.functions.invoke('list-users');
 
-      if (profilesError) throw profilesError;
+      if (error) throw error;
+      if (!data || !Array.isArray(data.users)) {
+        throw new Error('Ungültige Antwort vom Server');
+      }
 
-      // Fetch user roles separately
-      const { data: userRoles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role');
-
-      if (rolesError) throw rolesError;
-
-      // Combine the data
-      const combinedUsers: User[] = authUsers.users.map((authUser) => {
-        const profile = profiles?.find(p => p.id === authUser.id);
-        const roleData = userRoles?.find(r => r.user_id === authUser.id);
-        
-        return {
-          id: authUser.id,
-          email: authUser.email || '',
-          display_name: profile?.display_name || authUser.user_metadata?.display_name,
-          created_at: authUser.created_at,
-          role: (roleData?.role as 'admin' | 'organizer' | 'player') || 'player'
-        };
-      });
-
-      setUsers(combinedUsers);
+      setUsers(data.users);
     } catch (error: any) {
       console.error('Error fetching users:', error);
       toast({
         title: "Fehler",
-        description: "Benutzer konnten nicht geladen werden.",
+        description: error.message || "Benutzer konnten nicht geladen werden.",
         variant: "destructive"
       });
     } finally {
