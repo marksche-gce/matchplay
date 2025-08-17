@@ -2,16 +2,20 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trophy, Users, Calendar } from 'lucide-react';
+import { Plus, Trophy, Users, Calendar, Shield } from 'lucide-react';
 import { TournamentDialog } from '@/components/tournament/TournamentDialog';
 import { TournamentList } from '@/components/tournament/TournamentList';
 import { TournamentView } from '@/components/tournament/TournamentView';
 import { useAuth } from '@/hooks/useAuth';
+import { useAdminCheck } from '@/hooks/useAdminCheck';
+import { useNavigate } from 'react-router-dom';
 
 export function MatchPlayTournaments() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
   const { user } = useAuth();
+  const { isAdmin } = useAdminCheck();
+  const navigate = useNavigate();
 
   const handleTournamentSelect = (tournamentId: string) => {
     setSelectedTournamentId(tournamentId);
@@ -36,13 +40,24 @@ export function MatchPlayTournaments() {
             </div>
             
             {user && (
-              <Button 
-                onClick={() => setShowCreateDialog(true)} 
-                variant="default"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Turnier erstellen
-              </Button>
+              <div className="flex gap-2">
+                {isAdmin && (
+                  <Button 
+                    onClick={() => navigate('/user-management')} 
+                    variant="outline"
+                  >
+                    <Shield className="h-4 w-4 mr-2" />
+                    Benutzerverwaltung
+                  </Button>
+                )}
+                <Button 
+                  onClick={() => setShowCreateDialog(true)} 
+                  variant="default"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Turnier erstellen
+                </Button>
+              </div>
             )}
           </div>
         </div>
