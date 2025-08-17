@@ -41,7 +41,7 @@ export function MatchPlayTournaments() {
               </div>
             </div>
             
-            {user && isOrganizer && (
+            {user && (
               <div className="flex gap-2">
                 {isAdmin && (
                   <Button 
@@ -52,13 +52,19 @@ export function MatchPlayTournaments() {
                     Benutzerverwaltung
                   </Button>
                 )}
-                <Button 
-                  onClick={() => setShowCreateDialog(true)} 
-                  variant="default"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Turnier erstellen
-                </Button>
+                {(isAdmin || isOrganizer) && (
+                  <Button 
+                    onClick={() => setShowCreateDialog(true)} 
+                    variant="default"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Turnier erstellen
+                  </Button>
+                )}
+                {/* Debug Info - remove later */}
+                <div className="text-xs text-muted-foreground">
+                  Debug: Admin={isAdmin.toString()}, Organizer={isOrganizer.toString()}
+                </div>
               </div>
             )}
           </div>
