@@ -61,10 +61,6 @@ export function MatchPlayTournaments() {
                     Turnier erstellen
                   </Button>
                 )}
-                {/* Debug Info - remove later */}
-                <div className="text-xs text-muted-foreground">
-                  Debug: Admin={isAdmin.toString()}, Organizer={isOrganizer.toString()}
-                </div>
               </div>
             )}
           </div>
