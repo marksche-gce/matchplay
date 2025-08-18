@@ -148,8 +148,7 @@ useEffect(() => {
         body: {
           userId: editingUser.id,
           displayName: editDisplayName,
-          role: editRole,
-          tenantId: editRole === 'system_admin' ? null : currentTenant?.id
+          role: editRole
         }
       });
 
@@ -230,7 +229,7 @@ useEffect(() => {
     }
   };
 
-  if (systemAdminLoading || adminCheckLoading || loading) {
+  if (systemAdminLoading || loading) {
   return (
     <div className="min-h-screen bg-gradient-course pt-20">{/* pt-20 to account for fixed header */}
         <div className="container mx-auto px-4 py-6">
@@ -242,7 +241,7 @@ useEffect(() => {
     );
   }
 
-  if (!isSystemAdmin && !isAdmin) {
+  if (!isSystemAdmin) {
     return null;
   }
 
