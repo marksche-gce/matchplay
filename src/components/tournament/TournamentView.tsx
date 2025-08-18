@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Users, Trophy, Settings, UserPlus, Edit3, Trash2, ExternalLink, Copy, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Users, Trophy, Settings, UserPlus, Edit3, Trash2, ExternalLink, Copy, CheckCircle, RotateCcw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { RegistrationDialog } from './RegistrationDialog';
@@ -141,6 +141,35 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
     }
   };
 
+  const reopenRegistration = async () => {
+    if (!tournament) return;
+    
+    try {
+      const { error } = await supabase
+        .from('tournaments_new')
+        .update({ registration_status: 'open' })
+        .eq('id', tournament.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Registration Reopened",
+        description: "Tournament registration is now open again. Players can register.",
+      });
+
+      // Refresh tournament data
+      fetchTournamentDetails();
+      
+    } catch (error: any) {
+      console.error('Error reopening registration:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reopen registration.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="animate-pulse">
@@ -221,6 +250,18 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
                   Registration Period Completed
+                </Button>
+              )}
+              
+              {tournament.registration_status === 'closed' && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={reopenRegistration}
+                  className="text-success hover:text-success border-success/30 hover:bg-success/10"
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Reopen Registration
                 </Button>
               )}
               
