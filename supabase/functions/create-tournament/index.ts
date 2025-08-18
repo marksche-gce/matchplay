@@ -39,25 +39,37 @@ serve(async (req) => {
       });
     }
 
-    // Verify system admin
-    const { data: isSysAdmin, error: sysErr } = await supabaseAuth.rpc('is_system_admin', { _user_id: user.id });
-    if (sysErr) {
-      return new Response(JSON.stringify({ error: sysErr.message }), {
-        status: 500,
+    // Verify permissions: system admin OR tenant organizer/manager/admin for the provided tenant
+    const body = await req.json();
+    const { name, type, max_players, start_date, end_date, registration_status, tenant_id } = body ?? {};
+
+    if (!tenant_id) {
+      return new Response(JSON.stringify({ error: "tenant_id ist erforderlich" }), {
+        status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    if (!isSysAdmin) {
-      return new Response(JSON.stringify({ error: "Nur Systemadministratoren können Turniere global erstellen" }), {
+    const { data: isSysAdmin } = await supabaseAuth.rpc('is_system_admin', { _user_id: user.id });
+    let allowed = !!isSysAdmin;
+
+    if (!allowed) {
+      const { data: isOrganizer, error: orgErr } = await supabaseAuth.rpc('is_tenant_organizer', { _user_id: user.id, _tenant_id: tenant_id });
+      if (orgErr) {
+        return new Response(JSON.stringify({ error: orgErr.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      allowed = !!isOrganizer;
+    }
+
+    if (!allowed) {
+      return new Response(JSON.stringify({ error: "Keine Berechtigung, Turniere für diesen Mandanten zu erstellen" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const body = await req.json();
-    const { name, type, max_players, start_date, end_date, registration_status, tenant_id } = body ?? {};
-
     if (!name || !type || !max_players || !start_date || !end_date || !tenant_id) {
       return new Response(JSON.stringify({ error: "Fehlende Felder" }), {
         status: 400,
