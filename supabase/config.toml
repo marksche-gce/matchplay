@@ -1,1 +1,4 @@
 project_id = "kdnbpbbwlcxfbiakegnf"
+
+[functions.get-embed-tournament]
+verify_jwt = false

@@ -40,16 +40,15 @@ export default function TournamentEmbed() {
 
   const fetchTournament = async () => {
     try {
-      const { data, error } = await supabase
-        .from('tournaments_new')
-        .select('*')
-        .eq('id', id)
-        .single();
+      const { data, error } = await supabase.functions.invoke('get-embed-tournament', {
+        body: { tournamentId: id },
+      });
 
       if (error) throw error;
-      setTournament(data);
+      setTournament(data?.tournament || null);
     } catch (error) {
       console.error('Error fetching tournament:', error);
+      setTournament(null);
     } finally {
       setLoading(false);
     }
@@ -59,7 +58,7 @@ export default function TournamentEmbed() {
     try {
       const { count, error } = await supabase
         .from('tournament_registrations_new')
-        .select('*', { count: 'exact' })
+        .select('*', { count: 'exact', head: true })
         .eq('tournament_id', id);
 
       if (error) throw error;
