@@ -71,11 +71,27 @@ export default function UserManagement() {
         throw new Error('Ungültige Antwort vom Server');
       }
 
-      // Enrich users with tenant information
+      // Enrich users with tenant information and system roles
       const enrichedUsers = await Promise.all(
         data.users.map(async (user: any) => {
           try {
-            // Get user's tenant information
+            // First check for system admin role
+            const { data: systemRole, error: systemError } = await supabase
+              .from('system_roles')
+              .select('role')
+              .eq('user_id', user.id)
+              .single();
+
+            if (systemRole && systemRole.role === 'system_admin') {
+              return {
+                ...user,
+                role: 'system_admin',
+                tenant_name: 'Systemweit',
+                tenant_slug: null
+              };
+            }
+
+            // If not system admin, check tenant roles
             const { data: userRoles, error: roleError } = await supabase
               .from('user_roles')
               .select(`
@@ -245,6 +261,7 @@ export default function UserManagement() {
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
+      case 'system_admin': return 'bg-destructive text-destructive-foreground';
       case 'admin': return 'bg-destructive text-destructive-foreground';
       case 'organizer': return 'bg-primary text-primary-foreground';
       case 'manager': return 'bg-blue-500 text-white';
@@ -256,6 +273,7 @@ export default function UserManagement() {
 
   const getRoleDisplayName = (role: string) => {
     switch (role) {
+      case 'system_admin': return 'Systemadmin';
       case 'admin': return 'Systemadmin';
       case 'organizer': return 'Organisator';
       case 'manager': return 'Manager';
