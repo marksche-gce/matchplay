@@ -39,23 +39,23 @@ serve(async (req) => {
       });
     }
 
-    // Check admin role using service role (bypass RLS safely)
-    const { data: roleData, error: roleErr } = await adminClient
-      .from("user_roles")
+    // Check system admin via system_roles
+    const { data: sysRole, error: sysErr } = await adminClient
+      .from("system_roles")
       .select("role")
       .eq("user_id", user.id)
-      .eq("role", "admin")
+      .eq("role", "system_admin")
       .maybeSingle();
 
-    if (roleErr) {
-      console.error("Role check error:", roleErr);
-      return new Response(JSON.stringify({ error: roleErr.message }), {
+    if (sysErr) {
+      console.error("System role check error:", sysErr);
+      return new Response(JSON.stringify({ error: sysErr.message }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    if (!roleData) {
+    if (!sysRole) {
       return new Response(JSON.stringify({ error: "Nur Systemadministratoren können Benutzer bearbeiten" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -90,27 +90,22 @@ serve(async (req) => {
       }
     }
 
-    // Update role in user_roles table
+    // Update role (system admin only)
     if (role) {
-      // First delete existing role
-      await adminClient
-        .from("user_roles")
-        .delete()
-        .eq("user_id", userId);
-
-      // Then insert new role
-      const { error: roleError } = await adminClient
-        .from("user_roles")
-        .insert({ user_id: userId, role });
-
-      if (roleError) {
-        console.error("Role update error:", roleError);
-        return new Response(JSON.stringify({ 
-          error: `Fehler beim Aktualisieren der Rolle: ${roleError.message}` 
-        }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      if (role === 'system_admin') {
+        // Upsert into system_roles
+        const { error: sysRoleUpsertError } = await adminClient
+          .from('system_roles')
+          .upsert({ user_id: userId, role: 'system_admin' }, { onConflict: 'user_id' });
+        if (sysRoleUpsertError) {
+          console.error('System role update error:', sysRoleUpsertError);
+          return new Response(JSON.stringify({ 
+            error: `Fehler beim Aktualisieren der Systemrolle: ${sysRoleUpsertError.message}` 
+          }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
       }
     }
 

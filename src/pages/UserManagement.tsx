@@ -19,7 +19,7 @@ interface User {
   email: string;
   display_name?: string;
   created_at: string;
-  role?: 'admin' | 'organizer' | 'player';
+  role?: 'system_admin' | 'organizer' | 'tenant_admin' | 'player' | null;
 }
 
 export default function UserManagement() {
@@ -31,9 +31,9 @@ export default function UserManagement() {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserDisplayName, setNewUserDisplayName] = useState('');
-  const [newUserRole, setNewUserRole] = useState<'admin' | 'organizer'>('organizer');
+  const [newUserRole, setNewUserRole] = useState<'system_admin'>('system_admin');
   const [editDisplayName, setEditDisplayName] = useState('');
-  const [editRole, setEditRole] = useState<'admin' | 'organizer'>('organizer');
+  const [editRole, setEditRole] = useState<'system_admin'>('system_admin');
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
   const { user } = useAuth();
@@ -307,13 +307,12 @@ export default function UserManagement() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="role">Rolle *</Label>
-                  <Select value={newUserRole} onValueChange={(value: 'admin' | 'organizer') => setNewUserRole(value)}>
+                  <Select value={newUserRole} onValueChange={(value: 'system_admin') => setNewUserRole(value)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="organizer">Manager (Turniere verwalten)</SelectItem>
-                      <SelectItem value="admin">Systemadmin (Vollzugriff)</SelectItem>
+                      <SelectItem value="system_admin">Systemadmin (Vollzugriff)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -352,13 +351,12 @@ export default function UserManagement() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="editRole">Rolle *</Label>
-                <Select value={editRole} onValueChange={(value: 'admin' | 'organizer') => setEditRole(value)}>
+                <Select value={editRole} onValueChange={(value: 'system_admin') => setEditRole(value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="organizer">Manager (Turniere verwalten)</SelectItem>
-                    <SelectItem value="admin">Systemadmin (Vollzugriff)</SelectItem>
+                    <SelectItem value="system_admin">Systemadmin (Vollzugriff)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

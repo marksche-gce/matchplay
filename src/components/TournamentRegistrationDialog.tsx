@@ -211,7 +211,8 @@ export function TournamentRegistrationDialog({
             email: sanitizedData.email,
             handicap: sanitizedData.handicap,
             phone: sanitizedData.phone,
-            emergency_contact: sanitizedData.emergency_contact
+            emergency_contact: sanitizedData.emergency_contact,
+            tenant_id: (tournament as any)?.tenant_id as string,
           })
           .select()
           .single();

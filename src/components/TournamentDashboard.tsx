@@ -543,6 +543,19 @@ export function TournamentDashboard() {
 
   const handleCreateTournament = async (tournamentData: any) => {
     try {
+      // Determine tenant to create the tournament in
+      let tenantId: string | null = null;
+      try {
+        const { data: tenants } = await supabase.rpc('get_user_tenants', { _user_id: user?.id });
+        tenantId = Array.isArray(tenants) && tenants.length > 0 ? tenants[0].tenant_id : null;
+      } catch (e) {
+        console.warn('Could not fetch user tenants, will try without tenant.', e);
+      }
+
+      if (!tenantId) {
+        throw new Error('Kein Mandant gefunden. Bitte wählen Sie einen Mandanten aus oder lassen Sie Ihnen einen zuweisen.');
+      }
+
       const { data, error } = await supabase
         .from('tournaments')
         .insert({
@@ -555,7 +568,8 @@ export function TournamentDashboard() {
           format: tournamentData.format,
           status: "upcoming",
           registration_open: true,
-          entry_fee: tournamentData.entry_fee || 0
+          entry_fee: tournamentData.entry_fee || 0,
+          tenant_id: tenantId,
         })
         .select()
         .single();

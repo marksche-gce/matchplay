@@ -39,23 +39,23 @@ serve(async (req) => {
       });
     }
 
-    // Check admin role using service role (bypass RLS safely)
-    const { data: roleData, error: roleErr } = await adminClient
-      .from("user_roles")
+    // Check system admin via system_roles
+    const { data: sysRole, error: sysErr } = await adminClient
+      .from("system_roles")
       .select("role")
       .eq("user_id", user.id)
-      .eq("role", "admin")
+      .eq("role", "system_admin")
       .maybeSingle();
 
-    if (roleErr) {
-      console.error("Role check error:", roleErr);
-      return new Response(JSON.stringify({ error: roleErr.message }), {
+    if (sysErr) {
+      console.error("System role check error:", sysErr);
+      return new Response(JSON.stringify({ error: sysErr.message }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    if (!roleData) {
+    if (!sysRole) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -72,32 +72,34 @@ serve(async (req) => {
       );
     }
 
-    // Fetch profiles and roles
-    const [profilesRes, rolesRes] = await Promise.all([
+    // Fetch profiles, tenant roles, and system roles
+    const [profilesRes, tenantRolesRes, systemRolesRes] = await Promise.all([
       adminClient.from("profiles").select("id, display_name"),
       adminClient.from("user_roles").select("user_id, role"),
+      adminClient.from("system_roles").select("user_id, role"),
     ]);
 
-    if (profilesRes.error || rolesRes.error) {
-      console.error("Fetch profiles/roles error:", profilesRes.error || rolesRes.error);
+    if (profilesRes.error || tenantRolesRes.error || systemRolesRes.error) {
+      console.error("Fetch data error:", profilesRes.error || tenantRolesRes.error || systemRolesRes.error);
       return new Response(
-        JSON.stringify({ error: (profilesRes.error || rolesRes.error)?.message }),
+        JSON.stringify({ error: (profilesRes.error || tenantRolesRes.error || systemRolesRes.error)?.message }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const profiles = profilesRes.data || [];
-    const roles = rolesRes.data || [];
-
+    const tenantRoles = tenantRolesRes.data || [];
+    const systemRoles = systemRolesRes.data || [];
     const combined = authUsers.users.map((u: any) => {
       const profile = profiles.find((p: any) => p.id === u.id);
-      const roleRow = roles.find((r: any) => r.user_id === u.id);
+      const sys = systemRoles.find((r: any) => r.user_id === u.id);
+      const tenantRole = tenantRoles.find((r: any) => r.user_id === u.id);
       return {
         id: u.id,
         email: u.email ?? "",
         display_name: profile?.display_name ?? u.user_metadata?.display_name ?? null,
         created_at: u.created_at,
-        role: roleRow?.role ?? "player",
+        role: sys?.role ?? tenantRole?.role ?? null,
       };
     });
 

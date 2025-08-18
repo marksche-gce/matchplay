@@ -39,23 +39,23 @@ serve(async (req) => {
       });
     }
 
-    // Check admin role using service role (bypass RLS safely)
-    const { data: roleData, error: roleErr } = await adminClient
-      .from("user_roles")
+    // Check system admin via system_roles
+    const { data: sysRole, error: sysErr } = await adminClient
+      .from("system_roles")
       .select("role")
       .eq("user_id", user.id)
-      .eq("role", "admin")
+      .eq("role", "system_admin")
       .maybeSingle();
 
-    if (roleErr) {
-      console.error("Role check error:", roleErr);
-      return new Response(JSON.stringify({ error: roleErr.message }), {
+    if (sysErr) {
+      console.error("System role check error:", sysErr);
+      return new Response(JSON.stringify({ error: sysErr.message }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    if (!roleData) {
+    if (!sysRole) {
       return new Response(JSON.stringify({ error: "Nur Systemadministratoren können Benutzer löschen" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -85,26 +85,16 @@ Deno.serve(async (req) => {
     }
 
     // Assign role
-    const { error: roleError } = await supabaseAdmin
-      .from('user_roles')
-      .insert({
-        user_id: authData.user.id,
-        role: role
-      })
-
-    if (roleError) {
-      throw roleError
+    if (role === 'system_admin') {
+      // Upsert system admin role
+      await supabaseAdmin.from('system_roles')
+        .upsert({ user_id: authData.user.id, role: 'system_admin' }, { onConflict: 'user_id' });
     }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        user: {
-          id: authData.user.id,
-          email: authData.user.email,
-          display_name: displayName,
-          role
-        }
+        message: 'User created and role assigned'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
