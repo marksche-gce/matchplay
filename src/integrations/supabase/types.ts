@@ -321,7 +321,6 @@ export type Database = {
           id: string
           name: string
           phone: string | null
-          tenant_id: string
           updated_at: string
           user_id: string | null
         }
@@ -333,7 +332,6 @@ export type Database = {
           id?: string
           name: string
           phone?: string | null
-          tenant_id: string
           updated_at?: string
           user_id?: string | null
         }
@@ -345,19 +343,10 @@ export type Database = {
           id?: string
           name?: string
           phone?: string | null
-          tenant_id?: string
           updated_at?: string
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "players_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       players_new: {
         Row: {
@@ -446,7 +435,6 @@ export type Database = {
           name: string
           player1_id: string | null
           player2_id: string | null
-          tenant_id: string | null
           tournament_id: string | null
         }
         Insert: {
@@ -455,7 +443,6 @@ export type Database = {
           name: string
           player1_id?: string | null
           player2_id?: string | null
-          tenant_id?: string | null
           tournament_id?: string | null
         }
         Update: {
@@ -464,7 +451,6 @@ export type Database = {
           name?: string
           player1_id?: string | null
           player2_id?: string | null
-          tenant_id?: string | null
           tournament_id?: string | null
         }
         Relationships: [
@@ -483,13 +469,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "teams_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "teams_tournament_id_fkey"
             columns: ["tournament_id"]
             isOneToOne: false
@@ -497,51 +476,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      tenants: {
-        Row: {
-          address: string | null
-          contact_email: string | null
-          contact_phone: string | null
-          created_at: string
-          description: string | null
-          id: string
-          logo_url: string | null
-          name: string
-          slug: string
-          status: string
-          updated_at: string
-          website: string | null
-        }
-        Insert: {
-          address?: string | null
-          contact_email?: string | null
-          contact_phone?: string | null
-          created_at?: string
-          description?: string | null
-          id?: string
-          logo_url?: string | null
-          name: string
-          slug: string
-          status?: string
-          updated_at?: string
-          website?: string | null
-        }
-        Update: {
-          address?: string | null
-          contact_email?: string | null
-          contact_phone?: string | null
-          created_at?: string
-          description?: string | null
-          id?: string
-          logo_url?: string | null
-          name?: string
-          slug?: string
-          status?: string
-          updated_at?: string
-          website?: string | null
-        }
-        Relationships: []
       }
       tournament_registrations: {
         Row: {
@@ -663,7 +597,6 @@ export type Database = {
           registration_open: boolean
           start_date: string
           status: string
-          tenant_id: string
           updated_at: string
         }
         Insert: {
@@ -680,7 +613,6 @@ export type Database = {
           registration_open?: boolean
           start_date: string
           status?: string
-          tenant_id: string
           updated_at?: string
         }
         Update: {
@@ -697,18 +629,9 @@ export type Database = {
           registration_open?: boolean
           start_date?: string
           status?: string
-          tenant_id?: string
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "tournaments_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       tournaments_new: {
         Row: {
