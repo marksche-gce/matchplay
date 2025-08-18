@@ -80,27 +80,52 @@ serve(async (req) => {
       });
     }
 
-    // First, clear any references to this user in matches before deletion
-    const { error: clearMatchesError } = await adminClient
-      .from("matches")
-      .update({ winner_id: null })
-      .eq("winner_id", userId);
+    // First, find player IDs linked to this user
+    const { data: playersOfUser, error: playersErr } = await adminClient
+      .from("players")
+      .select("id")
+      .eq("user_id", userId);
 
-    if (clearMatchesError) {
-      console.error("Clear matches error:", clearMatchesError);
+    if (playersErr) {
+      console.error("Fetch players error:", playersErr);
     }
 
-    // Also clear references in matches_new table
-    const { error: clearMatchesNewError } = await adminClient
-      .from("matches_new")
-      .update({ 
-        winner_player_id: null,
-        winner_team_id: null 
-      })
-      .or(`winner_player_id.eq.${userId},winner_team_id.eq.${userId}`);
+    const playerIds = (playersOfUser || []).map((p: any) => p.id);
 
-    if (clearMatchesNewError) {
-      console.error("Clear matches_new error:", clearMatchesNewError);
+    if (playerIds.length > 0) {
+      // Clear references in legacy matches table
+      const { error: clearMatchesError } = await adminClient
+        .from("matches")
+        .update({ winner_id: null })
+        .in("winner_id", playerIds);
+      if (clearMatchesError) console.error("Clear matches error:", clearMatchesError);
+
+      // Clear references in new matches table
+      const { error: clearMatchesNewPlayerError } = await adminClient
+        .from("matches_new")
+        .update({ winner_player_id: null })
+        .in("winner_player_id", playerIds);
+      if (clearMatchesNewPlayerError) console.error("Clear matches_new player error:", clearMatchesNewPlayerError);
+
+      // Remove player from teams
+      const { error: clearTeamsP1 } = await adminClient
+        .from("teams")
+        .update({ player1_id: null })
+        .in("player1_id", playerIds);
+      if (clearTeamsP1) console.error("Clear teams player1 error:", clearTeamsP1);
+
+      const { error: clearTeamsP2 } = await adminClient
+        .from("teams")
+        .update({ player2_id: null })
+        .in("player2_id", playerIds);
+      if (clearTeamsP2) console.error("Clear teams player2 error:", clearTeamsP2);
+
+      // Disassociate players from auth user to avoid ON DELETE CASCADE
+      const { error: detachPlayersErr } = await adminClient
+        .from("players")
+        .update({ user_id: null })
+        .in("id", playerIds);
+      if (detachPlayersErr) console.error("Detach players error:", detachPlayersErr);
     }
 
     // Clear user roles before deletion
@@ -108,20 +133,14 @@ serve(async (req) => {
       .from("user_roles")
       .delete()
       .eq("user_id", userId);
-
-    if (clearRolesError) {
-      console.error("Clear user roles error:", clearRolesError);
-    }
+    if (clearRolesError) console.error("Clear user roles error:", clearRolesError);
 
     // Clear system roles before deletion
     const { error: clearSystemRolesError } = await adminClient
       .from("system_roles")
       .delete()
       .eq("user_id", userId);
-
-    if (clearSystemRolesError) {
-      console.error("Clear system roles error:", clearSystemRolesError);
-    }
+    if (clearSystemRolesError) console.error("Clear system roles error:", clearSystemRolesError);
 
     // Delete user using admin client
     const { error: deleteError } = await adminClient.auth.admin.deleteUser(userId);
