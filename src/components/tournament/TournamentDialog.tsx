@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -9,10 +9,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { BracketGenerator } from '@/lib/bracketGenerator';
+import { useAuth } from '@/hooks/useAuth';
 
 interface TournamentDialogProps {
   open: boolean;
@@ -27,8 +27,15 @@ interface TournamentFormData {
   endDate: string;
 }
 
+interface TenantOption {
+  id: string;
+  name: string;
+}
+
 export function TournamentDialog({ open, onOpenChange }: TournamentDialogProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
+
   const [formData, setFormData] = useState<TournamentFormData>({
     name: '',
     type: 'singles',
@@ -37,15 +44,50 @@ export function TournamentDialog({ open, onOpenChange }: TournamentDialogProps) 
     endDate: '',
   });
   const [loading, setLoading] = useState(false);
+  const [tenants, setTenants] = useState<TenantOption[]>([]);
+  const [selectedTenantId, setSelectedTenantId] = useState<string>('');
+  const [isSystemAdmin, setIsSystemAdmin] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const loadTenants = async () => {
+      try {
+        // Check if user is system admin
+        const { data: sysAdmin } = await supabase.rpc('is_system_admin', { _user_id: user?.id });
+        setIsSystemAdmin(!!sysAdmin);
+
+        if (sysAdmin) {
+          // System admin can view all tenants
+          const { data, error } = await supabase.from('tenants').select('id, name').order('name');
+          if (error) throw error;
+          const opts = (data || []).map((t: any) => ({ id: t.id, name: t.name }));
+          setTenants(opts);
+          setSelectedTenantId(opts[0]?.id || '');
+        } else if (user?.id) {
+          // Regular user: only their tenants
+          const { data, error } = await supabase.rpc('get_user_tenants', { _user_id: user.id });
+          if (error) throw error;
+          const opts = (data || []).map((t: any) => ({ id: t.tenant_id, name: t.tenant_name }));
+          setTenants(opts);
+          setSelectedTenantId(opts[0]?.id || '');
+        }
+      } catch (e) {
+        console.error('Error loading tenants:', e);
+        setTenants([]);
+        setSelectedTenantId('');
+      }
+    };
+    loadTenants();
+  }, [open, user?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.startDate || !formData.endDate) {
+    if (!formData.name || !formData.startDate || !formData.endDate || !selectedTenantId) {
       toast({
-        title: "Fehlende Informationen",
-        description: "Bitte füllen Sie alle Pflichtfelder aus.",
-        variant: "destructive",
+        title: 'Fehlende Informationen',
+        description: 'Bitte füllen Sie alle Pflichtfelder aus und wählen Sie einen Mandanten.',
+        variant: 'destructive',
       });
       return;
     }
@@ -53,17 +95,42 @@ export function TournamentDialog({ open, onOpenChange }: TournamentDialogProps) 
     setLoading(true);
     
     try {
-      // Create tournament (max_rounds is generated automatically by database)
-      const { data: tournamentData, error } = await supabase.from('tournaments_new').insert({
-        name: formData.name,
-        type: formData.type,
-        max_players: formData.maxPlayers,
-        start_date: formData.startDate,
-        end_date: formData.endDate,
-        registration_status: 'open',
-      }).select().single();
+      let tournamentData: any = null;
 
-      if (error) throw error;
+      if (isSystemAdmin) {
+        // Use Edge Function to create with service role as system admin
+        const { data, error } = await supabase.functions.invoke('create-tournament', {
+          body: {
+            name: formData.name,
+            type: formData.type,
+            max_players: formData.maxPlayers,
+            start_date: formData.startDate,
+            end_date: formData.endDate,
+            registration_status: 'open',
+            tenant_id: selectedTenantId,
+          },
+        });
+        if (error) throw error;
+        tournamentData = data?.tournament ?? null;
+        if (!tournamentData?.id) throw new Error('Turnier konnte nicht erstellt werden.');
+      } else {
+        // Direct insert respects RLS for tenant organizers/admins
+        const { data, error } = await supabase
+          .from('tournaments_new')
+          .insert({
+            name: formData.name,
+            type: formData.type,
+            max_players: formData.maxPlayers,
+            start_date: formData.startDate,
+            end_date: formData.endDate,
+            registration_status: 'open',
+            tenant_id: selectedTenantId,
+          })
+          .select()
+          .single();
+        if (error) throw error;
+        tournamentData = data;
+      }
 
       // Automatically generate bracket for the new tournament
       const generator = new BracketGenerator();
@@ -71,52 +138,28 @@ export function TournamentDialog({ open, onOpenChange }: TournamentDialogProps) 
         id: tournamentData.id,
         type: formData.type,
         max_players: formData.maxPlayers,
-        max_rounds: tournamentData.max_rounds, // Use the generated value from database
+        max_rounds: tournamentData.max_rounds,
       });
 
       toast({
-        title: "Turnier erstellt",
+        title: 'Turnier erstellt',
         description: `${formData.name} wurde erfolgreich mit generiertem Bracket erstellt.`,
       });
 
       // Reset form and close dialog
-      setFormData({
-        name: '',
-        type: 'singles',
-        maxPlayers: 16,
-        startDate: '',
-        endDate: '',
-      });
+      setFormData({ name: '', type: 'singles', maxPlayers: 16, startDate: '', endDate: '' });
       onOpenChange(false);
-      
-      // Refresh page to show new tournament
       window.location.reload();
-      
     } catch (error) {
       console.error('Error creating tournament:', error);
       toast({
-        title: "Fehler",
-        description: "Turnier konnte nicht erstellt werden. Bitte versuchen Sie es erneut.",
-        variant: "destructive",
+        title: 'Fehler',
+        description: 'Turnier konnte nicht erstellt werden. Bitte prüfen Sie Ihre Berechtigungen und versuchen Sie es erneut.',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
     }
-  };
-
-  const getRoundsForPlayers = (maxPlayers: number): number => {
-    switch (maxPlayers) {
-      case 8: return 3;   // quarterfinal, semifinal and final
-      case 16: return 4;  // Round of 8, quarterfinal, semifinal and final
-      case 32: return 5;  // Round of 16, Round of 8, quarterfinal, semifinal and final
-      case 64: return 6;  // Round of 32, Round of 16, Round of 8, quarterfinal, semifinal and final
-      case 128: return 7; // Round of 64, Round of 32, Round of 16, Round of 8, quarterfinal, semifinal and final
-      default: return Math.ceil(Math.log2(maxPlayers));
-    }
-  };
-
-  const calculateMaxRounds = (maxPlayers: number): number => {
-    return Math.ceil(Math.log2(maxPlayers));
   };
 
   return (
@@ -128,12 +171,26 @@ export function TournamentDialog({ open, onOpenChange }: TournamentDialogProps) 
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
+            <Label htmlFor="tenant">Mandant *</Label>
+            <Select value={selectedTenantId} onValueChange={(value) => setSelectedTenantId(value)}>
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Mandant auswählen" />
+              </SelectTrigger>
+              <SelectContent>
+                {tenants.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
             <Label htmlFor="name">Turniername *</Label>
             <Input
               id="name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Frühjahrs-Meisterschaft 2024"
+              placeholder="Frühjahrs-Meisterschaft 2026"
               className="mt-1"
             />
           </div>
@@ -149,9 +206,6 @@ export function TournamentDialog({ open, onOpenChange }: TournamentDialogProps) 
                 <SelectItem value="foursome">Vierer Matchplay</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground mt-1">
-              {formData.type === 'singles' ? 'Zwei Spieler treten gegeneinander an' : 'Zwei Teams mit je zwei Spielern treten gegeneinander an'}
-            </p>
           </div>
 
           <div>
@@ -161,11 +215,11 @@ export function TournamentDialog({ open, onOpenChange }: TournamentDialogProps) 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="8">8 (3 Runden - Viertelfinale, Halbfinale, Finale)</SelectItem>
-                <SelectItem value="16">16 (4 Runden - Achtelfinale, Viertelfinale, Halbfinale, Finale)</SelectItem>
-                <SelectItem value="32">32 (5 Runden - Sechzehntelfinale, Achtelfinale, Viertelfinale, Halbfinale, Finale)</SelectItem>
-                <SelectItem value="64">64 (6 Runden - Zweiunddreißigstelfinale, Sechzehntelfinale, Achtelfinale, Viertelfinale, Halbfinale, Finale)</SelectItem>
-                <SelectItem value="128">128 (7 Runden - Vierundsechzigstelfinale, Zweiunddreißigstelfinale, Sechzehntelfinale, Achtelfinale, Viertelfinale, Halbfinale, Finale)</SelectItem>
+                <SelectItem value="8">8</SelectItem>
+                <SelectItem value="16">16</SelectItem>
+                <SelectItem value="32">32</SelectItem>
+                <SelectItem value="64">64</SelectItem>
+                <SelectItem value="128">128</SelectItem>
               </SelectContent>
             </Select>
           </div>
