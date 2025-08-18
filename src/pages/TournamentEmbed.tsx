@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { createClient } from '@supabase/supabase-js';
 import { BracketView } from '@/components/tournament/BracketView';
 import { EmbedRegistrationForm } from '@/components/tournament/EmbedRegistrationForm';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,12 @@ interface Tournament {
   registration_status: 'open' | 'closed' | 'full';
   max_rounds: number;
 }
+
+// Create a public supabase client for embedded views
+const supabase = createClient(
+  "https://kdnbpbbwlcxfbiakegnf.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtkbmJwYmJ3bGN4ZmJpYWtlZ25mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0MDA3ODIsImV4cCI6MjA2Nzk3Njc4Mn0.tzjFdV0FieoaDqybeyoFtl_yOMibQhYUv7m7x-jr1mY"
+);
 
 export default function TournamentEmbed() {
   const { id } = useParams<{ id: string }>();
