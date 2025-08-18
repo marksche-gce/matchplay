@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { UserPlus, Users, Shield, Trash2, ArrowLeft, Edit } from 'lucide-react';
-import { useAdminCheck } from '@/hooks/useAdminCheck';
+import { useSystemAdminCheck } from '@/hooks/useSystemAdminCheck';
 
 interface User {
   id: string;
@@ -39,10 +39,10 @@ export default function UserManagement() {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { isAdmin, loading: adminCheckLoading } = useAdminCheck();
+  const { isSystemAdmin, loading: systemAdminCheckLoading } = useSystemAdminCheck();
 
   useEffect(() => {
-    if (!adminCheckLoading && !isAdmin) {
+    if (!systemAdminCheckLoading && !isSystemAdmin) {
       toast({
         title: "Zugriff verweigert",
         description: "Sie haben keine Berechtigung, diese Seite zu besuchen.",
@@ -52,10 +52,10 @@ export default function UserManagement() {
       return;
     }
 
-    if (isAdmin) {
+    if (isSystemAdmin) {
       fetchUsers();
     }
-  }, [isAdmin, adminCheckLoading, navigate, toast]);
+  }, [isSystemAdmin, systemAdminCheckLoading, navigate, toast]);
 
   const fetchUsers = async () => {
     try {
@@ -222,7 +222,7 @@ export default function UserManagement() {
     }
   };
 
-  if (adminCheckLoading || loading) {
+  if (systemAdminCheckLoading || loading) {
   return (
     <div className="min-h-screen bg-gradient-course pt-20">{/* pt-20 to account for fixed header */}
         <div className="container mx-auto px-4 py-6">
@@ -234,7 +234,7 @@ export default function UserManagement() {
     );
   }
 
-  if (!isAdmin) {
+  if (!isSystemAdmin) {
     return null;
   }
 

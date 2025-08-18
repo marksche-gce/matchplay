@@ -16,24 +16,16 @@ export function useSystemAdminCheck() {
       }
 
       try {
-        // Prefer system_roles table if it exists (cast to any to bypass strict typed tables)
-        const { data, error } = await (supabase as any)
-          .from('system_roles' as any)
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('role', 'system_admin')
-          .limit(1);
+        // Use the database function for checking system admin status
+        const { data, error } = await supabase
+          .rpc('is_system_admin', { _user_id: user.id });
 
         if (error) {
-          // If the table does not exist (42P01), fall back to no system admin
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const err: any = error as any;
-          if (err?.code !== '42P01') {
-            console.error('Error checking system admin status:', error);
-          }
+          console.error('Error checking system admin status:', error);
           setIsSystemAdmin(false);
         } else {
-          setIsSystemAdmin(!!data && data.length > 0);
+          console.log('System admin check result:', data);
+          setIsSystemAdmin(!!data);
         }
       } catch (error) {
         console.error('Error checking system admin status:', error);
