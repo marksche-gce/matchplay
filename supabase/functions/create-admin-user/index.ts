@@ -160,16 +160,30 @@ Deno.serve(async (req) => {
       }
     )
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in create-admin-user function:', error)
+
+    // Normalize common auth errors for better UX
+    const code = error?.code || error?.status
+    let friendlyMessage = error?.message || 'Benutzer konnte nicht erstellt werden'
+
+    if (code === 'email_exists' || String(error?.message || '').toLowerCase().includes('already been registered')) {
+      friendlyMessage = 'Diese E-Mail-Adresse ist bereits registriert.'
+    } else if (String(error?.message || '').toLowerCase().includes('insufficient permissions')) {
+      friendlyMessage = 'Unzureichende Berechtigungen zum Erstellen von Benutzern.'
+    } else if (String(error?.message || '').toLowerCase().includes('tenant')) {
+      friendlyMessage = 'Ungültige Mandantenzuordnung. Bitte prüfen Sie die Auswahl.'
+    }
+
+    // Always return 200 with success:false so the client can show the proper message
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message || 'Failed to create user' 
+        error: friendlyMessage 
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
+        status: 200,
       }
     )
   }
