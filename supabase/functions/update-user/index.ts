@@ -39,7 +39,7 @@ serve(async (req) => {
       });
     }
 
-    // Check system admin via system_roles
+    // Check permissions - system admin or tenant admin
     const { data: sysRole, error: sysErr } = await adminClient
       .from("system_roles")
       .select("role")
@@ -55,7 +55,10 @@ serve(async (req) => {
       });
     }
 
-    if (!sysRole) {
+    const isSystemAdmin = !!sysRole;
+    
+    // If not system admin, check if user is tenant admin
+    if (!isSystemAdmin) {
       return new Response(JSON.stringify({ error: "Nur Systemadministratoren können Benutzer bearbeiten" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -90,9 +93,15 @@ serve(async (req) => {
       }
     }
 
-    // Update role (system admin only)
+    // Update role
     if (role) {
       if (role === 'system_admin') {
+        // Clear any existing tenant roles first
+        await adminClient
+          .from('user_roles')
+          .delete()
+          .eq('user_id', userId);
+        
         // Upsert into system_roles
         const { error: sysRoleUpsertError } = await adminClient
           .from('system_roles')
@@ -101,6 +110,47 @@ serve(async (req) => {
           console.error('System role update error:', sysRoleUpsertError);
           return new Response(JSON.stringify({ 
             error: `Fehler beim Aktualisieren der Systemrolle: ${sysRoleUpsertError.message}` 
+          }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } else if (['tenant_admin', 'organizer', 'manager'].includes(role)) {
+        // Clear any existing system role first
+        await adminClient
+          .from('system_roles')
+          .delete()
+          .eq('user_id', userId);
+
+        // Get user's current tenant (from first existing role)
+        const { data: currentRole } = await adminClient
+          .from('user_roles')
+          .select('tenant_id')
+          .eq('user_id', userId)
+          .limit(1)
+          .single();
+
+        const tenantId = currentRole?.tenant_id;
+        if (!tenantId) {
+          return new Response(JSON.stringify({ 
+            error: "Benutzer hat keinen Mandanten zugewiesen" 
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Update tenant role
+        const { error: tenantRoleError } = await adminClient
+          .from('user_roles')
+          .update({ role })
+          .eq('user_id', userId)
+          .eq('tenant_id', tenantId);
+
+        if (tenantRoleError) {
+          console.error('Tenant role update error:', tenantRoleError);
+          return new Response(JSON.stringify({ 
+            error: `Fehler beim Aktualisieren der Mandantenrolle: ${tenantRoleError.message}` 
           }), {
             status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
