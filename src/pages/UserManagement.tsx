@@ -132,7 +132,7 @@ useEffect(() => {
   const handleEditUser = (userData: User) => {
     setEditingUser(userData);
     setEditDisplayName(userData.display_name || '');
-    setEditRole(userData.role as 'tenant_admin' | 'organizer');
+    setEditRole(userData.role as 'admin' | 'organizer');
     setEditUserDialogOpen(true);
   };
 
@@ -209,18 +209,16 @@ useEffect(() => {
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case 'system_admin': return 'bg-destructive text-destructive-foreground';
-      case 'tenant_admin': return 'bg-primary text-primary-foreground';
-      case 'organizer': return 'bg-secondary text-secondary-foreground';
-      case 'player': return 'bg-muted text-muted-foreground';
+      case 'admin': return 'bg-destructive text-destructive-foreground';
+      case 'organizer': return 'bg-primary text-primary-foreground';
+      case 'player': return 'bg-secondary text-secondary-foreground';
       default: return 'bg-muted text-muted-foreground';
     }
   };
 
   const getRoleDisplayName = (role: string) => {
     switch (role) {
-      case 'system_admin': return 'System-Admin';
-      case 'tenant_admin': return 'Mandanten-Admin';
+      case 'admin': return 'Systemadmin';
       case 'organizer': return 'Manager';
       case 'player': return 'Spieler';
       default: return role;
@@ -312,13 +310,13 @@ useEffect(() => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="role">Rolle *</Label>
-                  <Select value={newUserRole} onValueChange={(value: 'tenant_admin' | 'organizer') => setNewUserRole(value)}>
+                  <Select value={newUserRole} onValueChange={(value: 'admin' | 'organizer') => setNewUserRole(value)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="organizer">Manager (Turniere verwalten)</SelectItem>
-                      <SelectItem value="tenant_admin">Mandanten-Admin (Vollzugriff)</SelectItem>
+                      <SelectItem value="admin">Systemadmin (Vollzugriff)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -357,13 +355,13 @@ useEffect(() => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="editRole">Rolle *</Label>
-                <Select value={editRole} onValueChange={(value: 'tenant_admin' | 'organizer') => setEditRole(value)}>
+                <Select value={editRole} onValueChange={(value: 'admin' | 'organizer') => setEditRole(value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="organizer">Manager (Turniere verwalten)</SelectItem>
-                    <SelectItem value="tenant_admin">Mandanten-Admin (Vollzugriff)</SelectItem>
+                    <SelectItem value="admin">Systemadmin (Vollzugriff)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
