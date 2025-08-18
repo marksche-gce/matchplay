@@ -56,13 +56,33 @@ serve(async (req) => {
     }
 
     const isSystemAdmin = !!sysRole;
+    let adminTenantId: string | null = null;
     
     // If not system admin, check if user is tenant admin
     if (!isSystemAdmin) {
-      return new Response(JSON.stringify({ error: "Nur Systemadministratoren können Benutzer bearbeiten" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      const { data: tenantAdminRole, error: tenantErr } = await adminClient
+        .from('user_roles')
+        .select('tenant_id, role')
+        .eq('user_id', user.id)
+        .eq('role', 'tenant_admin')
+        .maybeSingle();
+
+      if (tenantErr) {
+        console.error('Tenant admin role check error:', tenantErr);
+        return new Response(JSON.stringify({ error: tenantErr.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (!tenantAdminRole) {
+        return new Response(JSON.stringify({ error: 'Nur System- oder Mandantenadministratoren können Benutzer bearbeiten' }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      adminTenantId = tenantAdminRole.tenant_id as string;
     }
 
     // Get the user data to update from request
@@ -77,6 +97,24 @@ serve(async (req) => {
 
     // Update display name in profiles table
     if (displayName) {
+      // Tenant admins can only edit users in their tenant
+      if (!isSystemAdmin) {
+        const { data: targetTenantRole } = await adminClient
+          .from('user_roles')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('tenant_id', adminTenantId as string)
+          .maybeSingle();
+        if (!targetTenantRole) {
+          return new Response(JSON.stringify({ 
+            error: 'Sie können nur Benutzer in Ihrem eigenen Mandanten bearbeiten' 
+          }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
       const { error: profileError } = await adminClient
         .from("profiles")
         .update({ display_name: displayName })
@@ -96,6 +134,14 @@ serve(async (req) => {
     // Update role
     if (role) {
       if (role === 'system_admin') {
+        if (!isSystemAdmin) {
+          return new Response(JSON.stringify({ 
+            error: 'Nur Systemadministratoren können Systemrollen vergeben' 
+          }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
         // Clear any existing tenant roles first
         await adminClient
           .from('user_roles')
@@ -122,34 +168,37 @@ serve(async (req) => {
           .delete()
           .eq('user_id', userId);
 
-        // Get user's current tenant (from first existing role)
-        const { data: currentRole } = await adminClient
-          .from('user_roles')
-          .select('tenant_id')
-          .eq('user_id', userId)
-          .limit(1)
-          .single();
-
-        let tenantId = currentRole?.tenant_id;
+        let tenantId: string | null = null;
         
-        // If user has no tenant, assign to default tenant
-        if (!tenantId) {
-          const { data: defaultTenant } = await adminClient
-            .from('tenants')
-            .select('id')
-            .eq('slug', 'standard')
+        if (isSystemAdmin) {
+          // For system admins, use user's existing tenant or fallback to 'standard'
+          const { data: currentRole } = await adminClient
+            .from('user_roles')
+            .select('tenant_id')
+            .eq('user_id', userId)
+            .limit(1)
             .single();
-          
-          tenantId = defaultTenant?.id;
+          tenantId = currentRole?.tenant_id ?? null;
           
           if (!tenantId) {
-            return new Response(JSON.stringify({ 
-              error: "Kein Standard-Mandant gefunden. Kontaktieren Sie den Systemadministrator." 
-            }), {
-              status: 500,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
+            const { data: defaultTenant } = await adminClient
+              .from('tenants')
+              .select('id')
+              .eq('slug', 'standard')
+              .single();
+            tenantId = defaultTenant?.id ?? null;
+            if (!tenantId) {
+              return new Response(JSON.stringify({ 
+                error: "Kein Standard-Mandant gefunden. Kontaktieren Sie den Systemadministrator." 
+              }), {
+                status: 500,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              });
+            }
           }
+        } else {
+          // Tenant admins can only assign roles within their own tenant
+          tenantId = adminTenantId as string;
         }
 
         // Upsert tenant role (insert or update)
