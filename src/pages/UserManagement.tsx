@@ -109,7 +109,7 @@ export default function UserManagement() {
       setNewUserEmail('');
       setNewUserPassword('');
       setNewUserDisplayName('');
-      setNewUserRole('organizer');
+      setNewUserRole('system_admin');
       setCreateUserDialogOpen(false);
 
       // Refresh users list
@@ -129,7 +129,7 @@ export default function UserManagement() {
   const handleEditUser = (userData: User) => {
     setEditingUser(userData);
     setEditDisplayName(userData.display_name || '');
-    setEditRole(userData.role as 'admin' | 'organizer');
+    setEditRole('system_admin'); // Default to system_admin since that's the only role we can manage
     setEditUserDialogOpen(true);
   };
 
@@ -157,7 +157,7 @@ export default function UserManagement() {
 
       // Reset form and close dialog
       setEditDisplayName('');
-      setEditRole('organizer');
+      setEditRole('system_admin');
       setEditingUser(null);
       setEditUserDialogOpen(false);
 
