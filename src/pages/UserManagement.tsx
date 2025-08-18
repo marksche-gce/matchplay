@@ -13,15 +13,13 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { UserPlus, Users, Shield, Trash2, ArrowLeft, Edit } from 'lucide-react';
 import { useSystemAdminCheck } from '@/hooks/useSystemAdminCheck';
-import { useAdminCheck } from '@/hooks/useAdminCheck';
-import { useTenant } from '@/hooks/useTenantContext';
 
 interface User {
   id: string;
   email: string;
   display_name?: string;
   created_at: string;
-  role?: 'tenant_admin' | 'organizer' | 'player' | 'system_admin';
+  role?: 'admin' | 'organizer' | 'player';
 }
 
 export default function UserManagement() {
@@ -33,32 +31,31 @@ export default function UserManagement() {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserDisplayName, setNewUserDisplayName] = useState('');
-  const [newUserRole, setNewUserRole] = useState<'tenant_admin' | 'organizer'>('organizer');
+  const [newUserRole, setNewUserRole] = useState<'admin' | 'organizer'>('organizer');
   const [editDisplayName, setEditDisplayName] = useState('');
-  const [editRole, setEditRole] = useState<'tenant_admin' | 'organizer'>('organizer');
+  const [editRole, setEditRole] = useState<'admin' | 'organizer'>('organizer');
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 const { isSystemAdmin, loading: systemAdminLoading } = useSystemAdminCheck();
-const { isAdmin, loading: adminCheckLoading } = useAdminCheck();
-const { currentTenant } = useTenant();
 
 useEffect(() => {
-  if (!(systemAdminLoading || adminCheckLoading)) {
-    if (!isSystemAdmin && !isAdmin) {
-      toast({
-        title: "Zugriff verweigert",
-        description: "Sie haben keine Berechtigung, diese Seite zu besuchen.",
-        variant: "destructive"
-      });
-      navigate('/');
-      return;
-    }
+  if (!systemAdminLoading && !isSystemAdmin) {
+    toast({
+      title: "Zugriff verweigert",
+      description: "Sie haben keine Berechtigung, diese Seite zu besuchen.",
+      variant: "destructive"
+    });
+    navigate('/');
+    return;
+  }
+
+  if (isSystemAdmin) {
     fetchUsers();
   }
-}, [isSystemAdmin, isAdmin, systemAdminLoading, adminCheckLoading, navigate, toast]);
+}, [isSystemAdmin, systemAdminLoading, navigate, toast]);
 
   const fetchUsers = async () => {
     try {
