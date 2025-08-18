@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, Users, Trophy, Trash2 } from 'lucide-react';
+import { Calendar, Users, Trophy, Trash2, Building2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useSystemAdminCheck } from '@/hooks/useSystemAdminCheck';
@@ -17,6 +17,7 @@ interface Tournament {
   end_date: string;
   registration_status: 'open' | 'closed' | 'full';
   created_at: string;
+  tenant_name?: string;
 }
 
 interface TournamentListProps {
@@ -38,11 +39,23 @@ export function TournamentList({ onTournamentSelect, refreshTrigger }: Tournamen
     try {
       const { data, error } = await supabase
         .from('tournaments_new')
-        .select('*')
+        .select(`
+          *,
+          tenants (
+            name
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setTournaments(data || []);
+      
+      // Map the data to include tenant_name
+      const tournamentsWithTenant = (data || []).map(tournament => ({
+        ...tournament,
+        tenant_name: tournament.tenants?.name || 'Unbekannter Mandant'
+      }));
+      
+      setTournaments(tournamentsWithTenant);
     } catch (error) {
       console.error('Error fetching tournaments:', error);
     } finally {
@@ -170,10 +183,16 @@ export function TournamentList({ onTournamentSelect, refreshTrigger }: Tournamen
           
           <CardContent className="pt-0">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <Calendar className="h-4 w-4" />
-                  {formatDate(tournament.start_date)} - {formatDate(tournament.end_date)}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4" />
+                    {formatDate(tournament.start_date)} - {formatDate(tournament.end_date)}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                  <Building2 className="h-4 w-4" />
+                  <span className="font-medium">{tournament.tenant_name}</span>
                 </div>
               </div>
               
