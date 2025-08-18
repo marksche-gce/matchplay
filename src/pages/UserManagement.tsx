@@ -379,18 +379,12 @@ export default function UserManagement() {
     <div className="min-h-screen bg-gradient-course">
       <div className="container mx-auto px-4 py-6">
         <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => navigate('/')}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Zurück zum Dashboard
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
-                <Shield className="h-8 w-8 text-primary" />
-                Benutzerverwaltung
-              </h1>
-              <p className="text-muted-foreground">Systemadministratoren und Manager verwalten</p>
-            </div>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
+              <Shield className="h-8 w-8 text-primary" />
+              Benutzerverwaltung
+            </h1>
+            <p className="text-muted-foreground">Systemadministratoren und Manager verwalten</p>
           </div>
           
           <Dialog open={createUserDialogOpen} onOpenChange={setCreateUserDialogOpen}>
