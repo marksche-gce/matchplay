@@ -142,6 +142,10 @@ export function UserMenu() {
               <Crown className="mr-2 h-4 w-4" />
               <span>System-Administration</span>
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/tenant-management')}>
+              <Building2 className="mr-2 h-4 w-4" />
+              <span>Mandantenverwaltung</span>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
           </>
         )}
