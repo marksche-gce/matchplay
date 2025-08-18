@@ -759,33 +759,22 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          role: Database["public"]["Enums"]["tenant_role"]
-          tenant_id: string
+          role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
-          role: Database["public"]["Enums"]["tenant_role"]
-          tenant_id: string
+          role?: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
-          role?: Database["public"]["Enums"]["tenant_role"]
-          tenant_id?: string
+          role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "user_roles_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {
@@ -895,7 +884,6 @@ export type Database = {
       app_role: "admin" | "organizer" | "player"
       match_status: "pending" | "scheduled" | "completed"
       registration_status: "open" | "closed" | "full"
-      tenant_role: "tenant_admin" | "organizer" | "player"
       tournament_type: "singles" | "foursome"
     }
     CompositeTypes: {
@@ -1027,7 +1015,6 @@ export const Constants = {
       app_role: ["admin", "organizer", "player"],
       match_status: ["pending", "scheduled", "completed"],
       registration_status: ["open", "closed", "full"],
-      tenant_role: ["tenant_admin", "organizer", "player"],
       tournament_type: ["singles", "foursome"],
     },
   },
