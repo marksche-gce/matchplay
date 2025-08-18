@@ -14,6 +14,12 @@ import { useNavigate } from 'react-router-dom';
 import { UserPlus, Users, Shield, Trash2, ArrowLeft, Edit } from 'lucide-react';
 import { useSystemAdminCheck } from '@/hooks/useSystemAdminCheck';
 
+interface Tenant {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 interface User {
   id: string;
   email: string;
@@ -26,6 +32,7 @@ interface User {
 
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
   const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
   const [editUserDialogOpen, setEditUserDialogOpen] = useState(false);
@@ -34,10 +41,13 @@ export default function UserManagement() {
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserDisplayName, setNewUserDisplayName] = useState('');
   const [newUserRole, setNewUserRole] = useState<'system_admin' | 'tenant_admin' | 'organizer' | 'manager'>('manager');
+  const [newUserTenant, setNewUserTenant] = useState<string>('');
   const [editDisplayName, setEditDisplayName] = useState('');
   const [editRole, setEditRole] = useState<'system_admin' | 'tenant_admin' | 'organizer' | 'manager'>('manager');
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [currentUserTenantId, setCurrentUserTenantId] = useState<string | null>(null);
+  const [isTenantAdmin, setIsTenantAdmin] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -45,19 +55,76 @@ export default function UserManagement() {
 
   useEffect(() => {
     if (!systemAdminCheckLoading && !isSystemAdmin) {
+      // Check if user is tenant admin
+      checkTenantAdminStatus();
+    }
+
+    if (isSystemAdmin || isTenantAdmin) {
+      fetchUsers();
+      fetchTenants();
+    }
+  }, [isSystemAdmin, isTenantAdmin, systemAdminCheckLoading]);
+
+  const checkTenantAdminStatus = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('tenant_id, role')
+        .eq('user_id', user.id)
+        .eq('role', 'tenant_admin')
+        .single();
+
+      if (data && !error) {
+        setIsTenantAdmin(true);
+        setCurrentUserTenantId(data.tenant_id);
+      } else {
+        toast({
+          title: "Zugriff verweigert",
+          description: "Sie haben keine Berechtigung, diese Seite zu besuchen.",
+          variant: "destructive"
+        });
+        navigate('/');
+      }
+    } catch (error) {
+      console.error('Error checking tenant admin status:', error);
       toast({
-        title: "Zugriff verweigert",
+        title: "Zugriff verweigert", 
         description: "Sie haben keine Berechtigung, diese Seite zu besuchen.",
         variant: "destructive"
       });
       navigate('/');
-      return;
     }
+  };
 
-    if (isSystemAdmin) {
-      fetchUsers();
+  const fetchTenants = async () => {
+    try {
+      let query = supabase.from('tenants').select('id, name, slug');
+      
+      // If tenant admin, only show their tenant
+      if (isTenantAdmin && currentUserTenantId) {
+        query = query.eq('id', currentUserTenantId);
+      }
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      
+      setTenants(data || []);
+      
+      // Set default tenant for new users
+      if (data && data.length > 0) {
+        setNewUserTenant(data[0].id);
+      }
+    } catch (error: any) {
+      console.error('Error fetching tenants:', error);
+      toast({
+        title: "Fehler",
+        description: "Mandanten konnten nicht geladen werden.",
+        variant: "destructive"
+      });
     }
-  }, [isSystemAdmin, systemAdminCheckLoading, navigate, toast]);
+  };
 
   const fetchUsers = async () => {
     try {
@@ -138,7 +205,14 @@ export default function UserManagement() {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newUserEmail || !newUserPassword || !newUserDisplayName) return;
+    if (!newUserEmail || !newUserPassword || !newUserDisplayName || !newUserRole || !newUserTenant) {
+      toast({
+        title: "Fehler",
+        description: "Bitte füllen Sie alle Felder aus.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     setCreating(true);
     try {
@@ -147,8 +221,9 @@ export default function UserManagement() {
         body: {
           email: newUserEmail,
           password: newUserPassword,
-          displayName: newUserDisplayName,
-          role: newUserRole
+          display_name: newUserDisplayName,
+          role: newUserRole,
+          tenant_id: newUserTenant
         }
       });
 
@@ -165,6 +240,7 @@ export default function UserManagement() {
       setNewUserPassword('');
       setNewUserDisplayName('');
       setNewUserRole('manager');
+      setNewUserTenant(tenants.length > 0 ? tenants[0].id : '');
       setCreateUserDialogOpen(false);
 
       // Refresh users list
@@ -284,8 +360,8 @@ export default function UserManagement() {
   };
 
   if (systemAdminCheckLoading || loading) {
-  return (
-    <div className="min-h-screen bg-gradient-course pt-20">{/* pt-20 to account for fixed header */}
+    return (
+      <div className="min-h-screen bg-gradient-course pt-20">
         <div className="container mx-auto px-4 py-6">
           <div className="text-center">
             <p>Lade Benutzerverwaltung...</p>
@@ -295,7 +371,7 @@ export default function UserManagement() {
     );
   }
 
-  if (!isSystemAdmin) {
+  if (!isSystemAdmin && !isTenantAdmin) {
     return null;
   }
 
@@ -380,6 +456,23 @@ export default function UserManagement() {
                     </SelectContent>
                   </Select>
                 </div>
+                {newUserRole !== 'system_admin' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="tenant">Mandant *</Label>
+                    <Select value={newUserTenant} onValueChange={setNewUserTenant}>
+                      <SelectTrigger className="bg-background">
+                        <SelectValue placeholder="Mandant auswählen" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background border shadow-lg z-50">
+                        {tenants.map((tenant) => (
+                          <SelectItem key={tenant.id} value={tenant.id}>
+                            {tenant.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setCreateUserDialogOpen(false)}>
                     Abbrechen
