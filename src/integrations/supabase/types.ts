@@ -743,7 +743,6 @@ export type Database = {
             | Database["public"]["Enums"]["registration_status"]
             | null
           start_date: string
-          tenant_id: string | null
           type: Database["public"]["Enums"]["tournament_type"]
           updated_at: string | null
         }
@@ -758,7 +757,6 @@ export type Database = {
             | Database["public"]["Enums"]["registration_status"]
             | null
           start_date: string
-          tenant_id?: string | null
           type: Database["public"]["Enums"]["tournament_type"]
           updated_at?: string | null
         }
@@ -773,19 +771,10 @@ export type Database = {
             | Database["public"]["Enums"]["registration_status"]
             | null
           start_date?: string
-          tenant_id?: string | null
           type?: Database["public"]["Enums"]["tournament_type"]
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "tournaments_new_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       user_roles: {
         Row: {
