@@ -104,6 +104,8 @@ export function UserMenu() {
     .toUpperCase()
     .slice(0, 2);
 
+  console.log('UserMenu - isSystemAdmin:', isSystemAdmin); // Debug log
+  
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
