@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar, Users, Trophy, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useSystemAdminCheck } from '@/hooks/useSystemAdminCheck';
 
 interface Tournament {
   id: string;
@@ -27,6 +28,7 @@ export function TournamentList({ onTournamentSelect, refreshTrigger }: Tournamen
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { isSystemAdmin } = useSystemAdminCheck();
 
   useEffect(() => {
     fetchTournaments();
@@ -54,12 +56,18 @@ export function TournamentList({ onTournamentSelect, refreshTrigger }: Tournamen
     }
 
     try {
-      const { error } = await supabase
-        .from('tournaments_new')
-        .delete()
-        .eq('id', tournamentId);
-
-      if (error) throw error;
+      if (isSystemAdmin) {
+        const { error } = await supabase.functions.invoke('delete-tournament', {
+          body: { tournamentId },
+        });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('tournaments_new')
+          .delete()
+          .eq('id', tournamentId);
+        if (error) throw error;
+      }
 
       toast({
         title: "Turnier gelöscht",
