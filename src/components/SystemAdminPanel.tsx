@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Plus, Building2, Users, Settings, Trash2, Edit, Shield, UserCheck, Crown } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -73,8 +72,7 @@ export function SystemAdminPanel() {
     role: 'player' as 'tenant_admin' | 'manager' | 'organizer' | 'player'
   });
   const { toast } = useToast();
-  const { refreshTenants, switchTenant } = useTenant();
-  const navigate = useNavigate();
+  const { refreshTenants } = useTenant();
 
   useEffect(() => {
     fetchTenants();
@@ -262,21 +260,7 @@ export function SystemAdminPanel() {
     resetForm();
   };
 
-  const handleTenantClick = async (tenant: Tenant) => {
-    try {
-      await switchTenant(tenant.id);
-      navigate('/');
-    } catch (error) {
-      console.error('Error switching tenant:', error);
-      toast({
-        title: "Fehler",
-        description: "Fehler beim Wechseln des Mandanten.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleTenantSelect = (tenant: Tenant) => {
+  const handleTenantClick = (tenant: Tenant) => {
     setSelectedTenant(tenant);
     fetchTenantUsers(tenant.id);
   };
@@ -332,7 +316,7 @@ export function SystemAdminPanel() {
         <TabsContent value="tenants" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {tenants.map((tenant) => (
-                <Card 
+              <Card 
                 key={tenant.id} 
                 className={`cursor-pointer transition-colors ${
                   selectedTenant?.id === tenant.id ? 'ring-2 ring-primary' : ''
@@ -385,7 +369,7 @@ export function SystemAdminPanel() {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleTenantSelect(tenant);
+                        handleTenantClick(tenant);
                       }}
                     >
                       <Users className="h-4 w-4" />
