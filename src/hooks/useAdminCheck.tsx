@@ -16,20 +16,16 @@ export function useAdminCheck() {
       }
 
       try {
-        // Use raw query to avoid TypeScript enum issues
         const { data, error } = await supabase
           .from('user_roles')
-          .select('*')
-          .eq('user_id', user.id)
-          .limit(1);
+          .select('role')
+          .eq('user_id', user.id);
 
         if (error) {
           console.error('Error checking admin status:', error);
           setIsAdmin(false);
         } else {
-          // Check if user has tenant_admin role
-          const hasAdminRole = data && data.length > 0 && 
-            data.some((role: any) => role.role === 'tenant_admin');
+          const hasAdminRole = Array.isArray(data) && data.some((r: any) => r.role === 'tenant_admin');
           setIsAdmin(hasAdminRole);
         }
       } catch (error) {
