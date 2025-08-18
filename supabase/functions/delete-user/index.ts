@@ -80,6 +80,49 @@ serve(async (req) => {
       });
     }
 
+    // First, clear any references to this user in matches before deletion
+    const { error: clearMatchesError } = await adminClient
+      .from("matches")
+      .update({ winner_id: null })
+      .eq("winner_id", userId);
+
+    if (clearMatchesError) {
+      console.error("Clear matches error:", clearMatchesError);
+    }
+
+    // Also clear references in matches_new table
+    const { error: clearMatchesNewError } = await adminClient
+      .from("matches_new")
+      .update({ 
+        winner_player_id: null,
+        winner_team_id: null 
+      })
+      .or(`winner_player_id.eq.${userId},winner_team_id.eq.${userId}`);
+
+    if (clearMatchesNewError) {
+      console.error("Clear matches_new error:", clearMatchesNewError);
+    }
+
+    // Clear user roles before deletion
+    const { error: clearRolesError } = await adminClient
+      .from("user_roles")
+      .delete()
+      .eq("user_id", userId);
+
+    if (clearRolesError) {
+      console.error("Clear user roles error:", clearRolesError);
+    }
+
+    // Clear system roles before deletion
+    const { error: clearSystemRolesError } = await adminClient
+      .from("system_roles")
+      .delete()
+      .eq("user_id", userId);
+
+    if (clearSystemRolesError) {
+      console.error("Clear system roles error:", clearSystemRolesError);
+    }
+
     // Delete user using admin client
     const { error: deleteError } = await adminClient.auth.admin.deleteUser(userId);
     
