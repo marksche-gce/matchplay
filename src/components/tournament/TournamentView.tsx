@@ -9,6 +9,7 @@ import { RegistrationDialog } from './RegistrationDialog';
 import { BracketView } from './BracketView';
 import { useAuth } from '@/hooks/useAuth';
 import { useSystemAdminCheck } from '@/hooks/useSystemAdminCheck';
+import { useOrganizerCheck } from '@/hooks/useOrganizerCheck';
 
 interface Tournament {
   id: string;
@@ -35,6 +36,7 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const { isSystemAdmin } = useSystemAdminCheck();
+  const { isOrganizer } = useOrganizerCheck();
 
   useEffect(() => {
     fetchTournamentDetails();
@@ -186,7 +188,7 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
             <UserPlus className="h-4 w-4 mr-2" />
             Register
           </Button>
-          {user && (
+          {user && (isSystemAdmin || isOrganizer) && (
             <div className="flex gap-2">
               <Button 
                 variant="outline"
@@ -201,7 +203,7 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
       </div>
 
       {/* Management Panel */}
-      {showManagement && user && (
+      {showManagement && user && (isSystemAdmin || isOrganizer) && (
         <Card className="bg-card shadow-card mb-6">
           <CardHeader>
             <CardTitle className="text-lg text-foreground">Tournament Management</CardTitle>
