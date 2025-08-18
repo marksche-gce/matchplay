@@ -31,9 +31,9 @@ export default function UserManagement() {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserDisplayName, setNewUserDisplayName] = useState('');
-  const [newUserRole, setNewUserRole] = useState<'system_admin'>('system_admin');
+  const [newUserRole, setNewUserRole] = useState<'system_admin' | 'tenant_admin' | 'organizer' | 'manager'>('manager');
   const [editDisplayName, setEditDisplayName] = useState('');
-  const [editRole, setEditRole] = useState<'system_admin'>('system_admin');
+  const [editRole, setEditRole] = useState<'system_admin' | 'tenant_admin' | 'organizer' | 'manager'>('manager');
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
   const { user } = useAuth();
@@ -109,7 +109,7 @@ export default function UserManagement() {
       setNewUserEmail('');
       setNewUserPassword('');
       setNewUserDisplayName('');
-      setNewUserRole('system_admin');
+      setNewUserRole('manager');
       setCreateUserDialogOpen(false);
 
       // Refresh users list
@@ -129,7 +129,7 @@ export default function UserManagement() {
   const handleEditUser = (userData: User) => {
     setEditingUser(userData);
     setEditDisplayName(userData.display_name || '');
-    setEditRole('system_admin'); // Default to system_admin since that's the only role we can manage
+    setEditRole((userData.role as 'system_admin' | 'tenant_admin' | 'organizer' | 'manager') || 'manager');
     setEditUserDialogOpen(true);
   };
 
@@ -157,7 +157,7 @@ export default function UserManagement() {
 
       // Reset form and close dialog
       setEditDisplayName('');
-      setEditRole('system_admin');
+      setEditRole('manager');
       setEditingUser(null);
       setEditUserDialogOpen(false);
 
@@ -311,12 +311,15 @@ export default function UserManagement() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="role">Rolle *</Label>
-                  <Select value={newUserRole} onValueChange={(value: 'system_admin') => setNewUserRole(value)}>
-                    <SelectTrigger>
+                  <Select value={newUserRole} onValueChange={(value: 'system_admin' | 'tenant_admin' | 'organizer' | 'manager') => setNewUserRole(value)}>
+                    <SelectTrigger className="bg-background">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-background border shadow-lg z-50">
                       <SelectItem value="system_admin">Systemadmin (Vollzugriff)</SelectItem>
+                      <SelectItem value="tenant_admin">Mandanten-Admin</SelectItem>
+                      <SelectItem value="organizer">Organisator</SelectItem>
+                      <SelectItem value="manager">Manager (Turniere verwalten)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -355,12 +358,15 @@ export default function UserManagement() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="editRole">Rolle *</Label>
-                <Select value={editRole} onValueChange={(value: 'system_admin') => setEditRole(value)}>
-                  <SelectTrigger>
+                <Select value={editRole} onValueChange={(value: 'system_admin' | 'tenant_admin' | 'organizer' | 'manager') => setEditRole(value)}>
+                  <SelectTrigger className="bg-background">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-background border shadow-lg z-50">
                     <SelectItem value="system_admin">Systemadmin (Vollzugriff)</SelectItem>
+                    <SelectItem value="tenant_admin">Mandanten-Admin</SelectItem>
+                    <SelectItem value="organizer">Organisator</SelectItem>
+                    <SelectItem value="manager">Manager (Turniere verwalten)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
