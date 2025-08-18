@@ -18,22 +18,62 @@ interface Tournament {
   registration_status: 'open' | 'closed' | 'full';
   created_at: string;
   tenant_name?: string;
+  tenant_id?: string;
+  tenants?: {
+    id: string;
+    name: string;
+  };
 }
 
 interface TournamentListProps {
   onTournamentSelect: (tournamentId: string) => void;
   refreshTrigger?: number; // Add refresh trigger prop
+  selectedTenantId?: string; // Add tenant filter prop
 }
 
-export function TournamentList({ onTournamentSelect, refreshTrigger }: TournamentListProps) {
+export function TournamentList({ onTournamentSelect, refreshTrigger, selectedTenantId }: TournamentListProps) {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [allTournaments, setAllTournaments] = useState<Tournament[]>([]);
+  const [tenants, setTenants] = useState<{id: string, name: string}[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { isSystemAdmin } = useSystemAdminCheck();
 
   useEffect(() => {
     fetchTournaments();
-  }, [refreshTrigger]); // Add refreshTrigger as dependency
+    if (isSystemAdmin) {
+      fetchTenants();
+    }
+  }, [refreshTrigger, isSystemAdmin]); // Add refreshTrigger as dependency
+
+  useEffect(() => {
+    filterTournaments();
+  }, [selectedTenantId, allTournaments]);
+
+  const fetchTenants = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tenants')
+        .select('id, name')
+        .order('name');
+
+      if (error) throw error;
+      setTenants(data || []);
+    } catch (error) {
+      console.error('Error fetching tenants:', error);
+    }
+  };
+
+  const filterTournaments = () => {
+    if (!selectedTenantId || selectedTenantId === 'all') {
+      setTournaments(allTournaments);
+    } else {
+      const filtered = allTournaments.filter(tournament => 
+        tournament.tenants?.id === selectedTenantId
+      );
+      setTournaments(filtered);
+    }
+  };
 
   const fetchTournaments = async () => {
     try {
@@ -42,6 +82,7 @@ export function TournamentList({ onTournamentSelect, refreshTrigger }: Tournamen
         .select(`
           *,
           tenants (
+            id,
             name
           )
         `)
@@ -49,12 +90,13 @@ export function TournamentList({ onTournamentSelect, refreshTrigger }: Tournamen
 
       if (error) throw error;
       
-      // Map the data to include tenant_name
+      // Map the data to include tenant_name and keep tenants object
       const tournamentsWithTenant = (data || []).map(tournament => ({
         ...tournament,
         tenant_name: tournament.tenants?.name || 'Unbekannter Mandant'
       }));
       
+      setAllTournaments(tournamentsWithTenant);
       setTournaments(tournamentsWithTenant);
     } catch (error) {
       console.error('Error fetching tournaments:', error);
