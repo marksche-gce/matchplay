@@ -20,7 +20,7 @@ export function useOrganizerCheck() {
           .from('user_roles')
           .select('role')
           .eq('user_id', user.id)
-          .in('role', ['tenant_admin', 'organizer'])
+          .in('role', ['admin', 'organizer'])
           .single();
 
         if (error && error.code !== 'PGRST116') {

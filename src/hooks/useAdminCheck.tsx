@@ -20,7 +20,7 @@ export function useAdminCheck() {
           .from('user_roles')
           .select('role')
           .eq('user_id', user.id)
-          .eq('role', 'tenant_admin')
+          .eq('role', 'admin')
           .single();
 
         if (error && error.code !== 'PGRST116') {
