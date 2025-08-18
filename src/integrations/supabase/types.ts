@@ -321,6 +321,7 @@ export type Database = {
           id: string
           name: string
           phone: string | null
+          tenant_id: string
           updated_at: string
           user_id: string | null
         }
@@ -332,6 +333,7 @@ export type Database = {
           id?: string
           name: string
           phone?: string | null
+          tenant_id: string
           updated_at?: string
           user_id?: string | null
         }
@@ -343,10 +345,19 @@ export type Database = {
           id?: string
           name?: string
           phone?: string | null
+          tenant_id?: string
           updated_at?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "players_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       players_new: {
         Row: {
@@ -428,6 +439,27 @@ export type Database = {
           },
         ]
       }
+      system_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["system_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["system_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["system_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       teams: {
         Row: {
           created_at: string | null
@@ -435,6 +467,7 @@ export type Database = {
           name: string
           player1_id: string | null
           player2_id: string | null
+          tenant_id: string | null
           tournament_id: string | null
         }
         Insert: {
@@ -443,6 +476,7 @@ export type Database = {
           name: string
           player1_id?: string | null
           player2_id?: string | null
+          tenant_id?: string | null
           tournament_id?: string | null
         }
         Update: {
@@ -451,6 +485,7 @@ export type Database = {
           name?: string
           player1_id?: string | null
           player2_id?: string | null
+          tenant_id?: string | null
           tournament_id?: string | null
         }
         Relationships: [
@@ -469,6 +504,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "teams_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "teams_tournament_id_fkey"
             columns: ["tournament_id"]
             isOneToOne: false
@@ -476,6 +518,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tenants: {
+        Row: {
+          address: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          description: string | null
+          id: string
+          logo_url: string | null
+          name: string
+          slug: string
+          status: string
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          logo_url?: string | null
+          name: string
+          slug: string
+          status?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          slug?: string
+          status?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
       }
       tournament_registrations: {
         Row: {
@@ -597,6 +684,7 @@ export type Database = {
           registration_open: boolean
           start_date: string
           status: string
+          tenant_id: string
           updated_at: string
         }
         Insert: {
@@ -613,6 +701,7 @@ export type Database = {
           registration_open?: boolean
           start_date: string
           status?: string
+          tenant_id: string
           updated_at?: string
         }
         Update: {
@@ -629,9 +718,18 @@ export type Database = {
           registration_open?: boolean
           start_date?: string
           status?: string
+          tenant_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tournaments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tournaments_new: {
         Row: {
@@ -645,6 +743,7 @@ export type Database = {
             | Database["public"]["Enums"]["registration_status"]
             | null
           start_date: string
+          tenant_id: string | null
           type: Database["public"]["Enums"]["tournament_type"]
           updated_at: string | null
         }
@@ -659,6 +758,7 @@ export type Database = {
             | Database["public"]["Enums"]["registration_status"]
             | null
           start_date: string
+          tenant_id?: string | null
           type: Database["public"]["Enums"]["tournament_type"]
           updated_at?: string | null
         }
@@ -673,31 +773,51 @@ export type Database = {
             | Database["public"]["Enums"]["registration_status"]
             | null
           start_date?: string
+          tenant_id?: string | null
           type?: Database["public"]["Enums"]["tournament_type"]
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tournaments_new_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
           created_at: string
           id: string
-          role: Database["public"]["Enums"]["app_role"]
+          role: Database["public"]["Enums"]["tenant_role"]
+          tenant_id: string
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
-          role?: Database["public"]["Enums"]["app_role"]
+          role: Database["public"]["Enums"]["tenant_role"]
+          tenant_id: string
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
-          role?: Database["public"]["Enums"]["app_role"]
+          role?: Database["public"]["Enums"]["tenant_role"]
+          tenant_id?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -792,10 +912,47 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      get_current_user_system_role: {
+        Args: Record<PropertyKey, never>
+        Returns: Database["public"]["Enums"]["system_role"]
+      }
+      get_current_user_tenant_role: {
+        Args: { _tenant_id: string }
+        Returns: Database["public"]["Enums"]["tenant_role"]
+      }
+      get_user_tenants: {
+        Args: { _user_id: string }
+        Returns: {
+          tenant_id: string
+          tenant_name: string
+          tenant_slug: string
+          user_role: Database["public"]["Enums"]["tenant_role"]
+        }[]
+      }
       has_role: {
         Args:
           | { _role: Database["public"]["Enums"]["app_role"]; _user_id: string }
           | { role_name: string }
+        Returns: boolean
+      }
+      has_tenant_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["tenant_role"]
+          _tenant_id: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_system_admin: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
+      is_tenant_admin: {
+        Args: { _tenant_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_tenant_organizer: {
+        Args: { _tenant_id: string; _user_id: string }
         Returns: boolean
       }
       user_owns_player: {
@@ -807,6 +964,8 @@ export type Database = {
       app_role: "admin" | "organizer" | "player"
       match_status: "pending" | "scheduled" | "completed"
       registration_status: "open" | "closed" | "full"
+      system_role: "system_admin"
+      tenant_role: "tenant_admin" | "organizer" | "player" | "manager"
       tournament_type: "singles" | "foursome"
     }
     CompositeTypes: {
@@ -938,6 +1097,8 @@ export const Constants = {
       app_role: ["admin", "organizer", "player"],
       match_status: ["pending", "scheduled", "completed"],
       registration_status: ["open", "closed", "full"],
+      system_role: ["system_admin"],
+      tenant_role: ["tenant_admin", "organizer", "player", "manager"],
       tournament_type: ["singles", "foursome"],
     },
   },
