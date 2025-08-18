@@ -130,22 +130,32 @@ serve(async (req) => {
           .limit(1)
           .single();
 
-        const tenantId = currentRole?.tenant_id;
+        let tenantId = currentRole?.tenant_id;
+        
+        // If user has no tenant, assign to default tenant
         if (!tenantId) {
-          return new Response(JSON.stringify({ 
-            error: "Benutzer hat keinen Mandanten zugewiesen" 
-          }), {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+          const { data: defaultTenant } = await adminClient
+            .from('tenants')
+            .select('id')
+            .eq('slug', 'standard')
+            .single();
+          
+          tenantId = defaultTenant?.id;
+          
+          if (!tenantId) {
+            return new Response(JSON.stringify({ 
+              error: "Kein Standard-Mandant gefunden. Kontaktieren Sie den Systemadministrator." 
+            }), {
+              status: 500,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
         }
 
-        // Update tenant role
+        // Upsert tenant role (insert or update)
         const { error: tenantRoleError } = await adminClient
           .from('user_roles')
-          .update({ role })
-          .eq('user_id', userId)
-          .eq('tenant_id', tenantId);
+          .upsert({ user_id: userId, tenant_id: tenantId, role }, { onConflict: 'user_id,tenant_id' });
 
         if (tenantRoleError) {
           console.error('Tenant role update error:', tenantRoleError);
