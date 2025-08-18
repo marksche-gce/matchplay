@@ -129,12 +129,25 @@ serve(async (req) => {
       const profile = profiles.find((p: any) => p.id === u.id);
       const sys = systemRoles.find((r: any) => r.user_id === u.id);
       const tenantRole = tenantRoles.find((r: any) => r.user_id === u.id);
+      const tenantRoleForViewerTenant = isTenantAdmin && userTenantId
+        ? tenantRoles.find((r: any) => r.user_id === u.id && r.tenant_id === userTenantId)
+        : null;
+
+      let roleOut: string | null = null;
+      if (isSystemAdmin) {
+        roleOut = sys?.role ?? tenantRole?.role ?? null;
+      } else if (isTenantAdmin) {
+        roleOut = tenantRoleForViewerTenant?.role ?? null; // never expose system_admin to tenant admins
+      } else {
+        roleOut = tenantRole?.role ?? null;
+      }
+
       return {
         id: u.id,
         email: u.email ?? "",
         display_name: profile?.display_name ?? u.user_metadata?.display_name ?? null,
         created_at: u.created_at,
-        role: sys?.role ?? tenantRole?.role ?? null,
+        role: roleOut,
       };
     });
 
