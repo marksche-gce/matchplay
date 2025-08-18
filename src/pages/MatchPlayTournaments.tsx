@@ -15,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 export function MatchPlayTournaments() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { user } = useAuth();
   const { isAdmin } = useAdminCheck();
   const { isOrganizer } = useOrganizerCheck();
@@ -27,6 +28,8 @@ export function MatchPlayTournaments() {
 
   const handleBackToList = () => {
     setSelectedTournamentId(null);
+    // Trigger refresh of tournament list
+    setRefreshTrigger(prev => prev + 1);
   };
 
   return (
@@ -69,7 +72,7 @@ export function MatchPlayTournaments() {
             onBack={handleBackToList}
           />
         ) : (
-          <TournamentList onTournamentSelect={handleTournamentSelect} />
+          <TournamentList onTournamentSelect={handleTournamentSelect} refreshTrigger={refreshTrigger} />
         )}
 
         {/* Create Tournament Dialog */}

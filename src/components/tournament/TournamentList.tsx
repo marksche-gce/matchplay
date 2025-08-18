@@ -20,16 +20,17 @@ interface Tournament {
 
 interface TournamentListProps {
   onTournamentSelect: (tournamentId: string) => void;
+  refreshTrigger?: number; // Add refresh trigger prop
 }
 
-export function TournamentList({ onTournamentSelect }: TournamentListProps) {
+export function TournamentList({ onTournamentSelect, refreshTrigger }: TournamentListProps) {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchTournaments();
-  }, []);
+  }, [refreshTrigger]); // Add refreshTrigger as dependency
 
   const fetchTournaments = async () => {
     try {
