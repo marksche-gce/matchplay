@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { RegistrationDialog } from './RegistrationDialog';
 import { BracketView } from './BracketView';
 import { useAuth } from '@/hooks/useAuth';
+import { useSystemAdminCheck } from '@/hooks/useSystemAdminCheck';
 
 interface Tournament {
   id: string;
@@ -33,6 +34,7 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
   const [showManagement, setShowManagement] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { isSystemAdmin } = useSystemAdminCheck();
 
   useEffect(() => {
     fetchTournamentDetails();
@@ -277,12 +279,18 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
                   }
 
                   try {
-                    const { error } = await supabase
-                      .from('tournaments_new')
-                      .delete()
-                      .eq('id', tournament.id);
-
-                    if (error) throw error;
+                    if (isSystemAdmin) {
+                      const { error } = await supabase.functions.invoke('delete-tournament', {
+                        body: { tournamentId: tournament.id }
+                      });
+                      if (error) throw error;
+                    } else {
+                      const { error } = await supabase
+                        .from('tournaments_new')
+                        .delete()
+                        .eq('id', tournament.id);
+                      if (error) throw error;
+                    }
 
                     toast({
                       title: "Tournament Deleted",

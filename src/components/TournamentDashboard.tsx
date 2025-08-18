@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useBracketGeneration } from "@/hooks/useBracketGeneration";
+import { useSystemAdminCheck } from "@/hooks/useSystemAdminCheck";
 
 interface Tournament {
   id: string;
@@ -90,6 +91,7 @@ export function TournamentDashboard() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { isSystemAdmin } = useSystemAdminCheck();
   const { generateTournamentBracket, fillFirstRoundMatches } = useBracketGeneration();
 
   // Fetch tournaments, players, and matches from database
@@ -820,21 +822,25 @@ export function TournamentDashboard() {
   };
   const handleDeleteTournament = async (tournamentId: string) => {
     try {
-      const { error } = await supabase
-        .from('tournaments')
-        .delete()
-        .eq('id', tournamentId);
-
-      if (error) throw error;
+      if (isSystemAdmin) {
+        const { error } = await supabase.functions.invoke('delete-tournament', {
+          body: { tournamentId }
+        });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('tournaments_new')
+          .delete()
+          .eq('id', tournamentId);
+        if (error) throw error;
+      }
 
       toast({
         title: "Tournament Deleted",
         description: "Tournament and all associated data have been removed.",
       });
 
-      // Refresh tournaments list
       await fetchTournaments();
-      
       if (selectedTournament === tournamentId) {
         setSelectedTournament(null);
       }
