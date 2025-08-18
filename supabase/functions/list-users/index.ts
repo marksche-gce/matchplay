@@ -47,16 +47,29 @@ serve(async (req) => {
       .eq("role", "system_admin")
       .maybeSingle();
 
-    if (sysErr) {
-      console.error("System role check error:", sysErr);
-      return new Response(JSON.stringify({ error: sysErr.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    let isSystemAdmin = false;
+    let isTenantAdmin = false;
+    let userTenantId = null;
+
+    if (sysRole && !sysErr) {
+      isSystemAdmin = true;
+    } else {
+      // Check if user is tenant admin
+      const { data: tenantRole, error: tenantErr } = await adminClient
+        .from("user_roles")
+        .select("role, tenant_id")
+        .eq("user_id", user.id)
+        .eq("role", "tenant_admin")
+        .maybeSingle();
+
+      if (tenantRole && !tenantErr) {
+        isTenantAdmin = true;
+        userTenantId = tenantRole.tenant_id;
+      }
     }
 
-    if (!sysRole) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), {
+    if (!isSystemAdmin && !isTenantAdmin) {
+      return new Response(JSON.stringify({ error: "Forbidden - Insufficient permissions" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -75,7 +88,7 @@ serve(async (req) => {
     // Fetch profiles, tenant roles, and system roles
     const [profilesRes, tenantRolesRes, systemRolesRes] = await Promise.all([
       adminClient.from("profiles").select("id, display_name"),
-      adminClient.from("user_roles").select("user_id, role"),
+      adminClient.from("user_roles").select("user_id, role, tenant_id"),
       adminClient.from("system_roles").select("user_id, role"),
     ]);
 
@@ -90,7 +103,20 @@ serve(async (req) => {
     const profiles = profilesRes.data || [];
     const tenantRoles = tenantRolesRes.data || [];
     const systemRoles = systemRolesRes.data || [];
-    const combined = authUsers.users.map((u: any) => {
+    
+    // Filter users based on permissions
+    let filteredUsers = authUsers.users;
+    if (isTenantAdmin && userTenantId) {
+      // Tenant admins only see users from their tenant
+      const tenantUserIds = tenantRoles
+        .filter((r: any) => r.tenant_id === userTenantId)
+        .map((r: any) => r.user_id);
+      filteredUsers = authUsers.users.filter((u: any) => 
+        tenantUserIds.includes(u.id) || systemRoles.some((r: any) => r.user_id === u.id)
+      );
+    }
+    
+    const combined = filteredUsers.map((u: any) => {
       const profile = profiles.find((p: any) => p.id === u.id);
       const sys = systemRoles.find((r: any) => r.user_id === u.id);
       const tenantRole = tenantRoles.find((r: any) => r.user_id === u.id);

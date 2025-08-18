@@ -42,19 +42,53 @@ Deno.serve(async (req) => {
     }
 
     // Parse request body
-    const { email, password, displayName, role } = await req.json()
+    const { email, password, display_name, role, tenant_id } = await req.json()
 
-    // Validate admin permissions using the database function
-    const { data: validationResult, error: validationError } = await supabaseClient
-      .rpc('create_admin_user', {
-        user_email: email,
-        user_password: password,
-        user_display_name: displayName,
-        user_role: role
-      })
+    if (!email || !password || !display_name || !role) {
+      throw new Error('Missing required fields')
+    }
 
-    if (validationError || !validationResult.success) {
-      throw new Error(validationResult?.error || validationError?.message || 'Validation failed')
+    // Check permissions
+    const { data: sysRole } = await supabaseAdmin
+      .from("system_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "system_admin")
+      .maybeSingle();
+
+    let isSystemAdmin = !!sysRole;
+    let isTenantAdmin = false;
+    let userTenantId = null;
+
+    if (!isSystemAdmin) {
+      // Check if user is tenant admin
+      const { data: tenantRole } = await supabaseAdmin
+        .from("user_roles")
+        .select("role, tenant_id")
+        .eq("user_id", user.id)
+        .eq("role", "tenant_admin")
+        .maybeSingle();
+
+      if (tenantRole) {
+        isTenantAdmin = true;
+        userTenantId = tenantRole.tenant_id;
+      }
+    }
+
+    if (!isSystemAdmin && !isTenantAdmin) {
+      throw new Error('Insufficient permissions to create users')
+    }
+
+    // Validate tenant assignment
+    if (role !== 'system_admin') {
+      if (!tenant_id) {
+        throw new Error('Tenant ID required for non-system-admin roles')
+      }
+
+      // Tenant admins can only create users in their own tenant
+      if (isTenantAdmin && tenant_id !== userTenantId) {
+        throw new Error('Can only create users in your own tenant')
+      }
     }
 
     // Create the user using admin client
@@ -63,7 +97,7 @@ Deno.serve(async (req) => {
       password,
       email_confirm: true,
       user_metadata: {
-        display_name: displayName
+        display_name: display_name
       }
     })
 
@@ -76,7 +110,7 @@ Deno.serve(async (req) => {
       .from('profiles')
       .insert({
         id: authData.user.id,
-        display_name: displayName
+        display_name: display_name
       })
 
     if (profileError) {
@@ -84,17 +118,41 @@ Deno.serve(async (req) => {
       // Continue despite profile error - it might already exist
     }
 
-    // Assign role
+    // Assign role based on type
     if (role === 'system_admin') {
-      // Upsert system admin role
-      await supabaseAdmin.from('system_roles')
-        .upsert({ user_id: authData.user.id, role: 'system_admin' }, { onConflict: 'user_id' });
+      // Create system admin role
+      const { error: roleError } = await supabaseAdmin
+        .from("system_roles")
+        .insert({ user_id: authData.user.id, role: 'system_admin' });
+
+      if (roleError) {
+        console.error("System role creation error:", roleError);
+        // Try to delete the created user if role assignment fails
+        await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+        throw new Error(`Role assignment failed: ${roleError.message}`);
+      }
+    } else {
+      // Create tenant role
+      const { error: roleError } = await supabaseAdmin
+        .from("user_roles")
+        .insert({ 
+          user_id: authData.user.id, 
+          role: role, 
+          tenant_id: tenant_id 
+        });
+
+      if (roleError) {
+        console.error("Tenant role creation error:", roleError);
+        // Try to delete the created user if role assignment fails
+        await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+        throw new Error(`Role assignment failed: ${roleError.message}`);
+      }
     }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'User created and role assigned'
+        message: `User ${display_name} created successfully with role ${role}`
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
