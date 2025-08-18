@@ -10,6 +10,7 @@ import { navItems } from "./nav-items";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import UserManagement from "./pages/UserManagement";
+import TenantManagement from "./pages/TenantManagement";
 import TournamentEmbed from "./pages/TournamentEmbed";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,13 @@ const App = () => (
               <ProtectedRoute>
                 <AppLayout>
                   <UserManagement />
+                </AppLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/tenant-management" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <TenantManagement />
                 </AppLayout>
               </ProtectedRoute>
             } />
