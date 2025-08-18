@@ -45,15 +45,6 @@ export function MatchPlayTournaments() {
             
             {user && (
               <div className="flex gap-2">
-                {isSystemAdmin && (
-                  <Button 
-                    onClick={() => navigate('/user-management')} 
-                    variant="outline"
-                  >
-                    <Shield className="h-4 w-4 mr-2" />
-                    Benutzerverwaltung
-                  </Button>
-                )}
                 {(isSystemAdmin || isAdmin || isOrganizer) && (
                   <Button 
                     onClick={() => setShowCreateDialog(true)} 
