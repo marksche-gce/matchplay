@@ -66,8 +66,25 @@ Deno.serve(async (req) => {
     // Parse request body
     const { email, password, displayName, role, tenantId } = await req.json()
 
-    // Use admin's tenant if no tenant specified (only for non-system admins)
-    const targetTenantId = tenantId || (isTenantAdmin ? tenantAdminCheck.tenant_id : null)
+    // Enforce cross-tenant rules:
+    // - Only system admins may create system_admin users
+    // - Tenant admins can only create users within their own tenant
+    if (role === 'system_admin' && !isSystemAdmin) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Only system admins can assign system_admin role' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    let targetTenantId: string | null = null
+    if (role !== 'system_admin') {
+      if (isSystemAdmin) {
+        targetTenantId = tenantId ?? null
+      } else if (isTenantAdmin) {
+        // Force to caller's tenant, ignore provided tenantId
+        targetTenantId = tenantAdminCheck.tenant_id
+      }
+    }
 
     // Create the user using admin client
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({

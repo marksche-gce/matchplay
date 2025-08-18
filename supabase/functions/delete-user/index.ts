@@ -39,10 +39,25 @@ serve(async (req) => {
       });
     }
 
-    // Check if user has tenant_admin role
-    const { data: roleData, error: roleErr } = await adminClient
-      .from("user_roles")
+    // Check if caller is system admin or tenant admin
+    const { data: systemRole, error: sysErr } = await adminClient
+      .from("system_roles")
       .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "system_admin")
+      .maybeSingle();
+
+    if (sysErr) {
+      console.error("System role check error:", sysErr);
+      return new Response(JSON.stringify({ error: sysErr.message }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: tenantAdminData, error: roleErr } = await adminClient
+      .from("user_roles")
+      .select("role, tenant_id")
       .eq("user_id", user.id)
       .eq("role", "tenant_admin")
       .maybeSingle();
@@ -55,8 +70,11 @@ serve(async (req) => {
       });
     }
 
-    if (!roleData) {
-      return new Response(JSON.stringify({ error: "Forbidden - Tenant admin required" }), {
+    const isSystemAdmin = !!systemRole;
+    const isTenantAdmin = !!tenantAdminData;
+
+    if (!isSystemAdmin && !isTenantAdmin) {
+      return new Response(JSON.stringify({ error: "Forbidden - Admin privileges required" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -77,6 +95,29 @@ serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Authorization: system admins can delete anyone; tenant admins only users in their tenant
+    if (!isSystemAdmin && isTenantAdmin) {
+      const { data: targetMembership, error: membershipErr } = await adminClient
+        .from("user_roles")
+        .select("user_id")
+        .eq("user_id", userId)
+        .eq("tenant_id", tenantAdminData!.tenant_id)
+        .maybeSingle();
+      if (membershipErr) {
+        console.error("Membership check error:", membershipErr);
+        return new Response(
+          JSON.stringify({ error: "Failed to verify user membership" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (!targetMembership) {
+        return new Response(
+          JSON.stringify({ error: "Forbidden - user not in your tenant" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     // Delete user from auth

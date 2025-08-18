@@ -82,6 +82,29 @@ serve(async (req) => {
 
     const { userId, displayName, role, tenantId } = await req.json();
 
+    // Tenant admins may only manage users within their own tenant
+    if (!isSystemAdmin && isTenantAdmin) {
+      const { data: targetMembership, error: membershipErr } = await adminClient
+        .from("user_roles")
+        .select("user_id")
+        .eq("user_id", userId)
+        .eq("tenant_id", tenantAdminData!.tenant_id)
+        .maybeSingle();
+      if (membershipErr) {
+        console.error("Membership check error:", membershipErr);
+        return new Response(JSON.stringify({ error: "Failed to verify user membership" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (!targetMembership) {
+        return new Response(JSON.stringify({ error: "Forbidden - user not in your tenant" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     // Update display name in profiles table if provided
     if (displayName) {
       const { error: profileError } = await adminClient
@@ -103,7 +126,12 @@ serve(async (req) => {
     // Update role if provided
     if (role) {
       if (role === "system_admin") {
-        // Only admins can grant system_admin; this function already verified that
+        if (!isSystemAdmin) {
+          return new Response(JSON.stringify({ error: "Only system admins can assign system_admin role" }), {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
         // Remove any existing system role then insert
         const { error: delSysErr } = await adminClient
           .from("system_roles")
@@ -128,7 +156,7 @@ serve(async (req) => {
         await adminClient.from("system_roles").delete().eq("user_id", userId);
 
         // Determine target tenant
-        const targetTenantId = tenantId || tenantAdminData?.tenant_id || null;
+        const targetTenantId = isSystemAdmin ? (tenantId || null) : tenantAdminData!.tenant_id;
         if (!targetTenantId) {
           return new Response(
             JSON.stringify({ error: "tenantId required for tenant roles" }),
