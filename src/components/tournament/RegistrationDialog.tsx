@@ -8,6 +8,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Upload, UserPlus, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,6 +19,7 @@ interface Tournament {
   id: string;
   type: 'singles' | 'foursome';
   max_players: number;
+  registration_status: 'open' | 'closed' | 'full';
 }
 
 interface RegistrationDialogProps {
@@ -336,178 +338,191 @@ export function RegistrationDialog({
           </DialogTitle>
         </DialogHeader>
         
-        <Tabs defaultValue={tournament.type === 'singles' ? 'player' : 'team'} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="player" disabled={tournament.type === 'foursome'}>
-              <UserPlus className="h-4 w-4 mr-2" />
-              {tournament.type === 'singles' ? 'Spieler registrieren' : 'Einzelperson'}
-            </TabsTrigger>
-            <TabsTrigger value="team" disabled={tournament.type === 'singles'}>
-              <Users className="h-4 w-4 mr-2" />
-              Team registrieren
-            </TabsTrigger>
-            <TabsTrigger value="bulk">
-              <Upload className="h-4 w-4 mr-2" />
-              Excel importieren
-            </TabsTrigger>
-          </TabsList>
+        {tournament.registration_status !== 'open' ? (
+          <div className="text-center py-8">
+            <div className="mb-4">
+              <Badge className="bg-destructive/10 text-destructive border-destructive/30 text-lg px-4 py-2">
+                Anmeldung geschlossen
+              </Badge>
+            </div>
+            <p className="text-muted-foreground">
+              Die Anmeldung für dieses Turnier ist beendet.
+            </p>
+          </div>
+        ) : (
+          <Tabs defaultValue={tournament.type === 'singles' ? 'player' : 'team'} className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="player" disabled={tournament.type === 'foursome'}>
+                <UserPlus className="h-4 w-4 mr-2" />
+                {tournament.type === 'singles' ? 'Spieler registrieren' : 'Einzelperson'}
+              </TabsTrigger>
+              <TabsTrigger value="team" disabled={tournament.type === 'singles'}>
+                <Users className="h-4 w-4 mr-2" />
+                Team registrieren
+              </TabsTrigger>
+              <TabsTrigger value="bulk">
+                <Upload className="h-4 w-4 mr-2" />
+                Excel importieren
+              </TabsTrigger>
+            </TabsList>
 
-          {tournament.type === 'singles' && (
-            <TabsContent value="player" className="space-y-4">
-              <form onSubmit={handlePlayerRegistration} className="space-y-4">
-                <div>
-                  <Label htmlFor="playerName">Spielername *</Label>
-                  <Input
-                    id="playerName"
-                    value={playerForm.name}
-                    onChange={(e) => setPlayerForm({ ...playerForm, name: e.target.value })}
-                    placeholder="Max Mustermann"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="playerEmail">E-Mail-Adresse *</Label>
-                  <Input
-                    id="playerEmail"
-                    type="email"
-                    value={playerForm.email}
-                    onChange={(e) => setPlayerForm({ ...playerForm, email: e.target.value })}
-                    placeholder="max@beispiel.de"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="playerHandicap">Handicap *</Label>
-                  <Input
-                    id="playerHandicap"
-                    type="number"
-                    step="0.1"
-                    value={playerForm.handicap}
-                    onChange={(e) => setPlayerForm({ ...playerForm, handicap: e.target.value })}
-                    placeholder="18.5"
-                  />
-                </div>
-
-                <Button type="submit" disabled={loading} variant="default" className="w-full">
-                  {loading ? 'Registriere...' : 'Spieler registrieren'}
-                </Button>
-              </form>
-            </TabsContent>
-          )}
-
-          <TabsContent value="team" className="space-y-4">
-              <form onSubmit={handleTeamRegistration} className="space-y-4">
-                <div>
-                  <Label htmlFor="teamName">Teamname *</Label>
-                  <Input
-                    id="teamName"
-                    value={teamForm.teamName}
-                    onChange={(e) => setTeamForm({ ...teamForm, teamName: e.target.value })}
-                    placeholder="Eagle Squad"
-                  />
-                </div>
-
-                <div className="space-y-3">
-                  <h4 className="font-medium flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    Spieler 1
-                  </h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label htmlFor="player1Name">Name *</Label>
-                      <Input
-                        id="player1Name"
-                        value={teamForm.player1Name}
-                        onChange={(e) => setTeamForm({ ...teamForm, player1Name: e.target.value })}
-                        placeholder="Max Mustermann"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="player1Handicap">Handicap *</Label>
-                      <Input
-                        id="player1Handicap"
-                        type="number"
-                        step="0.1"
-                        value={teamForm.player1Handicap}
-                        onChange={(e) => setTeamForm({ ...teamForm, player1Handicap: e.target.value })}
-                        placeholder="18.5"
-                      />
-                    </div>
-                  </div>
+            {tournament.type === 'singles' && (
+              <TabsContent value="player" className="space-y-4">
+                <form onSubmit={handlePlayerRegistration} className="space-y-4">
                   <div>
-                    <Label htmlFor="player1Email">E-Mail *</Label>
+                    <Label htmlFor="playerName">Spielername *</Label>
                     <Input
-                      id="player1Email"
+                      id="playerName"
+                      value={playerForm.name}
+                      onChange={(e) => setPlayerForm({ ...playerForm, name: e.target.value })}
+                      placeholder="Max Mustermann"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="playerEmail">E-Mail-Adresse *</Label>
+                    <Input
+                      id="playerEmail"
                       type="email"
-                      value={teamForm.player1Email}
-                      onChange={(e) => setTeamForm({ ...teamForm, player1Email: e.target.value })}
+                      value={playerForm.email}
+                      onChange={(e) => setPlayerForm({ ...playerForm, email: e.target.value })}
                       placeholder="max@beispiel.de"
                     />
                   </div>
-                </div>
 
-                <div className="space-y-3">
-                  <h4 className="font-medium flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    Spieler 2
-                  </h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label htmlFor="player2Name">Name *</Label>
-                      <Input
-                        id="player2Name"
-                        value={teamForm.player2Name}
-                        onChange={(e) => setTeamForm({ ...teamForm, player2Name: e.target.value })}
-                        placeholder="Anna Müller"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="player2Handicap">Handicap *</Label>
-                      <Input
-                        id="player2Handicap"
-                        type="number"
-                        step="0.1"
-                        value={teamForm.player2Handicap}
-                        onChange={(e) => setTeamForm({ ...teamForm, player2Handicap: e.target.value })}
-                        placeholder="14.2"
-                      />
-                    </div>
-                  </div>
                   <div>
-                    <Label htmlFor="player2Email">E-Mail *</Label>
+                    <Label htmlFor="playerHandicap">Handicap *</Label>
                     <Input
-                      id="player2Email"
-                      type="email"
-                      value={teamForm.player2Email}
-                      onChange={(e) => setTeamForm({ ...teamForm, player2Email: e.target.value })}
-                      placeholder="anna@beispiel.de"
+                      id="playerHandicap"
+                      type="number"
+                      step="0.1"
+                      value={playerForm.handicap}
+                      onChange={(e) => setPlayerForm({ ...playerForm, handicap: e.target.value })}
+                      placeholder="18.5"
                     />
                   </div>
-                </div>
 
-                <Button type="submit" disabled={loading} variant="default" className="w-full">
-                  {loading ? 'Registriere...' : 'Team registrieren'}
-                </Button>
-              </form>
-          </TabsContent>
+                  <Button type="submit" disabled={loading} variant="default" className="w-full">
+                    {loading ? 'Registriere...' : 'Spieler registrieren'}
+                  </Button>
+                </form>
+              </TabsContent>
+            )}
 
-          <TabsContent value="bulk" className="space-y-4">
-            <div className="text-center py-8 border-2 border-dashed border-border rounded-lg">
-              <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-foreground mb-2">Spieler aus Excel importieren</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Laden Sie eine Excel-Datei mit den Spalten: Name, E-Mail, Handicap hoch
-              </p>
-              <Input
-                type="file"
-                accept=".xlsx,.xls"
-                onChange={handleExcelUpload}
-                className="max-w-xs mx-auto"
-                disabled={loading}
-              />
-            </div>
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="team" className="space-y-4">
+                <form onSubmit={handleTeamRegistration} className="space-y-4">
+                  <div>
+                    <Label htmlFor="teamName">Teamname *</Label>
+                    <Input
+                      id="teamName"
+                      value={teamForm.teamName}
+                      onChange={(e) => setTeamForm({ ...teamForm, teamName: e.target.value })}
+                      placeholder="Eagle Squad"
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <h4 className="font-medium flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      Spieler 1
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label htmlFor="player1Name">Name *</Label>
+                        <Input
+                          id="player1Name"
+                          value={teamForm.player1Name}
+                          onChange={(e) => setTeamForm({ ...teamForm, player1Name: e.target.value })}
+                          placeholder="Max Mustermann"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="player1Handicap">Handicap *</Label>
+                        <Input
+                          id="player1Handicap"
+                          type="number"
+                          step="0.1"
+                          value={teamForm.player1Handicap}
+                          onChange={(e) => setTeamForm({ ...teamForm, player1Handicap: e.target.value })}
+                          placeholder="18.5"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="player1Email">E-Mail *</Label>
+                      <Input
+                        id="player1Email"
+                        type="email"
+                        value={teamForm.player1Email}
+                        onChange={(e) => setTeamForm({ ...teamForm, player1Email: e.target.value })}
+                        placeholder="max@beispiel.de"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h4 className="font-medium flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      Spieler 2
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label htmlFor="player2Name">Name *</Label>
+                        <Input
+                          id="player2Name"
+                          value={teamForm.player2Name}
+                          onChange={(e) => setTeamForm({ ...teamForm, player2Name: e.target.value })}
+                          placeholder="Anna Müller"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="player2Handicap">Handicap *</Label>
+                        <Input
+                          id="player2Handicap"
+                          type="number"
+                          step="0.1"
+                          value={teamForm.player2Handicap}
+                          onChange={(e) => setTeamForm({ ...teamForm, player2Handicap: e.target.value })}
+                          placeholder="14.2"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="player2Email">E-Mail *</Label>
+                      <Input
+                        id="player2Email"
+                        type="email"
+                        value={teamForm.player2Email}
+                        onChange={(e) => setTeamForm({ ...teamForm, player2Email: e.target.value })}
+                        placeholder="anna@beispiel.de"
+                      />
+                    </div>
+                  </div>
+
+                  <Button type="submit" disabled={loading} variant="default" className="w-full">
+                    {loading ? 'Registriere...' : 'Team registrieren'}
+                  </Button>
+                </form>
+            </TabsContent>
+
+            <TabsContent value="bulk" className="space-y-4">
+              <div className="text-center py-8 border-2 border-dashed border-border rounded-lg">
+                <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-foreground mb-2">Spieler aus Excel importieren</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Laden Sie eine Excel-Datei mit den Spalten: Name, E-Mail, Handicap hoch
+                </p>
+                <Input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleExcelUpload}
+                  className="max-w-xs mx-auto"
+                  disabled={loading}
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
+        )}
       </DialogContent>
     </Dialog>
   );

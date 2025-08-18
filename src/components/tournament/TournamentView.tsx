@@ -181,13 +181,15 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
         </div>
         
         <div className="flex items-center gap-2">
-          <Button 
-            onClick={() => setShowRegistration(true)}
-            variant="default"
-          >
-            <UserPlus className="h-4 w-4 mr-2" />
-            Register
-          </Button>
+          {tournament.registration_status === 'open' && registrationCount < tournament.max_players && (
+            <Button 
+              onClick={() => setShowRegistration(true)}
+              variant="default"
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Register
+            </Button>
+          )}
           {user && (isSystemAdmin || isOrganizer) && (
             <div className="flex gap-2">
               <Button 
