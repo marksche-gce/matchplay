@@ -39,24 +39,27 @@ serve(async (req) => {
       });
     }
 
-    // Check admin role using service role (bypass RLS safely)
-    const { data: roleData, error: roleErr } = await adminClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .maybeSingle();
+    // Check if user is system admin or tenant admin
+    const [systemAdminCheck, tenantAdminCheck] = await Promise.all([
+      adminClient
+        .from("system_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "system_admin")
+        .maybeSingle(),
+      adminClient
+        .from("user_roles")
+        .select("role, tenant_id")
+        .eq("user_id", user.id)
+        .eq("role", "tenant_admin")
+        .maybeSingle()
+    ]);
 
-    if (roleErr) {
-      console.error("Role check error:", roleErr);
-      return new Response(JSON.stringify({ error: roleErr.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const isSystemAdmin = !!systemAdminCheck.data;
+    const isTenantAdmin = !!tenantAdminCheck.data;
 
-    if (!roleData) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), {
+    if (!isSystemAdmin && !isTenantAdmin) {
+      return new Response(JSON.stringify({ error: "Forbidden - Admin privileges required" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -73,9 +76,26 @@ serve(async (req) => {
     }
 
     // Fetch profiles and roles
+    let rolesQuery = adminClient
+      .from("user_roles")
+      .select(`
+        user_id, 
+        role, 
+        tenant_id,
+        tenants:tenant_id (
+          name,
+          slug
+        )
+      `);
+
+    // If tenant admin, only show users from their tenant
+    if (!isSystemAdmin && isTenantAdmin) {
+      rolesQuery = rolesQuery.eq("tenant_id", tenantAdminCheck.data!.tenant_id);
+    }
+
     const [profilesRes, rolesRes] = await Promise.all([
       adminClient.from("profiles").select("id, display_name"),
-      adminClient.from("user_roles").select("user_id, role"),
+      rolesQuery,
     ]);
 
     if (profilesRes.error || rolesRes.error) {
@@ -89,15 +109,31 @@ serve(async (req) => {
     const profiles = profilesRes.data || [];
     const roles = rolesRes.data || [];
 
-    const combined = authUsers.users.map((u: any) => {
+    // Filter auth users based on permission level
+    let filteredAuthUsers = authUsers.users;
+    if (!isSystemAdmin && isTenantAdmin) {
+      // Tenant admin: only show users from their tenant
+      const tenantUserIds = roles.map(r => r.user_id);
+      filteredAuthUsers = authUsers.users.filter(u => tenantUserIds.includes(u.id));
+    }
+
+    const combined = filteredAuthUsers.map((u: any) => {
       const profile = profiles.find((p: any) => p.id === u.id);
-      const roleRow = roles.find((r: any) => r.user_id === u.id);
+      const userRoles = roles.filter((r: any) => r.user_id === u.id);
+      
       return {
         id: u.id,
         email: u.email ?? "",
         display_name: profile?.display_name ?? u.user_metadata?.display_name ?? null,
         created_at: u.created_at,
-        role: roleRow?.role ?? "player",
+        roles: userRoles.map(r => ({
+          role: r.role,
+          tenant_id: r.tenant_id,
+          tenant_name: r.tenants?.name || 'Unknown',
+          tenant_slug: r.tenants?.slug || 'unknown'
+        })),
+        // For backwards compatibility, include primary role
+        role: userRoles[0]?.role || "player"
       };
     });
 

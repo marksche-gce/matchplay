@@ -2,42 +2,42 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 
-export function useAdminCheck() {
-  const [isAdmin, setIsAdmin] = useState(false);
+export function useSystemAdminCheck() {
+  const [isSystemAdmin, setIsSystemAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
   useEffect(() => {
-    const checkAdminStatus = async () => {
+    const checkSystemAdminStatus = async () => {
       if (!user) {
-        setIsAdmin(false);
+        setIsSystemAdmin(false);
         setLoading(false);
         return;
       }
 
       try {
         const { data, error } = await supabase
-          .from('user_roles')
+          .from('system_roles')
           .select('role')
           .eq('user_id', user.id)
-          .eq('role', 'tenant_admin')
+          .eq('role', 'system_admin')
           .single();
 
         if (error && error.code !== 'PGRST116') {
-          console.error('Error checking admin status:', error);
+          console.error('Error checking system admin status:', error);
         }
 
-        setIsAdmin(!!data);
+        setIsSystemAdmin(!!data);
       } catch (error) {
-        console.error('Error checking admin status:', error);
-        setIsAdmin(false);
+        console.error('Error checking system admin status:', error);
+        setIsSystemAdmin(false);
       } finally {
         setLoading(false);
       }
     };
 
-    checkAdminStatus();
+    checkSystemAdminStatus();
   }, [user]);
 
-  return { isAdmin, loading };
+  return { isSystemAdmin, loading };
 }

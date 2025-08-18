@@ -1,5 +1,7 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useAdminCheck } from '@/hooks/useAdminCheck';
+import { useSystemAdminCheck } from '@/hooks/useSystemAdminCheck';
+import { useTenant } from '@/hooks/useTenantContext';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -13,7 +15,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { LogOut, User, Shield, Key } from 'lucide-react';
+import { LogOut, User, Shield, Key, Building2, Crown } from 'lucide-react';
+import { TenantSelector } from '@/components/TenantSelector';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -22,6 +25,7 @@ import { supabase } from '@/integrations/supabase/client';
 export function UserMenu() {
   const { user, signOut } = useAuth();
   const { isAdmin } = useAdminCheck();
+  const { isSystemAdmin } = useSystemAdminCheck();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
@@ -125,6 +129,23 @@ export function UserMenu() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        
+        {/* Tenant Selector */}
+        <div className="px-2 py-1">
+          <TenantSelector />
+        </div>
+        <DropdownMenuSeparator />
+        
+        {isSystemAdmin && (
+          <>
+            <DropdownMenuItem onClick={() => navigate('/system-admin')}>
+              <Crown className="mr-2 h-4 w-4" />
+              <span>System-Administration</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
+        
         {isAdmin && (
           <>
             <DropdownMenuItem onClick={() => navigate('/user-management')}>

@@ -7,17 +7,17 @@ import { TournamentDialog } from '@/components/tournament/TournamentDialog';
 import { TournamentList } from '@/components/tournament/TournamentList';
 import { TournamentView } from '@/components/tournament/TournamentView';
 import { useAuth } from '@/hooks/useAuth';
-import { useAdminCheck } from '@/hooks/useAdminCheck';
+import { useSystemAdminCheck } from '@/hooks/useSystemAdminCheck';
 import { useOrganizerCheck } from '@/hooks/useOrganizerCheck';
 import { useNavigate } from 'react-router-dom';
 
 export function MatchPlayTournaments() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
-  const { user } = useAuth();
-  const { isAdmin } = useAdminCheck();
-  const { isOrganizer } = useOrganizerCheck();
-  const navigate = useNavigate();
+const { user } = useAuth();
+const { isSystemAdmin } = useSystemAdminCheck();
+const { isOrganizer } = useOrganizerCheck();
+const navigate = useNavigate();
 
   const handleTournamentSelect = (tournamentId: string) => {
     setSelectedTournamentId(tournamentId);
@@ -43,7 +43,7 @@ export function MatchPlayTournaments() {
             
             {user && (
               <div className="flex gap-2">
-                {isAdmin && (
+                {isSystemAdmin && (
                   <Button 
                     onClick={() => navigate('/user-management')} 
                     variant="outline"
@@ -52,7 +52,7 @@ export function MatchPlayTournaments() {
                     Benutzerverwaltung
                   </Button>
                 )}
-                {(isAdmin || isOrganizer) && (
+                {isOrganizer && (
                   <Button 
                     onClick={() => setShowCreateDialog(true)} 
                     variant="default"
