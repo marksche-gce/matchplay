@@ -265,7 +265,7 @@ export function SystemAdminPanel() {
   const handleTenantClick = async (tenant: Tenant) => {
     try {
       await switchTenant(tenant.id);
-      navigate('/tournaments');
+      navigate('/');
     } catch (error) {
       console.error('Error switching tenant:', error);
       toast({
