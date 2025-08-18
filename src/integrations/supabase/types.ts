@@ -880,39 +880,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["app_role"]
       }
-      get_current_user_tenant_role: {
-        Args: { _tenant_id: string }
-        Returns: Database["public"]["Enums"]["tenant_role"]
-      }
-      get_user_tenants: {
-        Args: { _user_id: string }
-        Returns: {
-          tenant_id: string
-          tenant_name: string
-          tenant_slug: string
-          user_role: Database["public"]["Enums"]["tenant_role"]
-        }[]
-      }
       has_role: {
         Args:
           | { _role: Database["public"]["Enums"]["app_role"]; _user_id: string }
           | { role_name: string }
-        Returns: boolean
-      }
-      has_tenant_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["tenant_role"]
-          _tenant_id: string
-          _user_id: string
-        }
-        Returns: boolean
-      }
-      is_tenant_admin: {
-        Args: { _tenant_id: string; _user_id: string }
-        Returns: boolean
-      }
-      is_tenant_organizer: {
-        Args: { _tenant_id: string; _user_id: string }
         Returns: boolean
       }
       user_owns_player: {
