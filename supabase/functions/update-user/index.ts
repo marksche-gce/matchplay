@@ -39,12 +39,12 @@ serve(async (req) => {
       });
     }
 
-    // Check if user has tenant_admin role
+    // Check admin role using service role (bypass RLS safely)
     const { data: roleData, error: roleErr } = await adminClient
       .from("user_roles")
-      .select("role, tenant_id")
+      .select("role")
       .eq("user_id", user.id)
-      .eq("role", "tenant_admin")
+      .eq("role", "admin")
       .maybeSingle();
 
     if (roleErr) {
@@ -56,18 +56,23 @@ serve(async (req) => {
     }
 
     if (!roleData) {
-      return new Response(JSON.stringify({ error: "Forbidden - Tenant admin required" }), {
+      return new Response(JSON.stringify({ error: "Nur Systemadministratoren können Benutzer bearbeiten" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { userId, displayName, role, tenantId } = await req.json();
+    // Get the user data to update from request
+    const { userId, displayName, role } = await req.json();
+    
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "Benutzer-ID ist erforderlich" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    // Use admin's tenant if no tenant specified
-    const targetTenantId = tenantId || roleData.tenant_id;
-
-    // Update display name in profiles table if provided
+    // Update display name in profiles table
     if (displayName) {
       const { error: profileError } = await adminClient
         .from("profiles")
@@ -76,54 +81,51 @@ serve(async (req) => {
 
       if (profileError) {
         console.error("Profile update error:", profileError);
-        return new Response(
-          JSON.stringify({ error: "Failed to update profile" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ 
+          error: `Fehler beim Aktualisieren des Anzeigenamens: ${profileError.message}` 
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
     }
 
-    // Update role if provided
-    if (role && targetTenantId) {
-      // Delete existing role for this tenant
+    // Update role in user_roles table
+    if (role) {
+      // First delete existing role
       await adminClient
         .from("user_roles")
         .delete()
-        .eq("user_id", userId)
-        .eq("tenant_id", targetTenantId);
+        .eq("user_id", userId);
 
-      // Insert new role
+      // Then insert new role
       const { error: roleError } = await adminClient
         .from("user_roles")
-        .insert({
-          user_id: userId,
-          tenant_id: targetTenantId,
-          role: role,
-        });
+        .insert({ user_id: userId, role });
 
       if (roleError) {
         console.error("Role update error:", roleError);
-        return new Response(
-          JSON.stringify({ error: "Failed to update role" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ 
+          error: `Fehler beim Aktualisieren der Rolle: ${roleError.message}` 
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
     }
 
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: "User updated successfully",
-        userId,
-        displayName,
-        role,
-        tenant_id: targetTenantId
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ 
+      success: true,
+      message: "Benutzer erfolgreich aktualisiert" 
+    }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+
   } catch (e: any) {
     console.error("update-user error:", e);
-    return new Response(JSON.stringify({ error: e?.message ?? "Unknown error" }), {
+    return new Response(JSON.stringify({ 
+      error: e?.message ?? "Unbekannter Fehler beim Aktualisieren des Benutzers" 
+    }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
