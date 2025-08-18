@@ -6,14 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-course">
-      <div className="fixed top-4 left-4 z-50">
-        <Link to="/tournaments">
-          <Button variant="default" className="flex items-center gap-2">
-            <Trophy className="h-4 w-4" />
-            Turniere anzeigen
-          </Button>
-        </Link>
-      </div>
       
       <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-16">
