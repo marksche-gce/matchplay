@@ -1,5 +1,6 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useSystemAdminCheck } from '@/hooks/useSystemAdminCheck';
+import { useAdminCheck } from '@/hooks/useAdminCheck';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -22,6 +23,7 @@ import { supabase } from '@/integrations/supabase/client';
 export function UserMenu() {
   const { user, signOut } = useAuth();
   const { isSystemAdmin } = useSystemAdminCheck();
+  const { isAdmin: isTenantAdmin } = useAdminCheck();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
@@ -127,7 +129,7 @@ export function UserMenu() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {isSystemAdmin && (
+        {(isSystemAdmin || isTenantAdmin) && (
           <>
             <DropdownMenuItem onClick={() => navigate('/user-management')}>
               <Shield className="mr-2 h-4 w-4" />
