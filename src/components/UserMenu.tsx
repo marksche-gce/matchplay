@@ -14,7 +14,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { LogOut, User, Shield, Key } from 'lucide-react';
+import { LogOut, User, Shield, Key, Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -135,6 +135,12 @@ export function UserMenu() {
               <Shield className="mr-2 h-4 w-4" />
               <span>Benutzerverwaltung</span>
             </DropdownMenuItem>
+            {isSystemAdmin && (
+              <DropdownMenuItem onClick={() => navigate('/tenant-management')}>
+                <Building2 className="mr-2 h-4 w-4" />
+                <span>Mandantenverwaltung</span>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
           </>
         )}
