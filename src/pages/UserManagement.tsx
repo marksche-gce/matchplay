@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { UserPlus, Users, Shield, Trash2, ArrowLeft, Edit } from 'lucide-react';
-import { useSystemAdminCheck } from '@/hooks/useSystemAdminCheck';
+import { useAdminCheck } from '@/hooks/useAdminCheck';
 
 interface User {
   id: string;
@@ -39,23 +39,23 @@ export default function UserManagement() {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-const { isSystemAdmin, loading: systemAdminLoading } = useSystemAdminCheck();
+  const { isAdmin, loading: adminCheckLoading } = useAdminCheck();
 
-useEffect(() => {
-  if (!systemAdminLoading && !isSystemAdmin) {
-    toast({
-      title: "Zugriff verweigert",
-      description: "Sie haben keine Berechtigung, diese Seite zu besuchen.",
-      variant: "destructive"
-    });
-    navigate('/');
-    return;
-  }
+  useEffect(() => {
+    if (!adminCheckLoading && !isAdmin) {
+      toast({
+        title: "Zugriff verweigert",
+        description: "Sie haben keine Berechtigung, diese Seite zu besuchen.",
+        variant: "destructive"
+      });
+      navigate('/');
+      return;
+    }
 
-  if (isSystemAdmin) {
-    fetchUsers();
-  }
-}, [isSystemAdmin, systemAdminLoading, navigate, toast]);
+    if (isAdmin) {
+      fetchUsers();
+    }
+  }, [isAdmin, adminCheckLoading, navigate, toast]);
 
   const fetchUsers = async () => {
     try {
@@ -222,7 +222,7 @@ useEffect(() => {
     }
   };
 
-  if (systemAdminLoading || loading) {
+  if (adminCheckLoading || loading) {
   return (
     <div className="min-h-screen bg-gradient-course pt-20">{/* pt-20 to account for fixed header */}
         <div className="container mx-auto px-4 py-6">
@@ -234,7 +234,7 @@ useEffect(() => {
     );
   }
 
-  if (!isSystemAdmin) {
+  if (!isAdmin) {
     return null;
   }
 
