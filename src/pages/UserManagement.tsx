@@ -449,7 +449,9 @@ export default function UserManagement() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-background border shadow-lg z-50">
-                      <SelectItem value="system_admin">Systemadmin (Vollzugriff)</SelectItem>
+                      {isSystemAdmin && (
+                        <SelectItem value="system_admin">Systemadmin (Vollzugriff)</SelectItem>
+                      )}
                       <SelectItem value="tenant_admin">Mandanten-Admin</SelectItem>
                       <SelectItem value="organizer">Organisator</SelectItem>
                       <SelectItem value="manager">Manager (Turniere verwalten)</SelectItem>
@@ -513,7 +515,9 @@ export default function UserManagement() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-background border shadow-lg z-50">
-                    <SelectItem value="system_admin">Systemadmin (Vollzugriff)</SelectItem>
+                    {isSystemAdmin && (
+                      <SelectItem value="system_admin">Systemadmin (Vollzugriff)</SelectItem>
+                    )}
                     <SelectItem value="tenant_admin">Mandanten-Admin</SelectItem>
                     <SelectItem value="organizer">Organisator</SelectItem>
                     <SelectItem value="manager">Manager (Turniere verwalten)</SelectItem>
