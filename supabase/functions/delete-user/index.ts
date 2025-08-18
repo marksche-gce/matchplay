@@ -39,27 +39,12 @@ serve(async (req) => {
       });
     }
 
-    // Check if caller is system admin or tenant admin
-    const { data: systemRole, error: sysErr } = await adminClient
-      .from("system_roles")
+    // Check admin role using service role (bypass RLS safely)
+    const { data: roleData, error: roleErr } = await adminClient
+      .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
-      .eq("role", "system_admin")
-      .maybeSingle();
-
-    if (sysErr) {
-      console.error("System role check error:", sysErr);
-      return new Response(JSON.stringify({ error: sysErr.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const { data: tenantAdminData, error: roleErr } = await adminClient
-      .from("user_roles")
-      .select("role, tenant_id")
-      .eq("user_id", user.id)
-      .eq("role", "tenant_admin")
+      .eq("role", "admin")
       .maybeSingle();
 
     if (roleErr) {
@@ -70,20 +55,18 @@ serve(async (req) => {
       });
     }
 
-    const isSystemAdmin = !!systemRole;
-    const isTenantAdmin = !!tenantAdminData;
-
-    if (!isSystemAdmin && !isTenantAdmin) {
-      return new Response(JSON.stringify({ error: "Forbidden - Admin privileges required" }), {
+    if (!roleData) {
+      return new Response(JSON.stringify({ error: "Nur Systemadministratoren können Benutzer löschen" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    // Get the user ID to delete from request
     const { userId } = await req.json();
-
+    
     if (!userId) {
-      return new Response(JSON.stringify({ error: "User ID is required" }), {
+      return new Response(JSON.stringify({ error: "Benutzer-ID ist erforderlich" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -91,53 +74,37 @@ serve(async (req) => {
 
     // Prevent self-deletion
     if (userId === user.id) {
-      return new Response(JSON.stringify({ error: "Cannot delete yourself" }), {
+      return new Response(JSON.stringify({ error: "Sie können sich nicht selbst löschen" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Authorization: system admins can delete anyone; tenant admins only users in their tenant
-    if (!isSystemAdmin && isTenantAdmin) {
-      const { data: targetMembership, error: membershipErr } = await adminClient
-        .from("user_roles")
-        .select("user_id")
-        .eq("user_id", userId)
-        .eq("tenant_id", tenantAdminData!.tenant_id)
-        .maybeSingle();
-      if (membershipErr) {
-        console.error("Membership check error:", membershipErr);
-        return new Response(
-          JSON.stringify({ error: "Failed to verify user membership" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (!targetMembership) {
-        return new Response(
-          JSON.stringify({ error: "Forbidden - user not in your tenant" }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-    }
-
-    // Delete user from auth
+    // Delete user using admin client
     const { error: deleteError } = await adminClient.auth.admin.deleteUser(userId);
-
+    
     if (deleteError) {
       console.error("Delete user error:", deleteError);
-      return new Response(
-        JSON.stringify({ error: deleteError.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ 
+        error: `Fehler beim Löschen des Benutzers: ${deleteError.message}` 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    return new Response(
-      JSON.stringify({ success: true, message: "User deleted successfully" }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ 
+      success: true,
+      message: "Benutzer erfolgreich gelöscht" 
+    }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+
   } catch (e: any) {
     console.error("delete-user error:", e);
-    return new Response(JSON.stringify({ error: e?.message ?? "Unknown error" }), {
+    return new Response(JSON.stringify({ 
+      error: e?.message ?? "Unbekannter Fehler beim Löschen des Benutzers" 
+    }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

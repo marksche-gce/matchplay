@@ -39,27 +39,12 @@ serve(async (req) => {
       });
     }
 
-    // Check if caller is system admin or tenant admin
-    const { data: systemRole, error: sysErr } = await adminClient
-      .from("system_roles")
+    // Check admin role using service role (bypass RLS safely)
+    const { data: roleData, error: roleErr } = await adminClient
+      .from("user_roles")
       .select("role")
       .eq("user_id", user.id)
-      .eq("role", "system_admin")
-      .maybeSingle();
-
-    if (sysErr) {
-      console.error("System role check error:", sysErr);
-      return new Response(JSON.stringify({ error: sysErr.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const { data: tenantAdminData, error: roleErr } = await adminClient
-      .from("user_roles")
-      .select("role, tenant_id")
-      .eq("user_id", user.id)
-      .eq("role", "tenant_admin")
+      .eq("role", "admin")
       .maybeSingle();
 
     if (roleErr) {
@@ -70,42 +55,24 @@ serve(async (req) => {
       });
     }
 
-    const isSystemAdmin = !!systemRole;
-    const isTenantAdmin = !!tenantAdminData;
-
-    if (!isSystemAdmin && !isTenantAdmin) {
-      return new Response(JSON.stringify({ error: "Forbidden - Admin privileges required" }), {
+    if (!roleData) {
+      return new Response(JSON.stringify({ error: "Nur Systemadministratoren können Benutzer bearbeiten" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { userId, displayName, role, tenantId } = await req.json();
-
-    // Tenant admins may only manage users within their own tenant
-    if (!isSystemAdmin && isTenantAdmin) {
-      const { data: targetMembership, error: membershipErr } = await adminClient
-        .from("user_roles")
-        .select("user_id")
-        .eq("user_id", userId)
-        .eq("tenant_id", tenantAdminData!.tenant_id)
-        .maybeSingle();
-      if (membershipErr) {
-        console.error("Membership check error:", membershipErr);
-        return new Response(JSON.stringify({ error: "Failed to verify user membership" }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (!targetMembership) {
-        return new Response(JSON.stringify({ error: "Forbidden - user not in your tenant" }), {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+    // Get the user data to update from request
+    const { userId, displayName, role } = await req.json();
+    
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "Benutzer-ID ist erforderlich" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Update display name in profiles table if provided
+    // Update display name in profiles table
     if (displayName) {
       const { error: profileError } = await adminClient
         .from("profiles")
@@ -114,97 +81,51 @@ serve(async (req) => {
 
       if (profileError) {
         console.error("Profile update error:", profileError);
-        return new Response(
-          JSON.stringify({ error: "Failed to update profile" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ 
+          error: `Fehler beim Aktualisieren des Anzeigenamens: ${profileError.message}` 
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
     }
 
-    let responseTenantId: string | null = null;
-
-    // Update role if provided
+    // Update role in user_roles table
     if (role) {
-      if (role === "system_admin") {
-        if (!isSystemAdmin) {
-          return new Response(JSON.stringify({ error: "Only system admins can assign system_admin role" }), {
-            status: 403,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        // Remove any existing system role then insert
-        const { error: delSysErr } = await adminClient
-          .from("system_roles")
-          .delete()
-          .eq("user_id", userId);
-        if (delSysErr) {
-          console.warn("Ignoring system role delete error (might not exist):", delSysErr);
-        }
+      // First delete existing role
+      await adminClient
+        .from("user_roles")
+        .delete()
+        .eq("user_id", userId);
 
-        const { error: insSysErr } = await adminClient
-          .from("system_roles")
-          .insert({ user_id: userId, role: "system_admin" });
-        if (insSysErr) {
-          console.error("System role insert error:", insSysErr);
-          return new Response(
-            JSON.stringify({ error: "Failed to assign system admin role" }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-      } else {
-        // Ensure no lingering system admin rights when switching away
-        await adminClient.from("system_roles").delete().eq("user_id", userId);
+      // Then insert new role
+      const { error: roleError } = await adminClient
+        .from("user_roles")
+        .insert({ user_id: userId, role });
 
-        // Determine target tenant
-        const targetTenantId = isSystemAdmin ? (tenantId || null) : tenantAdminData!.tenant_id;
-        if (!targetTenantId) {
-          return new Response(
-            JSON.stringify({ error: "tenantId required for tenant roles" }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        responseTenantId = targetTenantId;
-
-        // Delete existing role for this tenant
-        await adminClient
-          .from("user_roles")
-          .delete()
-          .eq("user_id", userId)
-          .eq("tenant_id", targetTenantId);
-
-        // Insert new tenant role
-        const { error: roleError } = await adminClient
-          .from("user_roles")
-          .insert({
-            user_id: userId,
-            tenant_id: targetTenantId,
-            role: role,
-          });
-
-        if (roleError) {
-          console.error("Role update error:", roleError);
-          return new Response(
-            JSON.stringify({ error: "Failed to update role" }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
+      if (roleError) {
+        console.error("Role update error:", roleError);
+        return new Response(JSON.stringify({ 
+          error: `Fehler beim Aktualisieren der Rolle: ${roleError.message}` 
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
     }
 
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: "User updated successfully",
-        userId,
-        displayName,
-        role,
-        tenant_id: responseTenantId,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ 
+      success: true,
+      message: "Benutzer erfolgreich aktualisiert" 
+    }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+
   } catch (e: any) {
     console.error("update-user error:", e);
-    return new Response(JSON.stringify({ error: e?.message ?? "Unknown error" }), {
+    return new Response(JSON.stringify({ 
+      error: e?.message ?? "Unbekannter Fehler beim Aktualisieren des Benutzers" 
+    }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

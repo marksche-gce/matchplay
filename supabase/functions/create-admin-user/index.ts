@@ -41,49 +41,20 @@ Deno.serve(async (req) => {
       throw new Error('User not authenticated')
     }
 
-    // Check if user has system_admin or tenant_admin role
-    const { data: systemAdminCheck } = await supabaseAdmin
-      .from('system_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('role', 'system_admin')
-      .maybeSingle()
-
-    const { data: tenantAdminCheck } = await supabaseAdmin
-      .from('user_roles')
-      .select('role, tenant_id')
-      .eq('user_id', user.id)
-      .eq('role', 'tenant_admin')
-      .maybeSingle()
-
-    const isSystemAdmin = !!systemAdminCheck
-    const isTenantAdmin = !!tenantAdminCheck
-
-    if (!isSystemAdmin && !isTenantAdmin) {
-      throw new Error('Access denied. Admin privileges required.')
-    }
-
     // Parse request body
-    const { email, password, displayName, role, tenantId } = await req.json()
+    const { email, password, displayName, role } = await req.json()
 
-    // Enforce cross-tenant rules:
-    // - Only system admins may create system_admin users
-    // - Tenant admins can only create users within their own tenant
-    if (role === 'system_admin' && !isSystemAdmin) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Only system admins can assign system_admin role' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+    // Validate admin permissions using the database function
+    const { data: validationResult, error: validationError } = await supabaseClient
+      .rpc('create_admin_user', {
+        user_email: email,
+        user_password: password,
+        user_display_name: displayName,
+        user_role: role
+      })
 
-    let targetTenantId: string | null = null
-    if (role !== 'system_admin') {
-      if (isSystemAdmin) {
-        targetTenantId = tenantId ?? null
-      } else if (isTenantAdmin) {
-        // Force to caller's tenant, ignore provided tenantId
-        targetTenantId = tenantAdminCheck.tenant_id
-      }
+    if (validationError || !validationResult.success) {
+      throw new Error(validationResult?.error || validationError?.message || 'Validation failed')
     }
 
     // Create the user using admin client
@@ -113,36 +84,16 @@ Deno.serve(async (req) => {
       // Continue despite profile error - it might already exist
     }
 
-    // Assign role based on type
-    if (role === 'system_admin') {
-      // Create system admin role
-      const { error: systemRoleError } = await supabaseAdmin
-        .from('system_roles')
-        .insert({
-          user_id: authData.user.id,
-          role: 'system_admin'
-        })
+    // Assign role
+    const { error: roleError } = await supabaseAdmin
+      .from('user_roles')
+      .insert({
+        user_id: authData.user.id,
+        role: role
+      })
 
-      if (systemRoleError) {
-        throw systemRoleError
-      }
-    } else {
-      // Create tenant role
-      if (!targetTenantId) {
-        throw new Error('Tenant ID required for tenant roles')
-      }
-
-      const { error: roleError } = await supabaseAdmin
-        .from('user_roles')
-        .insert({
-          user_id: authData.user.id,
-          tenant_id: targetTenantId,
-          role: role
-        })
-
-      if (roleError) {
-        throw roleError
-      }
+    if (roleError) {
+      throw roleError
     }
 
     return new Response(
@@ -152,8 +103,7 @@ Deno.serve(async (req) => {
           id: authData.user.id,
           email: authData.user.email,
           display_name: displayName,
-          role,
-          tenant_id: targetTenantId
+          role
         }
       }),
       {

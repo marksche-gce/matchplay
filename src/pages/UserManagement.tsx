@@ -12,17 +12,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { UserPlus, Users, Shield, Trash2, ArrowLeft, Edit } from 'lucide-react';
-import { useSystemAdminCheck } from '@/hooks/useSystemAdminCheck';
 import { useAdminCheck } from '@/hooks/useAdminCheck';
-import { useTenant } from '@/hooks/useTenantContext';
 
 interface User {
   id: string;
   email: string;
   display_name?: string;
   created_at: string;
-  role?: 'system_admin' | 'tenant_admin' | 'organizer' | 'player';
-  tenant_id?: string;
+  role?: 'admin' | 'organizer' | 'player';
 }
 
 export default function UserManagement() {
@@ -34,21 +31,18 @@ export default function UserManagement() {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserDisplayName, setNewUserDisplayName] = useState('');
-  const [newUserRole, setNewUserRole] = useState<'system_admin' | 'tenant_admin' | 'organizer'>('organizer');
+  const [newUserRole, setNewUserRole] = useState<'admin' | 'organizer'>('organizer');
   const [editDisplayName, setEditDisplayName] = useState('');
-  const [editRole, setEditRole] = useState<'system_admin' | 'tenant_admin' | 'organizer'>('organizer');
+  const [editRole, setEditRole] = useState<'admin' | 'organizer'>('organizer');
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-const { isSystemAdmin, loading: systemAdminLoading } = useSystemAdminCheck();
-const { isAdmin, loading: adminCheckLoading } = useAdminCheck();
-const { currentTenant } = useTenant();
+  const { isAdmin, loading: adminCheckLoading } = useAdminCheck();
 
-useEffect(() => {
-  if (!(systemAdminLoading || adminCheckLoading)) {
-    if (!isSystemAdmin && !isAdmin) {
+  useEffect(() => {
+    if (!adminCheckLoading && !isAdmin) {
       toast({
         title: "Zugriff verweigert",
         description: "Sie haben keine Berechtigung, diese Seite zu besuchen.",
@@ -57,9 +51,11 @@ useEffect(() => {
       navigate('/');
       return;
     }
-    fetchUsers();
-  }
-}, [isSystemAdmin, isAdmin, systemAdminLoading, adminCheckLoading, navigate, toast]);
+
+    if (isAdmin) {
+      fetchUsers();
+    }
+  }, [isAdmin, adminCheckLoading, navigate, toast]);
 
   const fetchUsers = async () => {
     try {
@@ -97,8 +93,7 @@ useEffect(() => {
           email: newUserEmail,
           password: newUserPassword,
           displayName: newUserDisplayName,
-          role: newUserRole,
-          tenantId: newUserRole === 'system_admin' ? null : currentTenant?.id
+          role: newUserRole
         }
       });
 
@@ -134,7 +129,7 @@ useEffect(() => {
   const handleEditUser = (userData: User) => {
     setEditingUser(userData);
     setEditDisplayName(userData.display_name || '');
-    setEditRole(userData.role as 'system_admin' | 'tenant_admin' | 'organizer');
+    setEditRole(userData.role as 'admin' | 'organizer');
     setEditUserDialogOpen(true);
   };
 
@@ -148,8 +143,7 @@ useEffect(() => {
         body: {
           userId: editingUser.id,
           displayName: editDisplayName,
-          role: editRole,
-          tenantId: editRole === 'system_admin' ? null : currentTenant?.id
+          role: editRole
         }
       });
 
@@ -212,25 +206,23 @@ useEffect(() => {
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case 'system_admin': return 'bg-destructive text-destructive-foreground';
-      case 'tenant_admin': return 'bg-primary text-primary-foreground';
-      case 'organizer': return 'bg-secondary text-secondary-foreground';
-      case 'player': return 'bg-muted text-muted-foreground';
+      case 'admin': return 'bg-destructive text-destructive-foreground';
+      case 'organizer': return 'bg-primary text-primary-foreground';
+      case 'player': return 'bg-secondary text-secondary-foreground';
       default: return 'bg-muted text-muted-foreground';
     }
   };
 
   const getRoleDisplayName = (role: string) => {
     switch (role) {
-      case 'system_admin': return 'System-Admin';
-      case 'tenant_admin': return 'Mandanten-Admin';
+      case 'admin': return 'Systemadmin';
       case 'organizer': return 'Manager';
       case 'player': return 'Spieler';
       default: return role;
     }
   };
 
-  if (systemAdminLoading || adminCheckLoading || loading) {
+  if (adminCheckLoading || loading) {
   return (
     <div className="min-h-screen bg-gradient-course pt-20">{/* pt-20 to account for fixed header */}
         <div className="container mx-auto px-4 py-6">
@@ -242,7 +234,7 @@ useEffect(() => {
     );
   }
 
-  if (!isSystemAdmin && !isAdmin) {
+  if (!isAdmin) {
     return null;
   }
 
@@ -315,16 +307,13 @@ useEffect(() => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="role">Rolle *</Label>
-                  <Select value={newUserRole} onValueChange={(value: 'system_admin' | 'tenant_admin' | 'organizer') => setNewUserRole(value)}>
+                  <Select value={newUserRole} onValueChange={(value: 'admin' | 'organizer') => setNewUserRole(value)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="organizer">Manager (Turniere verwalten)</SelectItem>
-                      <SelectItem value="tenant_admin">Mandanten-Admin (Vollzugriff im Mandanten)</SelectItem>
-                      {isSystemAdmin && (
-                        <SelectItem value="system_admin">System-Admin (Vollzugriff über alle Mandanten)</SelectItem>
-                      )}
+                      <SelectItem value="admin">Systemadmin (Vollzugriff)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -363,16 +352,13 @@ useEffect(() => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="editRole">Rolle *</Label>
-                <Select value={editRole} onValueChange={(value: 'system_admin' | 'tenant_admin' | 'organizer') => setEditRole(value)}>
+                <Select value={editRole} onValueChange={(value: 'admin' | 'organizer') => setEditRole(value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="organizer">Manager (Turniere verwalten)</SelectItem>
-                    <SelectItem value="tenant_admin">Mandanten-Admin (Vollzugriff im Mandanten)</SelectItem>
-                    {isSystemAdmin && (
-                      <SelectItem value="system_admin">System-Admin (Vollzugriff über alle Mandanten)</SelectItem>
-                    )}
+                    <SelectItem value="admin">Systemadmin (Vollzugriff)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

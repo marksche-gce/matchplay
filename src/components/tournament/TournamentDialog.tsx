@@ -13,7 +13,6 @@ import { Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { BracketGenerator } from '@/lib/bracketGenerator';
-import { useTenant } from '@/hooks/useTenantContext';
 
 interface TournamentDialogProps {
   open: boolean;
@@ -30,7 +29,6 @@ interface TournamentFormData {
 
 export function TournamentDialog({ open, onOpenChange }: TournamentDialogProps) {
   const { toast } = useToast();
-  const { currentTenant } = useTenant();
   const [formData, setFormData] = useState<TournamentFormData>({
     name: '',
     type: 'singles',
@@ -52,15 +50,6 @@ export function TournamentDialog({ open, onOpenChange }: TournamentDialogProps) 
       return;
     }
 
-    if (!currentTenant) {
-      toast({
-        title: "Fehler",
-        description: "Kein Mandant ausgewählt.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setLoading(true);
     
     try {
@@ -72,7 +61,6 @@ export function TournamentDialog({ open, onOpenChange }: TournamentDialogProps) 
         start_date: formData.startDate,
         end_date: formData.endDate,
         registration_status: 'open',
-        tenant_id: currentTenant.id,
       }).select().single();
 
       if (error) throw error;
