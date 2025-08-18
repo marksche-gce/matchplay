@@ -107,22 +107,19 @@ serve(async (req) => {
     // Filter users based on permissions
     let filteredUsers = authUsers.users;
     if (isTenantAdmin && userTenantId) {
-      // Tenant admins see users from their tenant + all system admins
+      // Tenant admins only see users from their tenant (no system admins)
       const tenantUserIds = tenantRoles
         .filter((r: any) => r.tenant_id === userTenantId)
         .map((r: any) => r.user_id);
       
-      const systemAdminIds = systemRoles.map((r: any) => r.user_id);
-      
       console.log('Tenant admin filtering:', {
         userTenantId,
         tenantUserIds,
-        systemAdminIds,
         totalUsers: authUsers.users.length
       });
       
       filteredUsers = authUsers.users.filter((u: any) => 
-        tenantUserIds.includes(u.id) || systemAdminIds.includes(u.id)
+        tenantUserIds.includes(u.id)
       );
       
       console.log('Filtered users count:', filteredUsers.length);
