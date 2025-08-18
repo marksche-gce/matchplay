@@ -376,7 +376,7 @@ export default function UserManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-course">
+    <div className="min-h-screen bg-gradient-course pt-20">
       <div className="container mx-auto px-4 py-6">
         <div className="mb-6 flex items-center justify-between">
           <div>
