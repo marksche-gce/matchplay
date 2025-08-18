@@ -16,18 +16,22 @@ export function useOrganizerCheck() {
       }
 
       try {
+        // Use raw query to avoid TypeScript enum issues
         const { data, error } = await supabase
           .from('user_roles')
-          .select('role')
+          .select('*')
           .eq('user_id', user.id)
-          .in('role', ['admin', 'organizer'])
-          .single();
+          .limit(10);
 
-        if (error && error.code !== 'PGRST116') {
+        if (error) {
           console.error('Error checking organizer status:', error);
+          setIsOrganizer(false);
+        } else {
+          // Check if user has tenant_admin or organizer role
+          const hasOrganizerRole = data && data.length > 0 && 
+            data.some((role: any) => role.role === 'tenant_admin' || role.role === 'organizer');
+          setIsOrganizer(hasOrganizerRole);
         }
-
-        setIsOrganizer(!!data);
       } catch (error) {
         console.error('Error checking organizer status:', error);
         setIsOrganizer(false);
