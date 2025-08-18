@@ -107,6 +107,23 @@ serve(async (req) => {
         .in("winner_player_id", playerIds);
       if (clearMatchesNewPlayerError) console.error("Clear matches_new player error:", clearMatchesNewPlayerError);
 
+      // Collect team IDs involving these players
+      const { data: teamsInvolving, error: teamsFetchErr } = await adminClient
+        .from("teams")
+        .select("id, player1_id, player2_id")
+        .or(`player1_id.in.(${playerIds.join(',')}),player2_id.in.(${playerIds.join(',')})`);
+      if (teamsFetchErr) console.error("Fetch teams error:", teamsFetchErr);
+      const teamIds = (teamsInvolving || []).map((t: any) => t.id);
+
+      // Clear winner_team_id in matches_new that reference these teams
+      if (teamIds.length > 0) {
+        const { error: clearMatchesNewTeamError } = await adminClient
+          .from("matches_new")
+          .update({ winner_team_id: null })
+          .in("winner_team_id", teamIds);
+        if (clearMatchesNewTeamError) console.error("Clear matches_new team error:", clearMatchesNewTeamError);
+      }
+
       // Remove player from teams
       const { error: clearTeamsP1 } = await adminClient
         .from("teams")
