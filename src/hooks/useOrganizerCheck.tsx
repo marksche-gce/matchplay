@@ -27,9 +27,9 @@ export function useOrganizerCheck() {
           console.error('Error checking organizer status:', error);
           setIsOrganizer(false);
         } else {
-          // Check if user has tenant_admin or organizer role
+          // Check if user has tenant_admin, organizer, or manager role
           const hasOrganizerRole = data && data.length > 0 && 
-            data.some((role: any) => role.role === 'tenant_admin' || role.role === 'organizer');
+            data.some((role: any) => role.role === 'tenant_admin' || role.role === 'organizer' || role.role === 'manager');
           setIsOrganizer(hasOrganizerRole);
         }
       } catch (error) {

@@ -19,7 +19,7 @@ interface User {
   email: string;
   display_name?: string;
   created_at: string;
-  role?: 'system_admin' | 'organizer' | 'tenant_admin' | 'player' | null;
+  role?: 'system_admin' | 'organizer' | 'tenant_admin' | 'manager' | 'player' | null;
 }
 
 export default function UserManagement() {
@@ -208,6 +208,8 @@ export default function UserManagement() {
     switch (role) {
       case 'admin': return 'bg-destructive text-destructive-foreground';
       case 'organizer': return 'bg-primary text-primary-foreground';
+      case 'manager': return 'bg-blue-500 text-white';
+      case 'tenant_admin': return 'bg-purple-500 text-white';
       case 'player': return 'bg-secondary text-secondary-foreground';
       default: return 'bg-muted text-muted-foreground';
     }
@@ -216,7 +218,9 @@ export default function UserManagement() {
   const getRoleDisplayName = (role: string) => {
     switch (role) {
       case 'admin': return 'Systemadmin';
-      case 'organizer': return 'Manager';
+      case 'organizer': return 'Organisator';
+      case 'manager': return 'Manager';
+      case 'tenant_admin': return 'Mandanten-Admin';
       case 'player': return 'Spieler';
       default: return role;
     }
