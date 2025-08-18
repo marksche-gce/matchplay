@@ -20,6 +20,8 @@ interface User {
   display_name?: string;
   created_at: string;
   role?: 'system_admin' | 'organizer' | 'tenant_admin' | 'manager' | 'player' | null;
+  tenant_name?: string;
+  tenant_slug?: string;
 }
 
 export default function UserManagement() {
@@ -61,6 +63,7 @@ export default function UserManagement() {
     try {
       setLoading(true);
 
+      // First get users from edge function
       const { data, error } = await supabase.functions.invoke('list-users');
 
       if (error) throw error;
@@ -68,7 +71,43 @@ export default function UserManagement() {
         throw new Error('Ungültige Antwort vom Server');
       }
 
-      setUsers(data.users);
+      // Enrich users with tenant information
+      const enrichedUsers = await Promise.all(
+        data.users.map(async (user: any) => {
+          try {
+            // Get user's tenant information
+            const { data: userRoles, error: roleError } = await supabase
+              .from('user_roles')
+              .select(`
+                role,
+                tenants (
+                  name,
+                  slug
+                )
+              `)
+              .eq('user_id', user.id)
+              .limit(1)
+              .single();
+
+            return {
+              ...user,
+              role: userRoles?.role || null,
+              tenant_name: userRoles?.tenants?.name || 'Kein Mandant',
+              tenant_slug: userRoles?.tenants?.slug || null
+            };
+          } catch (err) {
+            console.error('Error fetching role for user:', user.id, err);
+            return {
+              ...user,
+              role: null,
+              tenant_name: 'Kein Mandant',
+              tenant_slug: null
+            };
+          }
+        })
+      );
+
+      setUsers(enrichedUsers);
     } catch (error: any) {
       console.error('Error fetching users:', error);
       toast({
@@ -399,6 +438,7 @@ export default function UserManagement() {
                   <TableHead>Name</TableHead>
                   <TableHead>E-Mail</TableHead>
                   <TableHead>Rolle</TableHead>
+                  <TableHead>Mandant</TableHead>
                   <TableHead>Erstellt am</TableHead>
                   <TableHead className="text-right">Aktionen</TableHead>
                 </TableRow>
@@ -414,6 +454,11 @@ export default function UserManagement() {
                       <Badge className={getRoleBadgeColor(userData.role || 'player')}>
                         {getRoleDisplayName(userData.role || 'player')}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm text-muted-foreground">
+                        {userData.tenant_name || 'Kein Mandant'}
+                      </span>
                     </TableCell>
                     <TableCell>
                       {new Date(userData.created_at).toLocaleDateString('de-DE')}
