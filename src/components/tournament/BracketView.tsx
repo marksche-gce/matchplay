@@ -111,18 +111,21 @@ export function BracketView({ tournamentId, tournament, embedded = false }: Brac
 
   const fetchRoundDeadlines = async () => {
     try {
-      const { data, error } = await supabase
-        .from('round_deadlines')
-        .select('*')
-        .eq('tournament_id', tournamentId);
+      if (!embedded) {
+        const { data, error } = await supabase
+          .from('round_deadlines')
+          .select('*')
+          .eq('tournament_id', tournamentId);
 
-      if (error) throw error;
-      
-      const deadlineMap: {[key: number]: string} = {};
-      (data || []).forEach(deadline => {
-        deadlineMap[deadline.round_number] = deadline.closing_date;
-      });
-      setRoundDeadlines(deadlineMap);
+        if (error) throw error;
+        
+        const deadlineMap: {[key: number]: string} = {};
+        (data || []).forEach(deadline => {
+          deadlineMap[deadline.round_number] = deadline.closing_date;
+        });
+        setRoundDeadlines(deadlineMap);
+      }
+      // For embedded view, deadlines are already fetched in fetchMatches
     } catch (error) {
       console.error('Error fetching round deadlines:', error);
     }
