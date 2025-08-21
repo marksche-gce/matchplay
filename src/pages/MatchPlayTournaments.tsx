@@ -127,6 +127,7 @@ export function MatchPlayTournaments() {
         <TournamentDialog 
           open={showCreateDialog}
           onOpenChange={setShowCreateDialog}
+          onSuccess={() => setRefreshTrigger(prev => prev + 1)}
         />
       </div>
     </div>

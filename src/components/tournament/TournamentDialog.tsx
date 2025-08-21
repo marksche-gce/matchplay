@@ -17,6 +17,7 @@ import { useAuth } from '@/hooks/useAuth';
 interface TournamentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
 interface TournamentFormData {
@@ -32,7 +33,7 @@ interface TenantOption {
   name: string;
 }
 
-export function TournamentDialog({ open, onOpenChange }: TournamentDialogProps) {
+export function TournamentDialog({ open, onOpenChange, onSuccess }: TournamentDialogProps) {
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -149,7 +150,8 @@ export function TournamentDialog({ open, onOpenChange }: TournamentDialogProps) 
       // Reset form and close dialog
       setFormData({ name: '', type: 'singles', maxPlayers: 16, startDate: '', endDate: '' });
       onOpenChange(false);
-      // Tournament list will be updated via real-time subscriptions
+      // Trigger refresh of parent component
+      onSuccess?.();
     } catch (error) {
       console.error('Error creating tournament:', error);
       toast({
