@@ -130,16 +130,6 @@ export default function TournamentEmbed() {
     );
   }
 
-  // Show registration form if registration is open, otherwise show bracket
-  if (tournament && tournament.registration_status === 'open') {
-    return (
-      <EmbedRegistrationForm 
-        tournament={tournament}
-        registrationCount={registrationCount}
-        onRegistrationComplete={fetchRegistrationCount}
-      />
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -198,11 +188,19 @@ export default function TournamentEmbed() {
       <div className="max-w-full mx-auto p-2 md:p-4">
         <div className="bg-card rounded-lg border shadow-sm p-2 md:p-4">
           {tournament && (
-            <BracketView 
-              tournamentId={tournament.id} 
-              tournament={tournament}
-              embedded={true}
-            />
+            tournament.registration_status === 'open' ? (
+              <EmbedRegistrationForm 
+                tournament={tournament}
+                registrationCount={registrationCount}
+                onRegistrationComplete={fetchRegistrationCount}
+              />
+            ) : (
+              <BracketView 
+                tournamentId={tournament.id} 
+                tournament={tournament}
+                embedded={true}
+              />
+            )
           )}
         </div>
       </div>
