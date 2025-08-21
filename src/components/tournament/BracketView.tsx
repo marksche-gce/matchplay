@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Settings, Play } from 'lucide-react';
+import { Trophy, Settings, Play, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { BracketGenerator } from '@/lib/bracketGenerator';
 import { getRoundDisplayName, calculateTotalRounds } from '@/lib/tournamentUtils';
@@ -224,9 +224,16 @@ export function BracketView({ tournamentId, tournament, embedded = false }: Brac
                         {getRoundDisplayName(roundNumber, calculateTotalRounds(tournament.max_players))}
                       </h3>
                       {roundDeadlines[roundNumber] && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Deadline: {format(new Date(roundDeadlines[roundNumber]), 'MMM dd, yyyy HH:mm')}
-                        </p>
+                        embedded ? (
+                          <div className="inline-flex items-center gap-1 bg-warning/10 text-warning border border-warning/30 px-2 py-0.5 rounded mt-1 text-[10px] md:text-xs">
+                            <Clock className="h-3 w-3" />
+                            <span>Deadline: {format(new Date(roundDeadlines[roundNumber]), 'dd.MM.yyyy HH:mm')}</span>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Deadline: {format(new Date(roundDeadlines[roundNumber]), 'dd.MM.yyyy HH:mm')}
+                          </p>
+                        )
                       )}
                     </div>
                     <Badge variant="outline" className="text-xs">
