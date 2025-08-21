@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +9,20 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { getRoundDisplayName, calculateTotalRounds } from '@/lib/tournamentUtils';
 
+// Helpers to convert between ISO and input[type="datetime-local"] values
+const toInputValue = (iso?: string | null) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const off = d.getTimezoneOffset();
+  const local = new Date(d.getTime() - off * 60000);
+  return local.toISOString().slice(0, 16);
+};
+
+const toISOFromLocal = (local?: string) => {
+  if (!local) return '';
+  const d = new Date(local);
+  return d.toISOString();
+};
 interface Tournament {
   id: string;
   name: string;
@@ -60,12 +74,16 @@ export function RoundScheduleDialog({
 
       // Create initial deadlines for all rounds if none exist
       const totalRounds = calculateTotalRounds(tournament.max_players);
-      const existingRounds = (data || []).map(d => d.round_number);
+      const normalizedData = (data || []).map(d => ({
+        ...d,
+        closing_date: d.closing_date ? toInputValue(d.closing_date) : ''
+      }));
+      const existingRounds = normalizedData.map(d => d.round_number);
       const missingRounds = Array.from({ length: totalRounds }, (_, i) => i + 1)
         .filter(round => !existingRounds.includes(round));
 
       const allDeadlines = [
-        ...(data || []),
+        ...normalizedData,
         ...missingRounds.map(round => ({
           tournament_id: tournament.id,
           round_number: round,
@@ -115,7 +133,7 @@ export function RoundScheduleDialog({
           .insert(validDeadlines.map(d => ({
             tournament_id: d.tournament_id,
             round_number: d.round_number,
-            closing_date: d.closing_date
+            closing_date: toISOFromLocal(d.closing_date)
           })));
 
         if (insertError) throw insertError;
@@ -187,6 +205,9 @@ export function RoundScheduleDialog({
             <Calendar className="h-5 w-5" />
             Round Schedule - {tournament.name}
           </DialogTitle>
+          <DialogDescription>
+            Set deadlines for each tournament round. Players must complete their matches by the specified deadline.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
