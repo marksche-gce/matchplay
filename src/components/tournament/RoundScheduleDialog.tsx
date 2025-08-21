@@ -95,8 +95,8 @@ export function RoundScheduleDialog({
     } catch (error) {
       console.error('Error fetching round deadlines:', error);
       toast({
-        title: "Error",
-        description: "Failed to load round deadlines.",
+        title: "Fehler",
+        description: "Fehler beim Laden der Runden-Deadlines.",
         variant: "destructive",
       });
     } finally {
@@ -140,8 +140,8 @@ export function RoundScheduleDialog({
       }
 
       toast({
-        title: "Schedule Saved",
-        description: `Round deadlines have been successfully saved for ${validDeadlines.length} rounds.`,
+        title: "Zeitplan gespeichert",
+        description: `Runden-Deadlines wurden erfolgreich für ${validDeadlines.length} Runden gespeichert.`,
       });
 
       onSuccess?.();
@@ -149,8 +149,8 @@ export function RoundScheduleDialog({
     } catch (error: any) {
       console.error('Error saving round schedule:', error);
       toast({
-        title: "Save Failed",
-        description: error.message || "Failed to save round schedule.",
+        title: "Speichern fehlgeschlagen",
+        description: error.message || "Fehler beim Speichern des Runden-Zeitplans.",
         variant: "destructive",
       });
     } finally {
@@ -184,14 +184,14 @@ export function RoundScheduleDialog({
       ));
 
       toast({
-        title: "Deadline Removed",
-        description: "Round deadline has been removed.",
+        title: "Deadline entfernt",
+        description: "Runden-Deadline wurde entfernt.",
       });
     } catch (error: any) {
       console.error('Error removing deadline:', error);
       toast({
-        title: "Remove Failed",
-        description: error.message || "Failed to remove deadline.",
+        title: "Entfernen fehlgeschlagen",
+        description: error.message || "Fehler beim Entfernen der Deadline.",
         variant: "destructive",
       });
     }
@@ -203,16 +203,16 @@ export function RoundScheduleDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            Round Schedule - {tournament.name}
+            Runden-Zeitplan - {tournament.name}
           </DialogTitle>
           <DialogDescription>
-            Set deadlines for each tournament round. Players must complete their matches by the specified deadline.
+            Legen Sie Deadlines für jede Turnierrunde fest. Spieler müssen ihre Spiele bis zur angegebenen Deadline abschließen.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <p className="text-sm text-muted-foreground">
-            Set deadlines for each tournament round. Players must complete their matches by the specified deadline.
+            Legen Sie Deadlines für jede Turnierrunde fest. Spieler müssen ihre Spiele bis zur angegebenen Deadline abschließen.
           </p>
 
           {loading ? (
@@ -244,9 +244,9 @@ export function RoundScheduleDialog({
                   </CardHeader>
                   <CardContent className="pt-0">
                     <div className="space-y-2">
-                      <Label htmlFor={`round-${deadline.round_number}`}>
-                        Completion Deadline
-                      </Label>
+                       <Label htmlFor={`round-${deadline.round_number}`}>
+                        Abschluss-Deadline
+                       </Label>
                       <Input
                         id={`round-${deadline.round_number}`}
                         type="datetime-local"
@@ -263,14 +263,14 @@ export function RoundScheduleDialog({
 
           <div className="flex justify-end gap-3 pt-4 border-t">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+              Abbrechen
             </Button>
             <Button 
               onClick={saveRoundSchedule}
               disabled={saving}
             >
               <Save className="h-4 w-4 mr-2" />
-              {saving ? 'Saving...' : 'Save Schedule'}
+              {saving ? 'Speichern...' : 'Zeitplan speichern'}
             </Button>
           </div>
         </div>
