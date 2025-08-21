@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Users, Trophy, Settings, UserPlus, Edit3, Trash2, ExternalLink, Copy, CheckCircle, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Users, Trophy, Settings, UserPlus, Edit3, Trash2, ExternalLink, Copy, CheckCircle, RotateCcw, Calendar } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { RegistrationDialog } from './RegistrationDialog';
 import { BracketView } from './BracketView';
+import { RoundScheduleDialog } from './RoundScheduleDialog';
 import { useAuth } from '@/hooks/useAuth';
 import { useSystemAdminCheck } from '@/hooks/useSystemAdminCheck';
 import { useOrganizerCheck } from '@/hooks/useOrganizerCheck';
@@ -33,6 +34,7 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
   const [showRegistration, setShowRegistration] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showManagement, setShowManagement] = useState(false);
+  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const { isSystemAdmin } = useSystemAdminCheck();
@@ -286,6 +288,15 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
               <Button 
                 variant="outline" 
                 size="sm"
+                onClick={() => setShowScheduleDialog(true)}
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                Round Schedule
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                size="sm"
                 onClick={() => {
                   // TODO: Add edit tournament functionality
                   toast({
@@ -412,6 +423,17 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
         onRegistrationComplete={() => {
           fetchRegistrationCount();
           setShowRegistration(false);
+        }}
+      />
+
+      {/* Round Schedule Dialog */}
+      <RoundScheduleDialog 
+        open={showScheduleDialog}
+        onOpenChange={setShowScheduleDialog}
+        tournament={tournament}
+        onSuccess={() => {
+          // Refresh tournament data if needed
+          fetchTournamentDetails();
         }}
       />
     </div>

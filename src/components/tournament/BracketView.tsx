@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { BracketGenerator } from '@/lib/bracketGenerator';
 import { getRoundDisplayName, calculateTotalRounds } from '@/lib/tournamentUtils';
 import { MatchCard } from './MatchCard';
+import { format } from 'date-fns';
 
 interface Tournament {
   id: string;
@@ -42,10 +43,12 @@ export function BracketView({ tournamentId, tournament, embedded = false }: Brac
   const [registrationCount, setRegistrationCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [bracketGenerated, setBracketGenerated] = useState(false);
+  const [roundDeadlines, setRoundDeadlines] = useState<{[key: number]: string}>({});
 
   useEffect(() => {
     fetchMatches();
     fetchRegistrationCount();
+    fetchRoundDeadlines();
   }, [tournamentId]);
 
   const fetchMatches = async () => {
@@ -95,6 +98,25 @@ export function BracketView({ tournamentId, tournament, embedded = false }: Brac
       }
     } catch (error) {
       console.error('Error fetching registration count:', error);
+    }
+  };
+
+  const fetchRoundDeadlines = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('round_deadlines')
+        .select('*')
+        .eq('tournament_id', tournamentId);
+
+      if (error) throw error;
+      
+      const deadlineMap: {[key: number]: string} = {};
+      (data || []).forEach(deadline => {
+        deadlineMap[deadline.round_number] = deadline.closing_date;
+      });
+      setRoundDeadlines(deadlineMap);
+    } catch (error) {
+      console.error('Error fetching round deadlines:', error);
     }
   };
 
@@ -189,9 +211,16 @@ export function BracketView({ tournamentId, tournament, embedded = false }: Brac
               <div key={roundNumber} className={`flex-shrink-0 ${embedded ? 'w-64 md:w-72' : 'w-80'}`}>
                 <div className={`sticky top-0 bg-card z-10 ${embedded ? 'pb-2 mb-2' : 'pb-4 mb-4'} border-b`}>
                   <div className="flex items-center justify-between">
-                    <h3 className={`${embedded ? 'text-sm md:text-base' : 'text-lg'} font-semibold text-foreground`}>
-                      {getRoundDisplayName(roundNumber, calculateTotalRounds(tournament.max_players))}
-                    </h3>
+                    <div>
+                      <h3 className={`${embedded ? 'text-sm md:text-base' : 'text-lg'} font-semibold text-foreground`}>
+                        {getRoundDisplayName(roundNumber, calculateTotalRounds(tournament.max_players))}
+                      </h3>
+                      {roundDeadlines[roundNumber] && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Deadline: {format(new Date(roundDeadlines[roundNumber]), 'MMM dd, yyyy HH:mm')}
+                        </p>
+                      )}
+                    </div>
                     <Badge variant="outline" className="text-xs">
                       {roundsData[roundNumber].length} matches
                     </Badge>
