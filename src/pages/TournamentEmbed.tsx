@@ -32,6 +32,7 @@ export default function TournamentEmbed() {
   const [registrationCount, setRegistrationCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [nextDeadline, setNextDeadline] = useState<{round: number, date: string} | null>(null);
+  const [roundDeadlines, setRoundDeadlines] = useState<Array<{round_number: number; closing_date: string}>>([]);
 
   useEffect(() => {
     if (id) {
@@ -79,6 +80,7 @@ export default function TournamentEmbed() {
       if (error) throw error;
       
       const deadlines = (data as any)?.roundDeadlines || [];
+      setRoundDeadlines(deadlines);
       const now = new Date();
       
       // Find next upcoming deadline
@@ -168,7 +170,7 @@ export default function TournamentEmbed() {
                 <div className="flex items-center gap-1 bg-warning/10 text-warning px-2 py-1 rounded text-xs border border-warning/30">
                   <Clock className="h-3 w-3" />
                   <span className="whitespace-nowrap">
-                    {getRoundDisplayName(nextDeadline.round, calculateTotalRounds(tournament.max_players))} Deadline: {format(new Date(nextDeadline.date), 'MMM dd, HH:mm')}
+                    {getRoundDisplayName(nextDeadline.round, calculateTotalRounds(tournament.max_players))} Deadline: {format(new Date(nextDeadline.date), 'dd.MM.yyyy')}
                   </span>
                 </div>
               )}
@@ -176,6 +178,21 @@ export default function TournamentEmbed() {
           </div>
         </div>
       </div>
+
+      {/* Runden-Deadlines */}
+      {roundDeadlines.length > 0 && (
+        <div className="max-w-full mx-auto p-2 md:p-4">
+          <div className="bg-card rounded-lg border shadow-sm p-2 md:p-4">
+            <div className="flex flex-wrap gap-2">
+              {roundDeadlines.map((d) => (
+                <Badge key={d.round_number} variant="outline" className="text-xs">
+                  {getRoundDisplayName(d.round_number, calculateTotalRounds(tournament.max_players))}: {format(new Date(d.closing_date), 'dd.MM.yyyy')}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tournament Bracket */}
       <div className="max-w-full mx-auto p-2 md:p-4">
