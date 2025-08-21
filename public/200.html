@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Golf Matchplay Manager</title>
+  <script>
+    // Generic SPA fallback (200.html)
+    // Redirect unknown routes to the SPA entry with the path encoded in the query
+    (function() {
+      var l = window.location;
+      // If path is not root and not already using the ?/ pattern, rewrite
+      if (l.pathname !== '/' && !(l.search && l.search.startsWith('?/'))) {
+        l.replace(
+          l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+          '/?/' +
+          l.pathname.slice(1).replace(/&/g, '~and~') +
+          (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+          l.hash
+        );
+      }
+    })();
+  </script>
+</head>
+<body></body>
+</html>
