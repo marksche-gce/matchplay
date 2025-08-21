@@ -211,9 +211,6 @@ export function RoundScheduleDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          <p className="text-sm text-muted-foreground">
-            Legen Sie Deadlines für jede Turnierrunde fest. Spieler müssen ihre Spiele bis zur angegebenen Deadline abschließen.
-          </p>
 
           {loading ? (
             <div className="space-y-3">
