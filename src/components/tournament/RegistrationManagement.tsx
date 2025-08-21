@@ -1,0 +1,389 @@
+import React, { useEffect, useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Users, Trash2, UserPlus, Save, X } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+
+interface Player {
+  id: string;
+  name: string;
+  email?: string;
+  handicap: number;
+  created_at: string;
+}
+
+interface Registration {
+  id: string;
+  player_id: string;
+  registered_at: string;
+  player: Player;
+}
+
+interface Tournament {
+  id: string;
+  name: string;
+  max_players: number;
+  type: 'singles' | 'foursome';
+}
+
+interface RegistrationManagementProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  tournament: Tournament;
+  onUpdate?: () => void;
+}
+
+export function RegistrationManagement({ 
+  open, 
+  onOpenChange, 
+  tournament,
+  onUpdate 
+}: RegistrationManagementProps) {
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newPlayer, setNewPlayer] = useState({
+    name: '',
+    email: '',
+    handicap: 0
+  });
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (open && tournament) {
+      fetchRegistrations();
+    }
+  }, [open, tournament]);
+
+  const fetchRegistrations = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('tournament_registrations_new')
+        .select(`
+          id,
+          player_id,
+          registered_at,
+          player:players_new (
+            id,
+            name,
+            email,
+            handicap,
+            created_at
+          )
+        `)
+        .eq('tournament_id', tournament.id);
+
+      if (error) throw error;
+
+      // Sortiere nach Handicap (niedrig zu hoch)
+      const sortedRegistrations = (data || [])
+        .filter(reg => reg.player) // Filter out registrations without player data
+        .sort((a, b) => (a.player?.handicap || 0) - (b.player?.handicap || 0));
+
+      setRegistrations(sortedRegistrations as Registration[]);
+    } catch (error) {
+      console.error('Error fetching registrations:', error);
+      toast({
+        title: "Fehler",
+        description: "Fehler beim Laden der Anmeldungen.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteRegistration = async (registrationId: string, playerName: string) => {
+    if (!confirm(`Möchten Sie ${playerName} wirklich aus dem Turnier entfernen?`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('tournament_registrations_new')
+        .delete()
+        .eq('id', registrationId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Spieler entfernt",
+        description: `${playerName} wurde erfolgreich aus dem Turnier entfernt.`,
+      });
+
+      fetchRegistrations();
+      onUpdate?.();
+    } catch (error: any) {
+      console.error('Error deleting registration:', error);
+      toast({
+        title: "Löschen fehlgeschlagen",
+        description: error.message || "Fehler beim Entfernen des Spielers.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddPlayer = async () => {
+    if (!newPlayer.name.trim()) {
+      toast({
+        title: "Ungültige Eingabe",
+        description: "Spielername ist erforderlich.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // Erstelle Spieler
+      const { data: playerData, error: playerError } = await supabase
+        .from('players_new')
+        .insert({
+          name: newPlayer.name.trim(),
+          email: newPlayer.email.trim() || null,
+          handicap: newPlayer.handicap
+        })
+        .select()
+        .single();
+
+      if (playerError) throw playerError;
+
+      // Registriere Spieler für Turnier
+      const { error: registrationError } = await supabase
+        .from('tournament_registrations_new')
+        .insert({
+          tournament_id: tournament.id,
+          player_id: playerData.id
+        });
+
+      if (registrationError) throw registrationError;
+
+      toast({
+        title: "Spieler hinzugefügt",
+        description: `${newPlayer.name} wurde erfolgreich zum Turnier hinzugefügt.`,
+      });
+
+      setNewPlayer({ name: '', email: '', handicap: 0 });
+      setShowAddForm(false);
+      fetchRegistrations();
+      onUpdate?.();
+    } catch (error: any) {
+      console.error('Error adding player:', error);
+      toast({
+        title: "Hinzufügen fehlgeschlagen",
+        description: error.message || "Fehler beim Hinzufügen des Spielers.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('de-DE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Anmeldungen verwalten - {tournament.name}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {/* Statistiken */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Gesamt Anmeldungen</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{registrations.length}</div>
+                <p className="text-xs text-muted-foreground">
+                  von {tournament.max_players} möglich
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Durchschnitt Handicap</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {registrations.length > 0 
+                    ? (registrations.reduce((sum, reg) => sum + (reg.player?.handicap || 0), 0) / registrations.length).toFixed(1)
+                    : '0.0'
+                  }
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Freie Plätze</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-success">
+                  {tournament.max_players - registrations.length}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Aktionen */}
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Angemeldete Spieler</h3>
+            <Button
+              onClick={() => setShowAddForm(true)}
+              disabled={registrations.length >= tournament.max_players}
+              className="bg-success hover:bg-success/90"
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Spieler hinzufügen
+            </Button>
+          </div>
+
+          {/* Spieler hinzufügen Form */}
+          {showAddForm && (
+            <Card className="border-success/20">
+              <CardHeader>
+                <CardTitle className="text-base">Neuen Spieler hinzufügen</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="playerName">Name *</Label>
+                    <Input
+                      id="playerName"
+                      value={newPlayer.name}
+                      onChange={(e) => setNewPlayer({ ...newPlayer, name: e.target.value })}
+                      placeholder="Spielername"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="playerEmail">E-Mail</Label>
+                    <Input
+                      id="playerEmail"
+                      type="email"
+                      value={newPlayer.email}
+                      onChange={(e) => setNewPlayer({ ...newPlayer, email: e.target.value })}
+                      placeholder="E-Mail (optional)"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="playerHandicap">Handicap</Label>
+                    <Input
+                      id="playerHandicap"
+                      type="number"
+                      step="0.1"
+                      value={newPlayer.handicap}
+                      onChange={(e) => setNewPlayer({ ...newPlayer, handicap: parseFloat(e.target.value) || 0 })}
+                      placeholder="0.0"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={handleAddPlayer} disabled={saving}>
+                    <Save className="h-4 w-4 mr-2" />
+                    {saving ? 'Speichern...' : 'Spieler hinzufügen'}
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowAddForm(false)}>
+                    <X className="h-4 w-4 mr-2" />
+                    Abbrechen
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Spielerliste */}
+          {loading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="h-16 bg-muted rounded"></div>
+                </div>
+              ))}
+            </div>
+          ) : registrations.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-8">
+                <Users className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">Keine Anmeldungen</h3>
+                <p className="text-muted-foreground">
+                  Es sind noch keine Spieler für dieses Turnier angemeldet.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Rang</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>E-Mail</TableHead>
+                    <TableHead>Handicap</TableHead>
+                    <TableHead>Anmeldedatum</TableHead>
+                    <TableHead className="text-right">Aktionen</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {registrations.map((registration, index) => (
+                    <TableRow key={registration.id}>
+                      <TableCell>
+                        <Badge variant="outline">#{index + 1}</Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {registration.player?.name || 'Unbekannt'}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {registration.player?.email || '-'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">
+                          {registration.player?.handicap?.toFixed(1) || '0.0'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {formatDate(registration.registered_at)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteRegistration(registration.id, registration.player?.name || 'Unbekannt')}
+                          className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

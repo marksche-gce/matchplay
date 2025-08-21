@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { RegistrationDialog } from './RegistrationDialog';
 import { BracketView } from './BracketView';
 import { RoundScheduleDialog } from './RoundScheduleDialog';
+import { RegistrationManagement } from './RegistrationManagement';
 import { useAuth } from '@/hooks/useAuth';
 import { useSystemAdminCheck } from '@/hooks/useSystemAdminCheck';
 import { useOrganizerCheck } from '@/hooks/useOrganizerCheck';
@@ -35,6 +36,7 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
   const [loading, setLoading] = useState(true);
   const [showManagement, setShowManagement] = useState(false);
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  const [showRegistrationManagement, setShowRegistrationManagement] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const { isSystemAdmin } = useSystemAdminCheck();
@@ -312,13 +314,7 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => {
-                  // TODO: Add manage registrations functionality
-                  toast({
-                     title: "Demnächst verfügbar", 
-                     description: "Anmeldungsverwaltung wird bald verfügbar sein.",
-                  });
-                }}
+                onClick={() => setShowRegistrationManagement(true)}
               >
                 <Users className="h-4 w-4 mr-2" />
                 Anmeldungen verwalten
@@ -434,6 +430,16 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
         onSuccess={() => {
           // Refresh tournament data if needed
           fetchTournamentDetails();
+        }}
+      />
+
+      {/* Registration Management Dialog */}
+      <RegistrationManagement 
+        open={showRegistrationManagement}
+        onOpenChange={setShowRegistrationManagement}
+        tournament={tournament}
+        onUpdate={() => {
+          fetchRegistrationCount();
         }}
       />
     </div>
