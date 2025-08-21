@@ -60,6 +60,14 @@ export function BracketView({ tournamentId, tournament, embedded = false }: Brac
         if (error) throw error;
         setMatches((data as any)?.matches || []);
         setBracketGenerated(((data as any)?.matches || []).length > 0);
+        
+        // Set round deadlines for embedded view
+        const deadlines = (data as any)?.roundDeadlines || [];
+        const deadlineMap: {[key: number]: string} = {};
+        deadlines.forEach((deadline: any) => {
+          deadlineMap[deadline.round_number] = deadline.closing_date;
+        });
+        setRoundDeadlines(deadlineMap);
       } else {
         const { data, error } = await supabase
           .from('matches_new')

@@ -5,8 +5,9 @@ import { BracketView } from '@/components/tournament/BracketView';
 import { EmbedRegistrationForm } from '@/components/tournament/EmbedRegistrationForm';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, Users, Trophy } from 'lucide-react';
+import { Calendar, Users, Trophy, Clock } from 'lucide-react';
 import { format } from 'date-fns';
+import { getRoundDisplayName, calculateTotalRounds } from '@/lib/tournamentUtils';
 
 interface Tournament {
   id: string;
@@ -30,11 +31,13 @@ export default function TournamentEmbed() {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [registrationCount, setRegistrationCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [nextDeadline, setNextDeadline] = useState<{round: number, date: string} | null>(null);
 
   useEffect(() => {
     if (id) {
       fetchTournament();
       fetchRegistrationCount();
+      fetchNextDeadline();
     }
   }, [id]);
 
@@ -64,6 +67,33 @@ export default function TournamentEmbed() {
       setRegistrationCount((data as any)?.registrationCount || 0);
     } catch (error) {
       console.error('Error fetching registration count:', error);
+    }
+  };
+
+  const fetchNextDeadline = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('get-embed-bracket', {
+        body: { tournamentId: id },
+      });
+
+      if (error) throw error;
+      
+      const deadlines = (data as any)?.roundDeadlines || [];
+      const now = new Date();
+      
+      // Find next upcoming deadline
+      const upcomingDeadlines = deadlines
+        .filter((d: any) => new Date(d.closing_date) > now)
+        .sort((a: any, b: any) => new Date(a.closing_date).getTime() - new Date(b.closing_date).getTime());
+      
+      if (upcomingDeadlines.length > 0) {
+        const next = upcomingDeadlines[0];
+        setNextDeadline({ round: next.round_number, date: next.closing_date });
+      } else {
+        setNextDeadline(null);
+      }
+    } catch (error) {
+      console.error('Error fetching next deadline:', error);
     }
   };
 
@@ -134,6 +164,14 @@ export default function TournamentEmbed() {
                  tournament.registration_status === 'closed' ? 'Registration Closed' : 
                  'Tournament Full'}
               </Badge>
+              {nextDeadline && (
+                <div className="flex items-center gap-1 bg-warning/10 text-warning px-2 py-1 rounded text-xs border border-warning/30">
+                  <Clock className="h-3 w-3" />
+                  <span className="whitespace-nowrap">
+                    {getRoundDisplayName(nextDeadline.round, calculateTotalRounds(tournament.max_players))} deadline: {format(new Date(nextDeadline.date), 'MMM dd, HH:mm')}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>

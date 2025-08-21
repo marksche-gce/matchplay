@@ -54,7 +54,25 @@ serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ matches: matches ?? [], registrationCount: count ?? 0 }), {
+    // Fetch round deadlines
+    const { data: roundDeadlines, error: deadlinesError } = await admin
+      .from('round_deadlines')
+      .select('*')
+      .eq('tournament_id', tournamentId)
+      .order('round_number');
+
+    if (deadlinesError) {
+      return new Response(JSON.stringify({ error: deadlinesError.message }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(JSON.stringify({ 
+      matches: matches ?? [], 
+      registrationCount: count ?? 0,
+      roundDeadlines: roundDeadlines ?? [] 
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
