@@ -98,40 +98,32 @@ export function RoundScheduleDialog({
     setSaving(true);
     try {
       // Filter out deadlines without dates
-      const validDeadlines = deadlines.filter(d => d.closing_date);
+      const validDeadlines = deadlines.filter(d => d.closing_date && d.closing_date.trim() !== '');
 
-      // Separate existing and new deadlines
-      const existingDeadlines = validDeadlines.filter(d => d.id);
-      const newDeadlines = validDeadlines.filter(d => !d.id);
+      // Delete all existing deadlines for this tournament first
+      const { error: deleteError } = await supabase
+        .from('round_deadlines')
+        .delete()
+        .eq('tournament_id', tournament.id);
 
-      // Update existing deadlines
-      for (const deadline of existingDeadlines) {
-        const { error } = await supabase
+      if (deleteError) throw deleteError;
+
+      // Insert all valid deadlines
+      if (validDeadlines.length > 0) {
+        const { error: insertError } = await supabase
           .from('round_deadlines')
-          .update({
-            closing_date: deadline.closing_date
-          })
-          .eq('id', deadline.id);
-
-        if (error) throw error;
-      }
-
-      // Insert new deadlines
-      if (newDeadlines.length > 0) {
-        const { error } = await supabase
-          .from('round_deadlines')
-          .insert(newDeadlines.map(d => ({
+          .insert(validDeadlines.map(d => ({
             tournament_id: d.tournament_id,
             round_number: d.round_number,
             closing_date: d.closing_date
           })));
 
-        if (error) throw error;
+        if (insertError) throw insertError;
       }
 
       toast({
         title: "Schedule Saved",
-        description: "Round deadlines have been successfully updated.",
+        description: `Round deadlines have been successfully saved for ${validDeadlines.length} rounds.`,
       });
 
       onSuccess?.();
