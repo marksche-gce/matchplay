@@ -50,16 +50,25 @@ export function BracketView({ tournamentId, tournament, embedded = false }: Brac
 
   const fetchMatches = async () => {
     try {
-      const { data, error } = await supabase
-        .from('matches_new')
-        .select('*')
-        .eq('tournament_id', tournamentId)
-        .order('round_number')
-        .order('match_number');
+      if (embedded) {
+        const { data, error } = await supabase.functions.invoke('get-embed-bracket', {
+          body: { tournamentId },
+        });
+        if (error) throw error;
+        setMatches((data as any)?.matches || []);
+        setBracketGenerated(((data as any)?.matches || []).length > 0);
+      } else {
+        const { data, error } = await supabase
+          .from('matches_new')
+          .select('*')
+          .eq('tournament_id', tournamentId)
+          .order('round_number')
+          .order('match_number');
 
-      if (error) throw error;
-      setMatches(data || []);
-      setBracketGenerated((data || []).length > 0);
+        if (error) throw error;
+        setMatches(data || []);
+        setBracketGenerated((data || []).length > 0);
+      }
     } catch (error) {
       console.error('Error fetching matches:', error);
     } finally {
@@ -69,13 +78,21 @@ export function BracketView({ tournamentId, tournament, embedded = false }: Brac
 
   const fetchRegistrationCount = async () => {
     try {
-      const { count, error } = await supabase
-        .from('tournament_registrations_new')
-        .select('*', { count: 'exact', head: true })
-        .eq('tournament_id', tournamentId);
+      if (embedded) {
+        const { data, error } = await supabase.functions.invoke('get-embed-bracket', {
+          body: { tournamentId },
+        });
+        if (error) throw error;
+        setRegistrationCount((data as any)?.registrationCount || 0);
+      } else {
+        const { count, error } = await supabase
+          .from('tournament_registrations_new')
+          .select('*', { count: 'exact', head: true })
+          .eq('tournament_id', tournamentId);
 
-      if (error) throw error;
-      setRegistrationCount(count || 0);
+        if (error) throw error;
+        setRegistrationCount(count || 0);
+      }
     } catch (error) {
       console.error('Error fetching registration count:', error);
     }
@@ -137,13 +154,15 @@ export function BracketView({ tournamentId, tournament, embedded = false }: Brac
               Current registrations: {registrationCount} / {tournament.max_players}
             </p>
             
-            <Button 
-              onClick={generateBracket}
-              variant="default"
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Generate Bracket
-            </Button>
+            {!embedded && (
+              <Button 
+                onClick={generateBracket}
+                variant="default"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Generate Bracket
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

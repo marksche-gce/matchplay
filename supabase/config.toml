@@ -2,3 +2,6 @@ project_id = "kdnbpbbwlcxfbiakegnf"
 
 [functions.get-embed-tournament]
 verify_jwt = false
+
+[functions.get-embed-bracket]
+verify_jwt = false

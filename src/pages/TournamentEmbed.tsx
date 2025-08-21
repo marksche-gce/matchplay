@@ -56,13 +56,12 @@ export default function TournamentEmbed() {
 
   const fetchRegistrationCount = async () => {
     try {
-      const { count, error } = await supabase
-        .from('tournament_registrations_new')
-        .select('*', { count: 'exact', head: true })
-        .eq('tournament_id', id);
+      const { data, error } = await supabase.functions.invoke('get-embed-bracket', {
+        body: { tournamentId: id },
+      });
 
       if (error) throw error;
-      setRegistrationCount(count || 0);
+      setRegistrationCount((data as any)?.registrationCount || 0);
     } catch (error) {
       console.error('Error fetching registration count:', error);
     }
