@@ -227,11 +227,11 @@ export function BracketView({ tournamentId, tournament, embedded = false }: Brac
                         embedded ? (
                           <div className="inline-flex items-center gap-1 bg-warning/10 text-warning border border-warning/30 px-2 py-0.5 rounded mt-1 text-[10px] md:text-xs">
                             <Clock className="h-3 w-3" />
-                            <span>Deadline: {format(new Date(roundDeadlines[roundNumber]), 'dd.MM.yyyy HH:mm')}</span>
+                            <span>Deadline: {format(new Date(roundDeadlines[roundNumber]), 'dd.MM.yyyy')}</span>
                           </div>
                         ) : (
                           <p className="text-xs text-muted-foreground mt-1">
-                            Deadline: {format(new Date(roundDeadlines[roundNumber]), 'dd.MM.yyyy HH:mm')}
+                            Deadline: {format(new Date(roundDeadlines[roundNumber]), 'dd.MM.yyyy')}
                           </p>
                         )
                       )}
