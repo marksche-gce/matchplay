@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Users, Trophy, Settings, UserPlus, Edit3, Trash2, ExternalLink, Copy, CheckCircle, RotateCcw, Calendar } from 'lucide-react';
+import { ArrowLeft, Users, Trophy, Settings, UserPlus, Trash2, ExternalLink, Copy, CheckCircle, RotateCcw, Calendar } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { RegistrationDialog } from './RegistrationDialog';
@@ -294,21 +294,6 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
               >
                 <Calendar className="h-4 w-4 mr-2" />
                  Rundenplan
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => {
-                  // TODO: Add edit tournament functionality
-                  toast({
-                     title: "Demnächst verfügbar",
-                     description: "Turnier bearbeiten wird bald verfügbar sein.",
-                  });
-                }}
-              >
-                <Edit3 className="h-4 w-4 mr-2" />
-                Turnier bearbeiten
               </Button>
               
               <Button 
