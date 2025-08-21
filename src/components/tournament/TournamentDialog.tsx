@@ -144,7 +144,7 @@ export function TournamentDialog({ open, onOpenChange, onSuccess }: TournamentDi
 
       toast({
         title: 'Turnier erstellt',
-        description: `${formData.name} wurde erfolgreich mit generiertem Bracket erstellt.`,
+        description: `${formData.name} wurde erfolgreich mit generiertem Tableau erstellt.`,
       });
 
       // Reset form and close dialog
@@ -252,10 +252,10 @@ export function TournamentDialog({ open, onOpenChange, onSuccess }: TournamentDi
 
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Abbrechen
+               Abbrechen
             </Button>
             <Button type="submit" disabled={loading} variant="default">
-              {loading ? 'Turnier wird erstellt & Bracket generiert...' : 'Turnier erstellen'}
+              {loading ? 'Turnier wird erstellt & Tableau generiert...' : 'Turnier erstellen'}
             </Button>
           </div>
         </form>

@@ -121,8 +121,8 @@ export default function TournamentEmbed() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-foreground mb-2">Tournament Not Found</h1>
-          <p className="text-muted-foreground">The requested tournament could not be found.</p>
+           <h1 className="text-2xl font-bold text-foreground mb-2">Turnier nicht gefunden</h1>
+           <p className="text-muted-foreground">Das angeforderte Turnier konnte nicht gefunden werden.</p>
         </div>
       </div>
     );
@@ -153,22 +153,22 @@ export default function TournamentEmbed() {
               </div>
               <div className="flex items-center gap-1">
                 <Users className="h-3 w-3 md:h-4 md:w-4" />
-                <span>{registrationCount}/{tournament.max_players} Players</span>
+                <span>{registrationCount}/{tournament.max_players} Spieler</span>
               </div>
               <div className="flex items-center gap-1">
                 <Trophy className="h-3 w-3 md:h-4 md:w-4" />
-                <span>{tournament.type === 'singles' ? 'Singles' : 'Foursome'}</span>
+                <span>{tournament.type === 'singles' ? 'Einzel' : 'Vierer'}</span>
               </div>
               <Badge className={`${getRegistrationStatusColor(tournament.registration_status)} text-xs`}>
-                {tournament.registration_status === 'open' ? 'Open for Registration' : 
-                 tournament.registration_status === 'closed' ? 'Registration Closed' : 
-                 'Tournament Full'}
+                 {tournament.registration_status === 'open' ? 'Anmeldung offen' : 
+                  tournament.registration_status === 'closed' ? 'Anmeldung geschlossen' : 
+                  'Turnier voll'}
               </Badge>
               {nextDeadline && (
                 <div className="flex items-center gap-1 bg-warning/10 text-warning px-2 py-1 rounded text-xs border border-warning/30">
                   <Clock className="h-3 w-3" />
                   <span className="whitespace-nowrap">
-                    {getRoundDisplayName(nextDeadline.round, calculateTotalRounds(tournament.max_players))} deadline: {format(new Date(nextDeadline.date), 'MMM dd, HH:mm')}
+                    {getRoundDisplayName(nextDeadline.round, calculateTotalRounds(tournament.max_players))} Deadline: {format(new Date(nextDeadline.date), 'MMM dd, HH:mm')}
                   </span>
                 </div>
               )}

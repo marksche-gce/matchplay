@@ -101,14 +101,14 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
   const copyEmbedUrl = async () => {
     try {
       await navigator.clipboard.writeText(getEmbedUrl());
-      toast({
-        title: "Embed URL Copied",
-        description: "The embed URL has been copied to your clipboard.",
+       toast({
+         title: "Embed URL kopiert",
+         description: "Die Embed URL wurde in die Zwischenablage kopiert.",
       });
     } catch (error) {
-      toast({
-        title: "Copy Failed",
-        description: "Failed to copy embed URL to clipboard.",
+       toast({
+         title: "Kopieren fehlgeschlagen",
+         description: "Embed URL konnte nicht in die Zwischenablage kopiert werden.",
         variant: "destructive",
       });
     }
@@ -125,9 +125,9 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
 
       if (error) throw error;
 
-      toast({
-        title: "Registration Period Completed",
-        description: "Tournament registration has been closed. The tournament bracket is now available.",
+       toast({
+         title: "Anmeldephase abgeschlossen",
+         description: "Die Turnieranmeldung wurde geschlossen. Das Turnier-Tableau ist jetzt verfügbar.",
       });
 
       // Refresh tournament data
@@ -136,8 +136,8 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
     } catch (error: any) {
       console.error('Error closing registration:', error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to close registration period.",
+         title: "Fehler",
+         description: error.message || "Anmeldephase konnte nicht geschlossen werden.",
         variant: "destructive",
       });
     }
@@ -154,9 +154,9 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
 
       if (error) throw error;
 
-      toast({
-        title: "Registration Reopened",
-        description: "Tournament registration is now open again. Players can register.",
+       toast({
+         title: "Anmeldung wieder geöffnet",
+         description: "Die Turnieranmeldung ist wieder geöffnet. Spieler können sich anmelden.",
       });
 
       // Refresh tournament data
@@ -165,8 +165,8 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
     } catch (error: any) {
       console.error('Error reopening registration:', error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to reopen registration.",
+         title: "Fehler",
+         description: error.message || "Anmeldung konnte nicht wieder geöffnet werden.",
         variant: "destructive",
       });
     }
@@ -185,10 +185,10 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
   if (!tournament) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">Tournament not found.</p>
+        <p className="text-muted-foreground">Turnier nicht gefunden.</p>
         <Button onClick={onBack} className="mt-4">
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to List
+          Zurück zur Liste
         </Button>
       </div>
     );
@@ -201,12 +201,12 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
         <div className="flex items-center gap-4">
           <Button variant="outline" onClick={onBack}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+             Zurück
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-foreground">{tournament.name}</h1>
             <p className="text-muted-foreground">
-              {tournament.type === 'singles' ? 'Singles' : 'Foursome'} Matchplay Tournament
+              {tournament.type === 'singles' ? 'Einzel' : 'Vierer'} Matchplay Turnier
             </p>
           </div>
         </div>
@@ -218,7 +218,7 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
               variant="default"
             >
               <UserPlus className="h-4 w-4 mr-2" />
-              Register
+              Registrieren
             </Button>
           )}
           {user && (isSystemAdmin || isOrganizer) && (
@@ -228,7 +228,7 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
                 onClick={() => setShowManagement(!showManagement)}
               >
                 <Settings className="h-4 w-4 mr-2" />
-                Manage
+                 Verwalten
               </Button>
             </div>
           )}
@@ -239,7 +239,7 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
       {showManagement && user && (isSystemAdmin || isOrganizer) && (
         <Card className="bg-card shadow-card mb-6">
           <CardHeader>
-            <CardTitle className="text-lg text-foreground">Tournament Management</CardTitle>
+            <CardTitle className="text-lg text-foreground">Turnier Management</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-3">
@@ -251,7 +251,7 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
                   className="text-warning hover:text-warning border-warning/30 hover:bg-warning/10"
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  Registration Period Completed
+                   Anmeldephase abgeschlossen
                 </Button>
               )}
               
@@ -263,7 +263,7 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
                   className="text-success hover:text-success border-success/30 hover:bg-success/10"
                 >
                   <RotateCcw className="h-4 w-4 mr-2" />
-                  Reopen Registration
+                  Anmeldung wieder öffnen
                 </Button>
               )}
               
@@ -273,7 +273,7 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
                 onClick={() => window.open(getEmbedUrl(), '_blank')}
               >
                 <ExternalLink className="h-4 w-4 mr-2" />
-                View Embed
+                Embed ansehen
               </Button>
               
               <Button 
@@ -282,7 +282,7 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
                 onClick={copyEmbedUrl}
               >
                 <Copy className="h-4 w-4 mr-2" />
-                Copy Embed URL
+                Embed URL kopieren
               </Button>
               
               <Button 
@@ -291,7 +291,7 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
                 onClick={() => setShowScheduleDialog(true)}
               >
                 <Calendar className="h-4 w-4 mr-2" />
-                Round Schedule
+                 Rundenplan
               </Button>
               
               <Button 
@@ -300,13 +300,13 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
                 onClick={() => {
                   // TODO: Add edit tournament functionality
                   toast({
-                    title: "Coming Soon",
-                    description: "Tournament editing will be available soon.",
+                     title: "Demnächst verfügbar",
+                     description: "Turnier bearbeiten wird bald verfügbar sein.",
                   });
                 }}
               >
                 <Edit3 className="h-4 w-4 mr-2" />
-                Edit Tournament
+                Turnier bearbeiten
               </Button>
               
               <Button 
@@ -315,13 +315,13 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
                 onClick={() => {
                   // TODO: Add manage registrations functionality
                   toast({
-                    title: "Coming Soon", 
-                    description: "Registration management will be available soon.",
+                     title: "Demnächst verfügbar", 
+                     description: "Anmeldungsverwaltung wird bald verfügbar sein.",
                   });
                 }}
               >
                 <Users className="h-4 w-4 mr-2" />
-                Manage Registrations
+                Anmeldungen verwalten
               </Button>
               
               <Button 
@@ -330,7 +330,7 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
                 onClick={async () => {
                   if (!tournament) return;
                   
-                  if (!confirm(`Are you sure you want to delete "${tournament.name}"? This action cannot be undone.`)) {
+                  if (!confirm(`Sind Sie sicher, dass Sie "${tournament.name}" löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.`)) {
                     return;
                   }
 
@@ -349,16 +349,16 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
                     }
 
                     toast({
-                      title: "Tournament Deleted",
-                      description: `"${tournament.name}" has been successfully deleted.`,
+                       title: "Turnier gelöscht",
+                       description: `"${tournament.name}" wurde erfolgreich gelöscht.`,
                     });
 
                     onBack(); // Go back to tournament list
                   } catch (error: any) {
                     console.error('Error deleting tournament:', error);
                     toast({
-                      title: "Delete Failed",
-                      description: error.message || "Failed to delete tournament.",
+                       title: "Löschen fehlgeschlagen",
+                       description: error.message || "Turnier konnte nicht gelöscht werden.",
                       variant: "destructive",
                     });
                   }
@@ -366,7 +366,7 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
                 className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
-                Delete Tournament
+                Turnier löschen
               </Button>
             </div>
           </CardContent>
@@ -386,26 +386,26 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <p className="text-sm text-muted-foreground">Tournament Dates</p>
-              <p className="font-medium">{formatDate(tournament.start_date)}</p>
-              <p className="font-medium">to {formatDate(tournament.end_date)}</p>
+               <p className="text-sm text-muted-foreground">Turnierdaten</p>
+               <p className="font-medium">{formatDate(tournament.start_date)}</p>
+               <p className="font-medium">bis {formatDate(tournament.end_date)}</p>
             </div>
             
             <div>
-              <p className="text-sm text-muted-foreground">Participants</p>
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-primary" />
-                <span className="font-medium">
-                  {registrationCount} / {tournament.max_players} {tournament.type === 'singles' ? 'players' : 'teams'}
+               <p className="text-sm text-muted-foreground">Teilnehmer</p>
+               <div className="flex items-center gap-2">
+                 <Users className="h-4 w-4 text-primary" />
+                 <span className="font-medium">
+                   {registrationCount} / {tournament.max_players} {tournament.type === 'singles' ? 'Spieler' : 'Teams'}
                 </span>
               </div>
             </div>
             
             <div>
-              <p className="text-sm text-muted-foreground">Format</p>
-              <div className="flex items-center gap-2">
-                <Trophy className="h-4 w-4 text-primary" />
-                <span className="font-medium">{tournament.max_rounds} rounds elimination</span>
+               <p className="text-sm text-muted-foreground">Format</p>
+               <div className="flex items-center gap-2">
+                 <Trophy className="h-4 w-4 text-primary" />
+                 <span className="font-medium">{tournament.max_rounds} Runden K.O.</span>
               </div>
             </div>
           </div>

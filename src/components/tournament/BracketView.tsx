@@ -169,19 +169,19 @@ export function BracketView({ tournamentId, tournament, embedded = false }: Brac
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             Turnier-Tableau
-            <Badge variant="outline">Not Generated</Badge>
+            <Badge variant="outline">Nicht generiert</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-12">
             <Trophy className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">No Bracket Generated</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-2">Kein Tableau generiert</h3>
             <p className="text-muted-foreground mb-6">
-              Generate the tournament bracket structure to begin organizing matches.
-              The bracket will be created with {tournament.max_players} {tournament.type === 'singles' ? 'player' : 'team'} slots.
+              Generieren Sie die Turnier-Tableaustruktur, um mit der Organisation der Spiele zu beginnen.
+              Das Tableau wird mit {tournament.max_players} {tournament.type === 'singles' ? 'Spieler' : 'Team'} Plätzen erstellt.
             </p>
             <p className="text-sm text-muted-foreground mb-6">
-              Current registrations: {registrationCount} / {tournament.max_players}
+              Aktuelle Anmeldungen: {registrationCount} / {tournament.max_players}
             </p>
             
             {!embedded && (
@@ -190,7 +190,7 @@ export function BracketView({ tournamentId, tournament, embedded = false }: Brac
                 variant="default"
               >
                 <Settings className="h-4 w-4 mr-2" />
-                Generate Bracket
+                Tableau generieren
               </Button>
             )}
           </div>
@@ -208,7 +208,7 @@ export function BracketView({ tournamentId, tournament, embedded = false }: Brac
         <CardTitle className={`flex items-center justify-between ${embedded ? 'text-lg md:text-xl' : 'text-2xl'}`}>
           Turnier-Tableau
           <Badge className="bg-success/10 text-success border-success/30 text-xs">
-            Active
+            Aktiv
           </Badge>
         </CardTitle>
       </CardHeader>
@@ -230,7 +230,7 @@ export function BracketView({ tournamentId, tournament, embedded = false }: Brac
                       )}
                     </div>
                     <Badge variant="outline" className="text-xs">
-                      {roundsData[roundNumber].length} matches
+                      {roundsData[roundNumber].length} Spiele
                     </Badge>
                   </div>
                 </div>

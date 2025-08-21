@@ -274,8 +274,8 @@ export function MatchCard({ match, tournament, onMatchUpdate, embedded = false }
       }
 
       toast({
-        title: "Gewinner gesetzt",
-        description: "Das Spielergebnis wurde erfolgreich gespeichert.",
+         title: "Gewinner gesetzt",
+         description: "Das Spielergebnis wurde erfolgreich gespeichert.",
       });
 
       onMatchUpdate();
@@ -284,8 +284,8 @@ export function MatchCard({ match, tournament, onMatchUpdate, embedded = false }
     } catch (error) {
       console.error('Error setting winner:', error);
       toast({
-        title: "Fehler",
-        description: "Gewinner konnte nicht gesetzt werden. Bitte versuchen Sie es erneut.",
+         title: "Fehler",
+         description: "Gewinner konnte nicht gesetzt werden. Bitte versuchen Sie es erneut.",
         variant: "destructive",
       });
     }
@@ -319,7 +319,7 @@ export function MatchCard({ match, tournament, onMatchUpdate, embedded = false }
       >
         <CardHeader className={embedded ? 'pb-2 p-3' : 'pb-3 p-6'}>
           <div className="flex items-center justify-between">
-            <CardTitle className={`${embedded ? 'text-xs' : 'text-sm'}`}>Spiel {match.match_number}</CardTitle>
+             <CardTitle className={`${embedded ? 'text-xs' : 'text-sm'}`}>Spiel {match.match_number}</CardTitle>
             <Badge className={`${getStatusColor(match.status)} ${embedded ? 'text-xs px-2 py-1' : ''}`}>
               {getStatusText(match.status)}
             </Badge>
@@ -431,7 +431,7 @@ export function MatchCard({ match, tournament, onMatchUpdate, embedded = false }
               className={`w-full ${embedded ? 'text-xs py-1' : ''}`}
             >
               <Trophy className={`${embedded ? 'h-3 w-3' : 'h-4 w-4'} mr-2`} />
-              {!embedded && (match.winner_player_id || match.winner_team_id) ? 'Gewinner ändern' : 'Gewinner setzen'}
+               {!embedded && (match.winner_player_id || match.winner_team_id) ? 'Gewinner ändern' : 'Gewinner setzen'}
             </Button>
           )}
 
