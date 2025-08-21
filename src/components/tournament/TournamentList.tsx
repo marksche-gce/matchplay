@@ -46,6 +46,29 @@ export function TournamentList({ onTournamentSelect, refreshTrigger, selectedTen
     }
   }, [refreshTrigger, isSystemAdmin]); // Add refreshTrigger as dependency
 
+  // Subscribe to real-time updates for tournaments
+  useEffect(() => {
+    const channel = supabase
+      .channel('tournaments-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'tournaments_new'
+        },
+        () => {
+          console.log('Tournament change detected, refreshing list...');
+          fetchTournaments();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   useEffect(() => {
     filterTournaments();
   }, [selectedTenantId, allTournaments]);
