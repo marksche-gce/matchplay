@@ -227,16 +227,10 @@ export function BracketView({ tournamentId, tournament, embedded = false }: Brac
                         {getRoundDisplayName(roundNumber, calculateTotalRounds(tournament.max_players))}
                       </h3>
                       {roundDeadlines[roundNumber] && (
-                        embedded ? (
-                          <div className="inline-flex items-center gap-1 bg-warning/10 text-warning border border-warning/30 px-2 py-0.5 rounded mt-1 text-[10px] md:text-xs">
-                            <Clock className="h-3 w-3" />
-                            <span>Deadline: {format(new Date(roundDeadlines[roundNumber]), 'dd.MM.yyyy')}</span>
-                          </div>
-                        ) : (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Deadline: {format(new Date(roundDeadlines[roundNumber]), 'dd.MM.yyyy')}
-                          </p>
-                        )
+                        <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          <span>Deadline: {format(new Date(roundDeadlines[roundNumber]), 'dd.MM.yyyy')}</span>
+                        </p>
                       )}
                     </div>
                     <Badge variant="outline" className="text-xs">
