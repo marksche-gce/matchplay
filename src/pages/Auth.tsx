@@ -69,7 +69,7 @@ export default function Auth() {
         description: "Erfolgreich angemeldet!",
       });
 
-      window.location.href = '/';
+      navigate('/');
     } catch (error: any) {
       toast({
         title: "Fehler",
@@ -138,7 +138,7 @@ export default function Auth() {
       if (error) throw error;
 
       toast({ title: 'Erfolg', description: 'Passwort aktualisiert. Bitte melden Sie sich erneut an.' });
-      window.location.href = '/auth';
+      navigate('/auth');
     } catch (error: any) {
       toast({
         title: 'Fehler',

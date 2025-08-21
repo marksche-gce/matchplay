@@ -12,8 +12,8 @@ export function TournamentRegistration() {
   };
 
   const handleRegistrationComplete = () => {
-    // Refresh the tournament list to show updated registration counts
-    window.location.reload();
+    // Close dialog - list will update via real-time subscriptions
+    setShowRegistrationDialog(false);
   };
 
   return (

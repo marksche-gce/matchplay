@@ -149,7 +149,7 @@ export function TournamentDialog({ open, onOpenChange }: TournamentDialogProps) 
       // Reset form and close dialog
       setFormData({ name: '', type: 'singles', maxPlayers: 16, startDate: '', endDate: '' });
       onOpenChange(false);
-      window.location.reload();
+      // Tournament will be updated via real-time subscriptions
     } catch (error) {
       console.error('Error creating tournament:', error);
       toast({
