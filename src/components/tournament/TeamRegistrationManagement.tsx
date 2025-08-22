@@ -1,0 +1,567 @@
+import React, { useEffect, useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Users, Trash2, UserPlus, Save, X, Mail } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+
+interface Player {
+  id: string;
+  name: string;
+  email?: string;
+  handicap: number;
+}
+
+interface Team {
+  id: string;
+  name: string;
+  player1: Player;
+  player2: Player;
+  registered_at: string;
+}
+
+interface Tournament {
+  id: string;
+  name: string;
+  max_players: number;
+  type: 'singles' | 'foursome';
+}
+
+interface TeamRegistrationManagementProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  tournament: Tournament;
+  onUpdate?: () => void;
+}
+
+export function TeamRegistrationManagement({ 
+  open, 
+  onOpenChange, 
+  tournament,
+  onUpdate 
+}: TeamRegistrationManagementProps) {
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newTeam, setNewTeam] = useState({
+    teamName: '',
+    player1Name: '',
+    player1Email: '',
+    player1Handicap: 0,
+    player2Name: '',
+    player2Email: '',
+    player2Handicap: 0,
+  });
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (open && tournament) {
+      fetchTeams();
+    }
+  }, [open, tournament]);
+
+  const fetchTeams = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('tournament_registrations_new')
+        .select(`
+          registered_at,
+          teams (
+            id,
+            name,
+            player1:players_new!teams_player1_id_fkey (
+              id,
+              name,
+              email,
+              handicap
+            ),
+            player2:players_new!teams_player2_id_fkey (
+              id,
+              name,
+              email,
+              handicap
+            )
+          )
+        `)
+        .eq('tournament_id', tournament.id)
+        .not('team_id', 'is', null);
+
+      if (error) throw error;
+
+      const formattedTeams = (data || [])
+        .filter(reg => reg.teams) // Filter out registrations without team data
+        .map(reg => ({
+          id: reg.teams.id,
+          name: reg.teams.name,
+          player1: reg.teams.player1,
+          player2: reg.teams.player2,
+          registered_at: reg.registered_at,
+        }))
+        .sort((a, b) => {
+          const avgA = (a.player1.handicap + a.player2.handicap) / 2;
+          const avgB = (b.player1.handicap + b.player2.handicap) / 2;
+          return avgA - avgB;
+        });
+
+      setTeams(formattedTeams as Team[]);
+    } catch (error) {
+      console.error('Error fetching teams:', error);
+      toast({
+        title: "Fehler",
+        description: "Fehler beim Laden der Teams.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteTeam = async (teamId: string, teamName: string) => {
+    if (!confirm(`Möchten Sie das Team "${teamName}" wirklich aus dem Turnier entfernen?`)) {
+      return;
+    }
+
+    try {
+      // Delete tournament registration for the team
+      const { error: registrationError } = await supabase
+        .from('tournament_registrations_new')
+        .delete()
+        .eq('tournament_id', tournament.id)
+        .eq('team_id', teamId);
+
+      if (registrationError) throw registrationError;
+
+      // Delete the team itself
+      const { error: teamError } = await supabase
+        .from('teams')
+        .delete()
+        .eq('id', teamId);
+
+      if (teamError) throw teamError;
+
+      toast({
+        title: "Team entfernt",
+        description: `Team "${teamName}" wurde erfolgreich aus dem Turnier entfernt.`,
+      });
+
+      fetchTeams();
+      onUpdate?.();
+    } catch (error: any) {
+      console.error('Error deleting team:', error);
+      toast({
+        title: "Löschen fehlgeschlagen",
+        description: error.message || "Fehler beim Entfernen des Teams.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddTeam = async () => {
+    if (!newTeam.teamName.trim() || !newTeam.player1Name.trim() || !newTeam.player2Name.trim()) {
+      toast({
+        title: "Ungültige Eingabe",
+        description: "Teamname und beide Spielernamen sind erforderlich.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // Create or get player 1
+      const { data: existingPlayer1 } = await supabase
+        .from('players_new')
+        .select('id')
+        .eq('email', newTeam.player1Email)
+        .maybeSingle();
+
+      let player1Id = existingPlayer1?.id;
+
+      if (!player1Id) {
+        const { data: newPlayer1, error: player1Error } = await supabase
+          .from('players_new')
+          .insert({
+            name: newTeam.player1Name.trim(),
+            email: newTeam.player1Email.trim() || null,
+            handicap: newTeam.player1Handicap
+          })
+          .select('id')
+          .single();
+
+        if (player1Error) throw player1Error;
+        player1Id = newPlayer1.id;
+      }
+
+      // Create or get player 2
+      const { data: existingPlayer2 } = await supabase
+        .from('players_new')
+        .select('id')
+        .eq('email', newTeam.player2Email)
+        .maybeSingle();
+
+      let player2Id = existingPlayer2?.id;
+
+      if (!player2Id) {
+        const { data: newPlayer2, error: player2Error } = await supabase
+          .from('players_new')
+          .insert({
+            name: newTeam.player2Name.trim(),
+            email: newTeam.player2Email.trim() || null,
+            handicap: newTeam.player2Handicap
+          })
+          .select('id')
+          .single();
+
+        if (player2Error) throw player2Error;
+        player2Id = newPlayer2.id;
+      }
+
+      // Create team
+      const { data: teamData, error: teamError } = await supabase
+        .from('teams')
+        .insert({
+          tournament_id: tournament.id,
+          name: newTeam.teamName.trim(),
+          player1_id: player1Id,
+          player2_id: player2Id,
+        })
+        .select()
+        .single();
+
+      if (teamError) throw teamError;
+
+      // Register team for tournament
+      const { error: registrationError } = await supabase
+        .from('tournament_registrations_new')
+        .insert({
+          tournament_id: tournament.id,
+          team_id: teamData.id
+        });
+
+      if (registrationError) throw registrationError;
+
+      toast({
+        title: "Team hinzugefügt",
+        description: `Team "${newTeam.teamName}" wurde erfolgreich zum Turnier hinzugefügt.`,
+      });
+
+      setNewTeam({
+        teamName: '',
+        player1Name: '',
+        player1Email: '',
+        player1Handicap: 0,
+        player2Name: '',
+        player2Email: '',
+        player2Handicap: 0,
+      });
+      setShowAddForm(false);
+      fetchTeams();
+      onUpdate?.();
+    } catch (error: any) {
+      console.error('Error adding team:', error);
+      toast({
+        title: "Hinzufügen fehlgeschlagen",
+        description: error.message || "Fehler beim Hinzufügen des Teams.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('de-DE', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getAverageHandicap = (team: Team) => {
+    return ((team.player1.handicap + team.player2.handicap) / 2).toFixed(1);
+  };
+
+  const getOverallAverageHandicap = () => {
+    if (teams.length === 0) return '0.0';
+    const total = teams.reduce((sum, team) => {
+      return sum + (team.player1.handicap + team.player2.handicap) / 2;
+    }, 0);
+    return (total / teams.length).toFixed(1);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Teams verwalten - {tournament.name}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {/* Statistiken */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Gesamt Teams</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{teams.length}</div>
+                <p className="text-xs text-muted-foreground">
+                  von {tournament.max_players} möglich
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Durchschnitt Handicap</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {getOverallAverageHandicap()}
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Freie Plätze</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-success">
+                  {tournament.max_players - teams.length}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Aktionen */}
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Angemeldete Teams</h3>
+            <Button
+              onClick={() => setShowAddForm(true)}
+              disabled={teams.length >= tournament.max_players}
+              className="bg-success hover:bg-success/90"
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Team hinzufügen
+            </Button>
+          </div>
+
+          {/* Team hinzufügen Form */}
+          {showAddForm && (
+            <Card className="border-success/20">
+              <CardHeader>
+                <CardTitle className="text-base">Neues Team hinzufügen</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="teamName">Teamname *</Label>
+                  <Input
+                    id="teamName"
+                    value={newTeam.teamName}
+                    onChange={(e) => setNewTeam({ ...newTeam, teamName: e.target.value })}
+                    placeholder="Teamname"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Spieler 1 */}
+                  <div className="space-y-3">
+                    <h4 className="font-medium">Spieler 1</h4>
+                    <div className="space-y-2">
+                      <div>
+                        <Label htmlFor="player1Name">Name *</Label>
+                        <Input
+                          id="player1Name"
+                          value={newTeam.player1Name}
+                          onChange={(e) => setNewTeam({ ...newTeam, player1Name: e.target.value })}
+                          placeholder="Spielername"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="player1Email">E-Mail</Label>
+                        <Input
+                          id="player1Email"
+                          type="email"
+                          value={newTeam.player1Email}
+                          onChange={(e) => setNewTeam({ ...newTeam, player1Email: e.target.value })}
+                          placeholder="E-Mail (optional)"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="player1Handicap">Handicap</Label>
+                        <Input
+                          id="player1Handicap"
+                          type="number"
+                          step="0.1"
+                          value={newTeam.player1Handicap}
+                          onChange={(e) => setNewTeam({ ...newTeam, player1Handicap: parseFloat(e.target.value) || 0 })}
+                          placeholder="0.0"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Spieler 2 */}
+                  <div className="space-y-3">
+                    <h4 className="font-medium">Spieler 2</h4>
+                    <div className="space-y-2">
+                      <div>
+                        <Label htmlFor="player2Name">Name *</Label>
+                        <Input
+                          id="player2Name"
+                          value={newTeam.player2Name}
+                          onChange={(e) => setNewTeam({ ...newTeam, player2Name: e.target.value })}
+                          placeholder="Spielername"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="player2Email">E-Mail</Label>
+                        <Input
+                          id="player2Email"
+                          type="email"
+                          value={newTeam.player2Email}
+                          onChange={(e) => setNewTeam({ ...newTeam, player2Email: e.target.value })}
+                          placeholder="E-Mail (optional)"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="player2Handicap">Handicap</Label>
+                        <Input
+                          id="player2Handicap"
+                          type="number"
+                          step="0.1"
+                          value={newTeam.player2Handicap}
+                          onChange={(e) => setNewTeam({ ...newTeam, player2Handicap: parseFloat(e.target.value) || 0 })}
+                          placeholder="0.0"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex gap-2 pt-4">
+                  <Button onClick={handleAddTeam} disabled={saving}>
+                    <Save className="h-4 w-4 mr-2" />
+                    {saving ? 'Speichern...' : 'Team hinzufügen'}
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowAddForm(false)}>
+                    <X className="h-4 w-4 mr-2" />
+                    Abbrechen
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Teamliste */}
+          {loading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="h-24 bg-muted rounded"></div>
+                </div>
+              ))}
+            </div>
+          ) : teams.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-8">
+                <Users className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">Keine Teams</h3>
+                <p className="text-muted-foreground">
+                  Es sind noch keine Teams für dieses Turnier angemeldet.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Rang</TableHead>
+                    <TableHead>Teamname</TableHead>
+                    <TableHead>Spieler 1</TableHead>
+                    <TableHead>Spieler 2</TableHead>
+                    <TableHead>Ø HCP</TableHead>
+                    <TableHead>Anmeldedatum</TableHead>
+                    <TableHead className="text-right">Aktionen</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {teams.map((team, index) => (
+                    <TableRow key={team.id}>
+                      <TableCell>
+                        <Badge variant="outline">#{index + 1}</Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {team.name}
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="font-medium">{team.player1.name}</div>
+                          {team.player1.email && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Mail className="h-3 w-3" />
+                              {team.player1.email}
+                            </div>
+                          )}
+                          <Badge variant="secondary" className="text-xs">
+                            HCP: {team.player1.handicap}
+                          </Badge>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="font-medium">{team.player2.name}</div>
+                          {team.player2.email && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Mail className="h-3 w-3" />
+                              {team.player2.email}
+                            </div>
+                          )}
+                          <Badge variant="secondary" className="text-xs">
+                            HCP: {team.player2.handicap}
+                          </Badge>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="font-mono">
+                          {getAverageHandicap(team)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {formatDate(team.registered_at)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteTeam(team.id, team.name)}
+                          className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

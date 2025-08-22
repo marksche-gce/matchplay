@@ -9,6 +9,7 @@ import { RegistrationDialog } from './RegistrationDialog';
 import { BracketView } from './BracketView';
 import { RoundScheduleDialog } from './RoundScheduleDialog';
 import { RegistrationManagement } from './RegistrationManagement';
+import { TeamRegistrationManagement } from './TeamRegistrationManagement';
 import { useAuth } from '@/hooks/useAuth';
 import { useSystemAdminCheck } from '@/hooks/useSystemAdminCheck';
 import { useOrganizerCheck } from '@/hooks/useOrganizerCheck';
@@ -302,7 +303,7 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
                 onClick={() => setShowRegistrationManagement(true)}
               >
                 <Users className="h-4 w-4 mr-2" />
-                Anmeldungen verwalten
+                {tournament.type === 'singles' ? 'Anmeldungen verwalten' : 'Teams verwalten'}
               </Button>
               
               <Button 
@@ -419,14 +420,25 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
       />
 
       {/* Registration Management Dialog */}
-      <RegistrationManagement 
-        open={showRegistrationManagement}
-        onOpenChange={setShowRegistrationManagement}
-        tournament={tournament}
-        onUpdate={() => {
-          fetchRegistrationCount();
-        }}
-      />
+      {tournament.type === 'singles' ? (
+        <RegistrationManagement 
+          open={showRegistrationManagement}
+          onOpenChange={setShowRegistrationManagement}
+          tournament={tournament}
+          onUpdate={() => {
+            fetchRegistrationCount();
+          }}
+        />
+      ) : (
+        <TeamRegistrationManagement 
+          open={showRegistrationManagement}
+          onOpenChange={setShowRegistrationManagement}
+          tournament={tournament}
+          onUpdate={() => {
+            fetchRegistrationCount();
+          }}
+        />
+      )}
     </div>
   );
 }
