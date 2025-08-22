@@ -163,10 +163,10 @@ export default function TournamentEmbed() {
                 href={`/embed/${id}/participants`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 text-primary hover:text-primary/80 underline"
+                className="flex items-center gap-1 text-primary hover:text-primary/80 underline py-1 px-2 -mx-2 rounded touch-manipulation min-h-[44px] md:min-h-auto md:py-0 md:px-0 md:mx-0"
               >
-                <Users className="h-3 w-3 md:h-4 md:w-4" />
-                <span>Teilnehmerliste</span>
+                <Users className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0" />
+                <span className="whitespace-nowrap">Teilnehmerliste</span>
               </a>
               <div className="flex items-center gap-1">
                 <Trophy className="h-3 w-3 md:h-4 md:w-4" />
