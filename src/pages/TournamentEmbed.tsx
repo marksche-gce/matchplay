@@ -168,33 +168,11 @@ export default function TournamentEmbed() {
                   tournament.registration_status === 'closed' ? 'Anmeldung geschlossen' : 
                   'Turnier voll'}
               </Badge>
-              {nextDeadline && (
-                <Badge variant="destructive" className="text-xs flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  <span className="whitespace-nowrap">
-                    {getRoundDisplayName(nextDeadline.round, calculateTotalRounds(tournament.max_players))} Deadline: {format(new Date(nextDeadline.date), 'dd.MM.yyyy')}
-                  </span>
-                </Badge>
-              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Runden-Deadlines */}
-      {roundDeadlines.length > 0 && (
-        <div className="max-w-full mx-auto p-2 md:p-4">
-          <div className="bg-card rounded-lg border shadow-sm p-2 md:p-4">
-            <div className="flex flex-wrap gap-2">
-              {roundDeadlines.map((d) => (
-                <Badge key={d.round_number} variant="destructive" className="text-xs">
-                  {getRoundDisplayName(d.round_number, calculateTotalRounds(tournament.max_players))}: {format(new Date(d.closing_date), 'dd.MM.yyyy')}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Tournament Bracket */}
       <div className="max-w-full mx-auto p-2 md:p-4">
