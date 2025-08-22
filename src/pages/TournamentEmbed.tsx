@@ -152,12 +152,12 @@ export default function TournamentEmbed() {
                   'Turnier voll'}
               </Badge>
               {nextDeadline && (
-                <div className="flex items-center gap-1 bg-warning/10 text-warning px-2 py-1 rounded text-xs border border-warning/30">
+                <Badge variant="destructive" className="text-xs flex items-center gap-1">
                   <Clock className="h-3 w-3" />
                   <span className="whitespace-nowrap">
                     {getRoundDisplayName(nextDeadline.round, calculateTotalRounds(tournament.max_players))} Deadline: {format(new Date(nextDeadline.date), 'dd.MM.yyyy')}
                   </span>
-                </div>
+                </Badge>
               )}
             </div>
           </div>
@@ -170,7 +170,7 @@ export default function TournamentEmbed() {
           <div className="bg-card rounded-lg border shadow-sm p-2 md:p-4">
             <div className="flex flex-wrap gap-2">
               {roundDeadlines.map((d) => (
-                <Badge key={d.round_number} variant="outline" className="text-xs">
+                <Badge key={d.round_number} variant="destructive" className="text-xs">
                   {getRoundDisplayName(d.round_number, calculateTotalRounds(tournament.max_players))}: {format(new Date(d.closing_date), 'dd.MM.yyyy')}
                 </Badge>
               ))}

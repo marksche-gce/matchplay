@@ -192,10 +192,10 @@ export function BracketView({ tournamentId, tournament, embedded = false }: Brac
                             {getRoundDisplayName(roundNumber, totalRounds)}
                           </h3>
                           {roundDeadlines[roundNumber] && (
-                            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                            <Badge variant="destructive" className="mt-1 text-[10px] md:text-xs flex items-center gap-1">
                               <Clock className="h-3 w-3" />
                               <span>Deadline: {format(new Date(roundDeadlines[roundNumber]), 'dd.MM.yyyy')}</span>
-                            </p>
+                            </Badge>
                           )}
                         </div>
                         <Badge variant="outline" className="text-xs">0 Spiele</Badge>
@@ -270,10 +270,10 @@ export function BracketView({ tournamentId, tournament, embedded = false }: Brac
                         {getRoundDisplayName(roundNumber, calculateTotalRounds(tournament.max_players))}
                       </h3>
                       {roundDeadlines[roundNumber] && (
-                        <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                        <Badge variant="destructive" className="mt-1 text-[10px] md:text-xs flex items-center gap-1">
                           <Clock className="h-3 w-3" />
                           <span>Deadline: {format(new Date(roundDeadlines[roundNumber]), 'dd.MM.yyyy')}</span>
-                        </p>
+                        </Badge>
                       )}
                     </div>
                     <Badge variant="outline" className="text-xs">
