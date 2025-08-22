@@ -6,6 +6,7 @@ import { Trophy, Users, Crown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAdminCheck } from '@/hooks/useAdminCheck';
+import { useSystemAdminCheck } from '@/hooks/useSystemAdminCheck';
 import { SetWinnerDialog } from './SetWinnerDialog';
 import { AssignParticipantsDialog } from './AssignParticipantsDialog';
 
@@ -54,6 +55,7 @@ interface MatchCardProps {
 export function MatchCard({ match, tournament, onMatchUpdate, embedded = false }: MatchCardProps) {
   const { toast } = useToast();
   const { isAdmin, loading: adminLoading } = useAdminCheck();
+  const { isSystemAdmin, loading: systemAdminLoading } = useSystemAdminCheck();
   const [player1, setPlayer1] = useState<Player | null>(null);
   const [player2, setPlayer2] = useState<Player | null>(null);
   const [team1, setTeam1] = useState<Team | null>(null);
@@ -181,8 +183,8 @@ export function MatchCard({ match, tournament, onMatchUpdate, embedded = false }
     
     // In manager view:
     if (hasWinner) {
-      // If match has winner, only admins can change it (regardless of status)
-      return isAdmin;
+      // If match has winner, only admins or system admins can change it (regardless of status)
+      return isAdmin || isSystemAdmin;
     } else {
       // If no winner, allow setting for scheduled matches with participants
       if (tournament.type === 'singles') {
