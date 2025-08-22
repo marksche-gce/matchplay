@@ -166,6 +166,7 @@ const handleDeadlineChange = (roundNumber: number, date?: Date) => {
       // Refresh the deadlines to show the updated data
       await fetchRoundDeadlines();
       onSuccess?.();
+      onOpenChange(false);
     } catch (error: any) {
       console.error('Error saving round schedule:', error);
       toast({
