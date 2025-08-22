@@ -169,6 +169,48 @@ export function BracketView({ tournamentId, tournament, embedded = false }: Brac
   }
 
   if (!bracketGenerated) {
+    if (embedded) {
+      const totalRounds = calculateTotalRounds(tournament.max_players);
+      const rounds = Array.from({ length: totalRounds }, (_, i) => i + 1);
+      return (
+        <Card className="bg-card shadow-sm">
+          <CardHeader className="p-3 md:p-4">
+            <CardTitle className="flex items-center justify-between text-lg md:text-xl">
+              Turnier-Tableau
+              <Badge variant="outline">Nicht generiert</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-2 md:p-4">
+            <div className="overflow-x-auto">
+              <div className="flex gap-3 md:gap-6 min-w-fit pb-2">
+                {rounds.map((roundNumber) => (
+                  <div key={roundNumber} className="flex-shrink-0 w-64 md:w-72">
+                    <div className="sticky top-0 bg-card z-10 pb-2 mb-2 border-b">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-sm md:text-base font-semibold text-foreground">
+                            {getRoundDisplayName(roundNumber, totalRounds)}
+                          </h3>
+                          {roundDeadlines[roundNumber] && (
+                            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              <span>Deadline: {format(new Date(roundDeadlines[roundNumber]), 'dd.MM.yyyy')}</span>
+                            </p>
+                          )}
+                        </div>
+                        <Badge variant="outline" className="text-xs">0 Spiele</Badge>
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground">Tableau noch nicht generiert</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
     return (
       <Card className="bg-card shadow-card">
         <CardHeader>
@@ -188,7 +230,6 @@ export function BracketView({ tournamentId, tournament, embedded = false }: Brac
             <p className="text-sm text-muted-foreground mb-6">
               Aktuelle Anmeldungen: {registrationCount} / {tournament.max_players}
             </p>
-            
             {!embedded && (
               <Button 
                 onClick={generateBracket}
