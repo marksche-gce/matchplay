@@ -63,12 +63,12 @@ export function BracketView({ tournamentId, tournament, embedded = false }: Brac
         
         // Set round deadlines for embedded view
         const deadlines = (data as any)?.roundDeadlines || [];
-        console.log('Embed deadlines received:', deadlines); // Debug log
+        console.log('BracketView Embed deadlines received:', deadlines); // Debug log
         const deadlineMap: {[key: number]: string} = {};
         deadlines.forEach((deadline: any) => {
           deadlineMap[deadline.round_number] = deadline.closing_date;
         });
-        console.log('Deadline map:', deadlineMap); // Debug log
+        console.log('BracketView Deadline map:', deadlineMap); // Debug log
         setRoundDeadlines(deadlineMap);
       } else {
         const { data, error } = await supabase

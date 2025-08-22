@@ -75,6 +75,7 @@ export default function TournamentEmbed() {
       if (error) throw error;
       
       const deadlines = (data as any)?.roundDeadlines || [];
+      console.log('TournamentEmbed - Round deadlines received:', deadlines);
       setRoundDeadlines(deadlines);
       const now = new Date();
       
