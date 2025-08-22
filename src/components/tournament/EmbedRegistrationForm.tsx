@@ -268,38 +268,7 @@ export function EmbedRegistrationForm({ tournament, registrationCount, onRegistr
   const isFull = registrationCount >= tournament.max_players;
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Tournament Header */}
-      <div className="bg-gradient-to-r from-primary/10 to-primary/20 border-b">
-        <div className="max-w-full mx-auto p-3 md:p-4">
-          <div className="space-y-2">
-            <h1 className="text-lg md:text-2xl font-bold text-foreground">{tournament.name}</h1>
-            <div className="flex flex-wrap items-center gap-3 md:gap-4 text-xs md:text-sm text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Calendar className="h-3 w-3 md:h-4 md:w-4" />
-                <span className="whitespace-nowrap">{format(new Date(tournament.start_date), 'MMM dd')} - {format(new Date(tournament.end_date), 'MMM dd, yyyy')}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Users className="h-3 w-3 md:h-4 md:w-4" />
-                <span>{registrationCount}/{tournament.max_players} Spieler</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Trophy className="h-3 w-3 md:h-4 md:w-4" />
-                <span>{tournament.type === 'singles' ? 'Einzel' : 'Vierer'}</span>
-              </div>
-              <Badge className={`${getRegistrationStatusColor(tournament.registration_status)} text-xs`}>
-                {tournament.registration_status === 'open' ? 'Anmeldung offen' : 
-                 tournament.registration_status === 'closed' ? 'Anmeldung geschlossen' : 
-                 'Turnier voll'}
-              </Badge>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Registration Form */}
-      <div className="max-w-full mx-auto p-2 md:p-4">
-        <Card className="shadow-sm">
+    <Card className="shadow-sm">
           <CardHeader className="p-3 md:p-6">
             <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
               <UserPlus className="h-4 w-4 md:h-5 md:w-5" />
@@ -496,8 +465,6 @@ export function EmbedRegistrationForm({ tournament, registrationCount, onRegistr
               </form>
             )}
           </CardContent>
-        </Card>
-      </div>
-    </div>
+    </Card>
   );
 }
