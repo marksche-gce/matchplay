@@ -80,6 +80,8 @@ export function RoundScheduleDialog({
 
       // Create initial deadlines for all rounds if none exist
       const totalRounds = calculateTotalRounds(tournament.max_players);
+      console.log('Tournament max_players:', tournament.max_players, 'Total rounds:', totalRounds);
+      
       const normalizedData = (data || []).map(d => ({
         ...d,
         closing_date: d.closing_date ? toInputValue(d.closing_date) : ''
@@ -87,6 +89,8 @@ export function RoundScheduleDialog({
       const existingRounds = normalizedData.map(d => d.round_number);
       const missingRounds = Array.from({ length: totalRounds }, (_, i) => i + 1)
         .filter(round => !existingRounds.includes(round));
+      
+      console.log('Existing rounds:', existingRounds, 'Missing rounds:', missingRounds);
 
       const allDeadlines = [
         ...normalizedData,
