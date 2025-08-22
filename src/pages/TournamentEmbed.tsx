@@ -74,8 +74,24 @@ export default function TournamentEmbed() {
 
       if (error) throw error;
       
-      const deadlines = (data as any)?.roundDeadlines || [];
+      let deadlines = (data as any)?.roundDeadlines || [];
       console.log('TournamentEmbed - Round deadlines received:', deadlines);
+
+      // Fallback: fetch directly if edge function returned no deadlines
+      if ((!deadlines || deadlines.length === 0) && id) {
+        const { data: fallbackDeadlines, error: fallbackError } = await supabase
+          .from('round_deadlines')
+          .select('*')
+          .eq('tournament_id', id)
+          .order('round_number');
+        if (!fallbackError && fallbackDeadlines) {
+          console.log('TournamentEmbed - Fallback deadlines received:', fallbackDeadlines);
+          deadlines = fallbackDeadlines as any;
+        } else if (fallbackError) {
+          console.warn('TournamentEmbed - Fallback deadlines error:', fallbackError);
+        }
+      }
+
       setRoundDeadlines(deadlines);
       const now = new Date();
       

@@ -64,10 +64,29 @@ export function BracketView({ tournamentId, tournament, embedded = false }: Brac
         // Set round deadlines for embedded view
         const deadlines = (data as any)?.roundDeadlines || [];
         console.log('BracketView Embed deadlines received:', deadlines); // Debug log
-        const deadlineMap: {[key: number]: string} = {};
+        let deadlineMap: {[key: number]: string} = {};
         deadlines.forEach((deadline: any) => {
           deadlineMap[deadline.round_number] = deadline.closing_date;
         });
+
+        // Fallback: fetch directly if edge function returned no deadlines
+        if (Object.keys(deadlineMap).length === 0) {
+          const { data: fallbackDeadlines, error: fallbackError } = await supabase
+            .from('round_deadlines')
+            .select('*')
+            .eq('tournament_id', tournamentId)
+            .order('round_number');
+          if (!fallbackError && fallbackDeadlines) {
+            console.log('BracketView - Fallback deadlines received:', fallbackDeadlines);
+            deadlineMap = {};
+            (fallbackDeadlines as any[]).forEach((d: any) => {
+              deadlineMap[d.round_number] = d.closing_date;
+            });
+          } else if (fallbackError) {
+            console.warn('BracketView - Fallback deadlines error:', fallbackError);
+          }
+        }
+
         console.log('BracketView Deadline map:', deadlineMap); // Debug log
         setRoundDeadlines(deadlineMap);
       } else {
