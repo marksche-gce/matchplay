@@ -93,56 +93,64 @@ serve(async (req) => {
     const playerIds = (playersOfUser || []).map((p: any) => p.id);
 
     if (playerIds.length > 0) {
-      // Clear references in legacy matches table
-      const { error: clearMatchesError } = await adminClient
-        .from("matches")
-        .update({ winner_id: null })
-        .in("winner_id", playerIds);
-      if (clearMatchesError) console.error("Clear matches error:", clearMatchesError);
+      // Process in batches to avoid URI too long errors
+      const batchSize = 50;
+      for (let i = 0; i < playerIds.length; i += batchSize) {
+        const batch = playerIds.slice(i, i + batchSize);
+        
+        // Clear references in legacy matches table
+        const { error: clearMatchesError } = await adminClient
+          .from("matches")
+          .update({ winner_id: null })
+          .in("winner_id", batch);
+        if (clearMatchesError) console.error("Clear matches error:", clearMatchesError);
 
-      // Clear references in new matches table
-      const { error: clearMatchesNewPlayerError } = await adminClient
-        .from("matches_new")
-        .update({ winner_player_id: null })
-        .in("winner_player_id", playerIds);
-      if (clearMatchesNewPlayerError) console.error("Clear matches_new player error:", clearMatchesNewPlayerError);
-
-      // Collect team IDs involving these players
-      const { data: teamsInvolving, error: teamsFetchErr } = await adminClient
-        .from("teams")
-        .select("id, player1_id, player2_id")
-        .or(`player1_id.in.(${playerIds.join(',')}),player2_id.in.(${playerIds.join(',')})`);
-      if (teamsFetchErr) console.error("Fetch teams error:", teamsFetchErr);
-      const teamIds = (teamsInvolving || []).map((t: any) => t.id);
-
-      // Clear winner_team_id in matches_new that reference these teams
-      if (teamIds.length > 0) {
-        const { error: clearMatchesNewTeamError } = await adminClient
+        // Clear references in new matches table
+        const { error: clearMatchesNewPlayerError } = await adminClient
           .from("matches_new")
-          .update({ winner_team_id: null })
-          .in("winner_team_id", teamIds);
-        if (clearMatchesNewTeamError) console.error("Clear matches_new team error:", clearMatchesNewTeamError);
+          .update({ winner_player_id: null })
+          .in("winner_player_id", batch);
+        if (clearMatchesNewPlayerError) console.error("Clear matches_new player error:", clearMatchesNewPlayerError);
+
+        // Remove player from teams (player1)
+        const { error: clearTeamsP1 } = await adminClient
+          .from("teams")
+          .update({ player1_id: null })
+          .in("player1_id", batch);
+        if (clearTeamsP1) console.error("Clear teams player1 error:", clearTeamsP1);
+
+        // Remove player from teams (player2)
+        const { error: clearTeamsP2 } = await adminClient
+          .from("teams")
+          .update({ player2_id: null })
+          .in("player2_id", batch);
+        if (clearTeamsP2) console.error("Clear teams player2 error:", clearTeamsP2);
+
+        // Disassociate players from auth user
+        const { error: detachPlayersErr } = await adminClient
+          .from("players")
+          .update({ user_id: null })
+          .in("id", batch);
+        if (detachPlayersErr) console.error("Detach players error:", detachPlayersErr);
       }
 
-      // Remove player from teams
-      const { error: clearTeamsP1 } = await adminClient
+      // Handle teams separately to clear winner_team_id references
+      const { data: teamsInvolving, error: teamsFetchErr } = await adminClient
         .from("teams")
-        .update({ player1_id: null })
-        .in("player1_id", playerIds);
-      if (clearTeamsP1) console.error("Clear teams player1 error:", clearTeamsP1);
-
-      const { error: clearTeamsP2 } = await adminClient
-        .from("teams")
-        .update({ player2_id: null })
-        .in("player2_id", playerIds);
-      if (clearTeamsP2) console.error("Clear teams player2 error:", clearTeamsP2);
-
-      // Disassociate players from auth user to avoid ON DELETE CASCADE
-      const { error: detachPlayersErr } = await adminClient
-        .from("players")
-        .update({ user_id: null })
-        .in("id", playerIds);
-      if (detachPlayersErr) console.error("Detach players error:", detachPlayersErr);
+        .select("id")
+        .or(`player1_id.is.null,player2_id.is.null`);
+      
+      if (!teamsFetchErr && teamsInvolving && teamsInvolving.length > 0) {
+        const teamIds = teamsInvolving.map((t: any) => t.id);
+        for (let i = 0; i < teamIds.length; i += batchSize) {
+          const teamBatch = teamIds.slice(i, i + batchSize);
+          const { error: clearMatchesNewTeamError } = await adminClient
+            .from("matches_new")
+            .update({ winner_team_id: null })
+            .in("winner_team_id", teamBatch);
+          if (clearMatchesNewTeamError) console.error("Clear matches_new team error:", clearMatchesNewTeamError);
+        }
+      }
     }
 
     // Clear user roles before deletion
