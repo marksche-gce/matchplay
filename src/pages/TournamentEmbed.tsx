@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { BracketView } from '@/components/tournament/BracketView';
 import { EmbedRegistrationForm } from '@/components/tournament/EmbedRegistrationForm';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, Users, Trophy, Clock } from 'lucide-react';
 import { format } from 'date-fns';
@@ -159,15 +160,17 @@ export default function TournamentEmbed() {
                 <Users className="h-3 w-3 md:h-4 md:w-4" />
                 <span>{registrationCount}/{tournament.max_players} Spieler</span>
               </div>
-              <a 
-                href={`/embed/${id}/participants`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 text-primary hover:text-primary/80 underline py-1 px-2 -mx-2 rounded touch-manipulation min-h-[44px] md:min-h-auto md:py-0 md:px-0 md:mx-0"
-              >
-                <Users className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0" />
-                <span className="whitespace-nowrap">Teilnehmerliste</span>
-              </a>
+              <Button asChild variant="outline" size="sm" className="touch-manipulation min-h-[44px] md:min-h-auto">
+                <a 
+                  href={`/embed/${id}/participants`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1"
+                >
+                  <Users className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0" />
+                  <span className="whitespace-nowrap">Teilnehmerliste</span>
+                </a>
+              </Button>
               <div className="flex items-center gap-1">
                 <Trophy className="h-3 w-3 md:h-4 md:w-4" />
                 <span>{tournament.type === 'singles' ? 'Einzel' : 'Vierer'}</span>
