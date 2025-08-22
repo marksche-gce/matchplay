@@ -37,14 +37,20 @@ export default function TournamentEmbedParticipants() {
   const fetchTournamentAndParticipants = async () => {
     try {
       // Fetch tournament info
-      const { data: tournamentData, error: tournamentError } = await supabase
-        .from('tournaments_new')
-        .select('id, name, type, max_players, registration_status')
-        .eq('id', id)
-        .single();
+      const { data, error } = await supabase.functions.invoke('get-embed-tournament', {
+        body: { tournamentId: id },
+      });
 
-      if (tournamentError) {
-        console.error('Error fetching tournament:', tournamentError);
+      if (error) {
+        console.error('Error fetching tournament (edge):', error);
+        setTournament(null);
+        return;
+      }
+
+      const tournamentData = (data as any)?.tournament || null;
+      if (!tournamentData) {
+        console.warn('No tournament returned from edge function');
+        setTournament(null);
         return;
       }
 
