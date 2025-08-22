@@ -20,7 +20,13 @@ const toInputValue = (iso?: string | null) => {
 
 const toISOFromLocal = (local?: string) => {
   if (!local) return '';
+  // Convert from datetime-local format to ISO string
   const d = new Date(local);
+  // Check if the date is valid
+  if (isNaN(d.getTime())) {
+    console.error('Invalid date format:', local);
+    return '';
+  }
   return d.toISOString();
 };
 interface Tournament {
@@ -118,25 +124,40 @@ export function RoundScheduleDialog({
       // Filter out deadlines without dates
       const validDeadlines = deadlines.filter(d => d.closing_date && d.closing_date.trim() !== '');
 
+      console.log('Saving deadlines:', validDeadlines);
+
       // Delete all existing deadlines for this tournament first
       const { error: deleteError } = await supabase
         .from('round_deadlines')
         .delete()
         .eq('tournament_id', tournament.id);
 
-      if (deleteError) throw deleteError;
+      if (deleteError) {
+        console.error('Delete error:', deleteError);
+        throw deleteError;
+      }
 
       // Insert all valid deadlines
       if (validDeadlines.length > 0) {
-        const { error: insertError } = await supabase
-          .from('round_deadlines')
-          .insert(validDeadlines.map(d => ({
-            tournament_id: d.tournament_id,
-            round_number: d.round_number,
-            closing_date: toISOFromLocal(d.closing_date)
-          })));
+        const deadlinesToInsert = validDeadlines.map(d => ({
+          tournament_id: d.tournament_id,
+          round_number: d.round_number,
+          closing_date: toISOFromLocal(d.closing_date)
+        }));
 
-        if (insertError) throw insertError;
+        console.log('Inserting deadlines:', deadlinesToInsert);
+
+        const { data: insertedData, error: insertError } = await supabase
+          .from('round_deadlines')
+          .insert(deadlinesToInsert)
+          .select();
+
+        if (insertError) {
+          console.error('Insert error:', insertError);
+          throw insertError;
+        }
+
+        console.log('Successfully inserted deadlines:', insertedData);
       }
 
       toast({
@@ -144,8 +165,9 @@ export function RoundScheduleDialog({
         description: `Runden-Deadlines wurden erfolgreich für ${validDeadlines.length} Runden gespeichert.`,
       });
 
+      // Refresh the deadlines to show the updated data
+      await fetchRoundDeadlines();
       onSuccess?.();
-      onOpenChange(false);
     } catch (error: any) {
       console.error('Error saving round schedule:', error);
       toast({
