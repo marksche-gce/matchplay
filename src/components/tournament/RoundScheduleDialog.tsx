@@ -1,33 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, Save, Plus, Trash2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Save, Trash2 } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { getRoundDisplayName, calculateTotalRounds } from '@/lib/tournamentUtils';
-
-// Helpers to convert between ISO and input[type="datetime-local"] values
-const toInputValue = (iso?: string | null) => {
-  if (!iso) return '';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+// Helpers to handle date-only values
+const toDate = (iso?: string | null) => {
+  if (!iso) return undefined;
   const d = new Date(iso);
-  const off = d.getTimezoneOffset();
-  const local = new Date(d.getTime() - off * 60000);
-  return local.toISOString().slice(0, 16);
+  return isNaN(d.getTime()) ? undefined : d;
 };
 
-const toISOFromLocal = (local?: string) => {
-  if (!local) return '';
-  // Convert from datetime-local format to ISO string
-  const d = new Date(local);
-  // Check if the date is valid
-  if (isNaN(d.getTime())) {
-    console.error('Invalid date format:', local);
-    return '';
-  }
-  return d.toISOString();
+const toISODateUTC = (date?: Date) => {
+  if (!date) return '';
+  const utc = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0));
+  return utc.toISOString();
 };
 interface Tournament {
   id: string;
@@ -40,7 +34,7 @@ interface RoundDeadline {
   id?: string;
   tournament_id: string;
   round_number: number;
-  closing_date: string;
+  closing_date?: Date;
 }
 
 interface RoundScheduleDialogProps {
@@ -84,7 +78,7 @@ export function RoundScheduleDialog({
       
       const normalizedData = (data || []).map(d => ({
         ...d,
-        closing_date: d.closing_date ? toInputValue(d.closing_date) : ''
+        closing_date: d.closing_date ? toDate(d.closing_date) : undefined
       }));
       const existingRounds = normalizedData.map(d => d.round_number);
       const missingRounds = Array.from({ length: totalRounds }, (_, i) => i + 1)
@@ -97,7 +91,7 @@ export function RoundScheduleDialog({
         ...missingRounds.map(round => ({
           tournament_id: tournament.id,
           round_number: round,
-          closing_date: ''
+          closing_date: undefined
         }))
       ].sort((a, b) => a.round_number - b.round_number);
 
@@ -114,7 +108,7 @@ export function RoundScheduleDialog({
     }
   };
 
-  const handleDeadlineChange = (roundNumber: number, date: string) => {
+const handleDeadlineChange = (roundNumber: number, date?: Date) => {
     setDeadlines(prev => prev.map(deadline => 
       deadline.round_number === roundNumber 
         ? { ...deadline, closing_date: date }
@@ -126,7 +120,7 @@ export function RoundScheduleDialog({
     setSaving(true);
     try {
       // Filter out deadlines without dates
-      const validDeadlines = deadlines.filter(d => d.closing_date && d.closing_date.trim() !== '');
+      const validDeadlines = deadlines.filter(d => !!d.closing_date);
 
       console.log('Saving deadlines:', validDeadlines);
 
@@ -146,7 +140,7 @@ export function RoundScheduleDialog({
         const deadlinesToInsert = validDeadlines.map(d => ({
           tournament_id: d.tournament_id,
           round_number: d.round_number,
-          closing_date: toISOFromLocal(d.closing_date)
+          closing_date: toISODateUTC(d.closing_date)
         }));
 
         console.log('Inserting deadlines:', deadlinesToInsert);
@@ -189,7 +183,7 @@ export function RoundScheduleDialog({
       // Just remove from local state if not saved yet
       setDeadlines(prev => prev.map(d => 
         d.round_number === deadline.round_number 
-          ? { ...d, closing_date: '' }
+          ? { ...d, closing_date: undefined }
           : d
       ));
       return;
@@ -205,7 +199,7 @@ export function RoundScheduleDialog({
 
       setDeadlines(prev => prev.map(d => 
         d.round_number === deadline.round_number 
-          ? { ...d, id: undefined, closing_date: '' }
+          ? { ...d, id: undefined, closing_date: undefined }
           : d
       ));
 
@@ -228,7 +222,7 @@ export function RoundScheduleDialog({
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
+            <CalendarIcon className="h-5 w-5" />
             Runden-Zeitplan - {tournament.name}
           </DialogTitle>
           <DialogDescription>
@@ -268,15 +262,33 @@ export function RoundScheduleDialog({
                   <CardContent className="pt-0">
                     <div className="space-y-2">
                        <Label htmlFor={`round-${deadline.round_number}`}>
-                        Abschluss-Deadline
+                        Abschluss-Deadline (dd.MM.yyyy)
                        </Label>
-                      <Input
-                        id={`round-${deadline.round_number}`}
-                        type="datetime-local"
-                        value={deadline.closing_date}
-                        onChange={(e) => handleDeadlineChange(deadline.round_number, e.target.value)}
-                        className="bg-background"
-                      />
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn("w-full justify-start text-left font-normal")}
+                            id={`round-${deadline.round_number}`}
+                          >
+                            {deadline.closing_date ? (
+                              format(deadline.closing_date, "dd.MM.yyyy")
+                            ) : (
+                              <span>Datum wählen</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={deadline.closing_date}
+                            onSelect={(date) => handleDeadlineChange(deadline.round_number, date ?? undefined)}
+                            initialFocus
+                            className={cn("p-3 pointer-events-auto")}
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   </CardContent>
                 </Card>
