@@ -160,6 +160,10 @@ export default function TournamentEmbed() {
                 <Users className="h-3 w-3 md:h-4 md:w-4" />
                 <span>{registrationCount}/{tournament.max_players} Spieler</span>
               </div>
+              <div className="flex items-center gap-1">
+                <Trophy className="h-3 w-3 md:h-4 md:w-4" />
+                <span>{tournament.type === 'singles' ? 'Einzel' : 'Vierer'}</span>
+              </div>
               <Button asChild variant="outline" size="sm" className="touch-manipulation min-h-[44px] md:min-h-auto">
                 <a 
                   href={`/embed/${id}/participants`}
@@ -171,10 +175,6 @@ export default function TournamentEmbed() {
                   <span className="whitespace-nowrap">Teilnehmerliste</span>
                 </a>
               </Button>
-              <div className="flex items-center gap-1">
-                <Trophy className="h-3 w-3 md:h-4 md:w-4" />
-                <span>{tournament.type === 'singles' ? 'Einzel' : 'Vierer'}</span>
-              </div>
               <Badge className={`${getRegistrationStatusColor(tournament.registration_status)} text-xs`}>
                  {tournament.registration_status === 'open' ? 'Anmeldung offen' : 
                   tournament.registration_status === 'closed' ? 'Anmeldung geschlossen' : 
