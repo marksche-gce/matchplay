@@ -266,53 +266,150 @@ export function RegistrationDialog({
 
       setLoading(true);
 
-      for (const row of jsonData) {
-        const name = row.Name || row.name;
-        const email = row.Email || row.email;
-        const handicap = row.Handicap || row.handicap;
+      if (tournament.type === 'foursome') {
+        // Import teams for foursome tournament
+        for (const row of jsonData) {
+          const teamName = row.TeamName || row.teamName || row.team_name;
+          const player1Name = row.Player1Name || row.player1Name || row.player1_name;
+          const player1Email = row.Player1Email || row.player1Email || row.player1_email;
+          const player1Handicap = row.Player1Handicap || row.player1Handicap || row.player1_handicap;
+          const player2Name = row.Player2Name || row.player2Name || row.player2_name;
+          const player2Email = row.Player2Email || row.player2Email || row.player2_email;
+          const player2Handicap = row.Player2Handicap || row.player2Handicap || row.player2_handicap;
 
-        if (name && email && handicap !== undefined) {
-          // Create or get player
-          const { data: existingPlayer } = await supabase
-            .from('players_new')
-            .select('id')
-            .eq('email', email)
-            .single();
-
-          let playerId = existingPlayer?.id;
-
-          if (!playerId) {
-            const { data: newPlayer, error: playerError } = await supabase
+          if (teamName && player1Name && player1Email && player1Handicap !== undefined &&
+              player2Name && player2Email && player2Handicap !== undefined) {
+            
+            // Create or get player 1
+            const { data: existingPlayer1 } = await supabase
               .from('players_new')
-              .insert({
-                name,
-                email,
-                handicap: parseFloat(handicap),
-              })
               .select('id')
-              .single();
+              .eq('email', player1Email)
+              .maybeSingle();
 
-            if (!playerError) {
-              playerId = newPlayer.id;
+            let player1Id = existingPlayer1?.id;
+
+            if (!player1Id) {
+              const { data: newPlayer1, error: player1Error } = await supabase
+                .from('players_new')
+                .insert({
+                  name: player1Name,
+                  email: player1Email,
+                  handicap: parseFloat(player1Handicap),
+                })
+                .select('id')
+                .single();
+
+              if (!player1Error) {
+                player1Id = newPlayer1.id;
+              }
+            }
+
+            // Create or get player 2
+            const { data: existingPlayer2 } = await supabase
+              .from('players_new')
+              .select('id')
+              .eq('email', player2Email)
+              .maybeSingle();
+
+            let player2Id = existingPlayer2?.id;
+
+            if (!player2Id) {
+              const { data: newPlayer2, error: player2Error } = await supabase
+                .from('players_new')
+                .insert({
+                  name: player2Name,
+                  email: player2Email,
+                  handicap: parseFloat(player2Handicap),
+                })
+                .select('id')
+                .single();
+
+              if (!player2Error) {
+                player2Id = newPlayer2.id;
+              }
+            }
+
+            if (player1Id && player2Id) {
+              // Create team
+              const { data: team, error: teamError } = await supabase
+                .from('teams')
+                .insert({
+                  tournament_id: tournament.id,
+                  name: teamName,
+                  player1_id: player1Id,
+                  player2_id: player2Id,
+                })
+                .select('id')
+                .single();
+
+              if (!teamError && team) {
+                // Register team for tournament
+                await supabase
+                  .from('tournament_registrations_new')
+                  .insert({
+                    tournament_id: tournament.id,
+                    team_id: team.id,
+                  });
+              }
             }
           }
+        }
 
-          if (playerId) {
-            // Register for tournament
-            await supabase
-              .from('tournament_registrations_new')
-              .insert({
-                tournament_id: tournament.id,
-                player_id: playerId,
-              });
+        toast({
+          title: "Team-Import erfolgreich",
+          description: `${jsonData.length} Teams aus Excel-Datei importiert.`,
+        });
+      } else {
+        // Import individual players for singles tournament
+        for (const row of jsonData) {
+          const name = row.Name || row.name;
+          const email = row.Email || row.email;
+          const handicap = row.Handicap || row.handicap;
+
+          if (name && email && handicap !== undefined) {
+            // Create or get player
+            const { data: existingPlayer } = await supabase
+              .from('players_new')
+              .select('id')
+              .eq('email', email)
+              .maybeSingle();
+
+            let playerId = existingPlayer?.id;
+
+            if (!playerId) {
+              const { data: newPlayer, error: playerError } = await supabase
+                .from('players_new')
+                .insert({
+                  name,
+                  email,
+                  handicap: parseFloat(handicap),
+                })
+                .select('id')
+                .single();
+
+              if (!playerError) {
+                playerId = newPlayer.id;
+              }
+            }
+
+            if (playerId) {
+              // Register for tournament
+              await supabase
+                .from('tournament_registrations_new')
+                .insert({
+                  tournament_id: tournament.id,
+                  player_id: playerId,
+                });
+            }
           }
         }
-      }
 
-      toast({
-        title: "Massenregistrierung erfolgreich",
-        description: `${jsonData.length} Spieler aus Excel-Datei importiert.`,
-      });
+        toast({
+          title: "Spieler-Import erfolgreich",
+          description: `${jsonData.length} Spieler aus Excel-Datei importiert.`,
+        });
+      }
 
       onRegistrationComplete();
 
@@ -508,9 +605,21 @@ export function RegistrationDialog({
             <TabsContent value="bulk" className="space-y-4">
               <div className="text-center py-8 border-2 border-dashed border-border rounded-lg">
                 <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-foreground mb-2">Spieler aus Excel importieren</h3>
+                <h3 className="text-lg font-medium text-foreground mb-2">
+                  {tournament.type === 'foursome' ? 'Teams' : 'Spieler'} aus Excel importieren
+                </h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Laden Sie eine Excel-Datei mit den Spalten: Name, E-Mail, Handicap hoch
+                  {tournament.type === 'foursome' ? (
+                    <>
+                      Laden Sie eine Excel-Datei mit den Spalten hoch:<br />
+                      <strong>TeamName, Player1Name, Player1Email, Player1Handicap, Player2Name, Player2Email, Player2Handicap</strong>
+                    </>
+                  ) : (
+                    <>
+                      Laden Sie eine Excel-Datei mit den Spalten hoch:<br />
+                      <strong>Name, Email, Handicap</strong>
+                    </>
+                  )}
                 </p>
                 <Input
                   type="file"
