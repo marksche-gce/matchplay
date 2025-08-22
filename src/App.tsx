@@ -12,6 +12,7 @@ import Auth from "./pages/Auth";
 import UserManagement from "./pages/UserManagement";
 import TenantManagement from "./pages/TenantManagement";
 import TournamentEmbed from "./pages/TournamentEmbed";
+import TournamentParticipants from "./pages/TournamentParticipants";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,11 @@ const App = () => (
             <Route path="/tournaments/:id/embed" element={
               <AppLayout showUserMenu={false}>
                 <TournamentEmbed />
+              </AppLayout>
+            } />
+            <Route path="/embed/:id/participants" element={
+              <AppLayout showUserMenu={false}>
+                <TournamentParticipants />
               </AppLayout>
             } />
             <Route path="/user-management" element={
