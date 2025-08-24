@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { BracketView } from '@/components/tournament/BracketView';
 import { EmbedRegistrationForm } from '@/components/tournament/EmbedRegistrationForm';
-import { TenantDisplay } from '@/components/TenantDisplay';
+import { TenantName } from '@/components/TenantName';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -153,7 +153,7 @@ export default function TournamentEmbed() {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <h1 className="text-lg md:text-2xl font-bold text-foreground">{tournament.name}</h1>
-              <TenantDisplay />
+              <TenantName />
             </div>
             <div className="flex flex-wrap items-center gap-3 md:gap-4 text-xs md:text-sm text-muted-foreground">
               <div className="flex items-center gap-1">

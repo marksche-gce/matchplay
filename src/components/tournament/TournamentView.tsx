@@ -10,7 +10,7 @@ import { BracketView } from './BracketView';
 import { RoundScheduleDialog } from './RoundScheduleDialog';
 import { RegistrationManagement } from './RegistrationManagement';
 import { TeamRegistrationManagement } from './TeamRegistrationManagement';
-import { TenantDisplay } from '@/components/TenantDisplay';
+import { TenantName } from '@/components/TenantName';
 import { useAuth } from '@/hooks/useAuth';
 import { useSystemAdminCheck } from '@/hooks/useSystemAdminCheck';
 import { useOrganizerCheck } from '@/hooks/useOrganizerCheck';
@@ -358,7 +358,7 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               Turnierinformationen
-              <TenantDisplay />
+              <TenantName />
             </div>
             <Badge className={getStatusColor(tournament.registration_status)}>
               {tournament.registration_status}
