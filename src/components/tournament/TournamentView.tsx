@@ -10,6 +10,7 @@ import { BracketView } from './BracketView';
 import { RoundScheduleDialog } from './RoundScheduleDialog';
 import { RegistrationManagement } from './RegistrationManagement';
 import { TeamRegistrationManagement } from './TeamRegistrationManagement';
+import { TenantDisplay } from '@/components/TenantDisplay';
 import { useAuth } from '@/hooks/useAuth';
 import { useSystemAdminCheck } from '@/hooks/useSystemAdminCheck';
 import { useOrganizerCheck } from '@/hooks/useOrganizerCheck';
@@ -201,20 +202,18 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={onBack}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-             Zurück
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">{tournament.name}</h1>
-            <p className="text-muted-foreground">
-              {tournament.type === 'singles' ? 'Einzel' : 'Vierer'} Matchplay Turnier
-            </p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">{tournament.name}</h1>
+          <p className="text-muted-foreground">
+            {tournament.type === 'singles' ? 'Einzel' : 'Vierer'} Matchplay Turnier
+          </p>
         </div>
         
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Zurück
+          </Button>
           {tournament.registration_status === 'open' && registrationCount < tournament.max_players && (
             <Button 
               onClick={() => setShowRegistration(true)}
@@ -225,15 +224,13 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
             </Button>
           )}
           {user && (isSystemAdmin || isOrganizer) && (
-            <div className="flex gap-2">
-              <Button 
-                variant="outline"
-                onClick={() => setShowManagement(!showManagement)}
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                 Verwalten
-              </Button>
-            </div>
+            <Button 
+              variant="outline"
+              onClick={() => setShowManagement(!showManagement)}
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Verwalten
+            </Button>
           )}
         </div>
       </div>
@@ -359,7 +356,10 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
       <Card className="bg-card shadow-card">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            Turnierinformationen
+            <div className="flex items-center gap-3">
+              Turnierinformationen
+              <TenantDisplay />
+            </div>
             <Badge className={getStatusColor(tournament.registration_status)}>
               {tournament.registration_status}
             </Badge>
