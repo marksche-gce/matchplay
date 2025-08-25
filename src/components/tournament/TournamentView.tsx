@@ -193,24 +193,30 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
 
       if (deleteMatchesError) throw deleteMatchesError;
 
-      // Update tournament max_players and max_rounds
-      const newMaxRounds = calculateTotalRounds(newSize);
+      // Update tournament max_players (max_rounds will be calculated automatically)
       const { error: updateError } = await supabase
         .from('tournaments_new')
         .update({ 
-          max_players: newSize,
-          max_rounds: newMaxRounds
+          max_players: newSize
         })
         .eq('id', tournament.id);
 
       if (updateError) throw updateError;
 
-      // Regenerate bracket
+      // Get the updated tournament data to get the calculated max_rounds
+      const { data: updatedTournament, error: fetchError } = await supabase
+        .from('tournaments_new')
+        .select('*')
+        .eq('id', tournament.id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Regenerate bracket using the updated tournament data
       const bracketGenerator = new BracketGenerator();
       await bracketGenerator.generateBracket(tournament.id, {
-        ...tournament,
-        max_players: newSize,
-        max_rounds: newMaxRounds
+        ...updatedTournament,
+        type: tournament.type as 'singles' | 'foursome'
       });
 
       toast({
