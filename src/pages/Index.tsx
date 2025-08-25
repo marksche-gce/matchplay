@@ -14,8 +14,7 @@ const Index = () => {
             Matchplay Turnier Manager
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Erstellen und verwalten Sie Golf Matchplay Turniere mit automatischer Bracket-Generierung, 
-            Spieler-Registrierung und Gewinner-Aufstieg.
+            Erstelle und verwalte Golf Matchplay Einzel- und Foursome-Turniere.
           </p>
         </div>
 
