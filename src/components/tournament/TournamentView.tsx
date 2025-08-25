@@ -212,12 +212,12 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
 
       if (fetchError) throw fetchError;
 
-      // Regenerate bracket using the updated tournament data
+      // Regenerate bracket using the updated tournament data (without player assignment)
       const bracketGenerator = new BracketGenerator();
       await bracketGenerator.generateBracket(tournament.id, {
         ...updatedTournament,
         type: tournament.type as 'singles' | 'foursome'
-      });
+      }, true); // Skip player assignment to create empty bracket
 
       toast({
         title: "Tableau-Grösse angepasst",

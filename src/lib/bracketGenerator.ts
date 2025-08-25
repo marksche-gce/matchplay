@@ -10,7 +10,7 @@ interface Tournament {
 }
 
 export class BracketGenerator {
-  async generateBracket(tournamentId: string, tournament: Tournament) {
+  async generateBracket(tournamentId: string, tournament: Tournament, skipPlayerAssignment = false) {
     try {
       // Get registrations (optional - bracket can be generated without them)
       const { data: registrations, error: regError } = await supabase
@@ -28,8 +28,10 @@ export class BracketGenerator {
       console.log('Max players:', tournament.max_players);
       console.log('Current registrations:', registrations?.length || 0);
 
+      console.log('Skip player assignment:', skipPlayerAssignment);
+
       // Generate the bracket structure based on max_players (not current registrations)
-      const matches = this.generateBracketStructure(tournament, registrations || []);
+      const matches = this.generateBracketStructure(tournament, skipPlayerAssignment ? [] : registrations || []);
       
       // Insert all matches
       const { error: matchError } = await supabase
