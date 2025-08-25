@@ -276,7 +276,7 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Zurück
           </Button>
-          {tournament.registration_status === 'open' && registrationCount < tournament.max_players && (
+          {tournament.registration_status === 'open' && (
             <Button 
               onClick={() => setShowRegistration(true)}
               variant="default"
