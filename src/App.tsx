@@ -9,6 +9,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { navItems } from "./nav-items";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
+import Help from "./pages/Help";
 import UserManagement from "./pages/UserManagement";
 import TenantManagement from "./pages/TenantManagement";
 import TournamentEmbed from "./pages/TournamentEmbed";
@@ -52,6 +53,11 @@ const App = () => (
                 <AppLayout>
                   <TenantManagement />
                 </AppLayout>
+              </ProtectedRoute>
+            } />
+            <Route path="/help" element={
+              <ProtectedRoute>
+                <Help />
               </ProtectedRoute>
             } />
             {navItems.map(({ to, page }) => (

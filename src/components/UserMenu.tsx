@@ -14,7 +14,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { LogOut, User, Shield, Key, Building2, Home, Trophy } from 'lucide-react';
+import { LogOut, User, Shield, Key, Building2, Home, Trophy, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -156,6 +156,10 @@ export function UserMenu() {
         <DropdownMenuItem onClick={() => setChangePasswordOpen(true)}>
           <Key className="mr-2 h-4 w-4" />
           <span>Passwort ändern</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate('/help')}>
+          <HelpCircle className="mr-2 h-4 w-4" />
+          <span>Hilfe</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={signOut}>
