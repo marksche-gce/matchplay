@@ -466,7 +466,7 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
       </Card>
 
       {/* Bracket */}
-      <BracketView tournamentId={tournamentId} tournament={tournament} />
+      <BracketView key={`${tournament.id}-${tournament.max_players}`} tournamentId={tournamentId} tournament={tournament} />
 
       {/* Registration Dialog */}
       <RegistrationDialog 

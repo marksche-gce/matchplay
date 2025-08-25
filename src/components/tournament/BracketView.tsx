@@ -49,7 +49,7 @@ export function BracketView({ tournamentId, tournament, embedded = false }: Brac
     fetchMatches();
     fetchRegistrationCount();
     fetchRoundDeadlines();
-  }, [tournamentId]);
+  }, [tournamentId, tournament.max_players, tournament.max_rounds]);
 
   const fetchMatches = async () => {
     try {
