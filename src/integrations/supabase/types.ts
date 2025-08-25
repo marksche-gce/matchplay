@@ -38,6 +38,36 @@ export type Database = {
         }
         Relationships: []
       }
+      help_content: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          section: string
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          section?: string
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          section?: string
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       match_participants: {
         Row: {
           id: string
