@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Users, Trophy, Settings, UserPlus, Trash2, ExternalLink, Copy, CheckCircle, RotateCcw, Calendar } from 'lucide-react';
+import { ArrowLeft, Users, Trophy, Settings, UserPlus, Trash2, ExternalLink, Copy, CheckCircle, RotateCcw, Calendar, Target } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { RegistrationDialog } from './RegistrationDialog';
@@ -10,6 +10,9 @@ import { BracketView } from './BracketView';
 import { RoundScheduleDialog } from './RoundScheduleDialog';
 import { RegistrationManagement } from './RegistrationManagement';
 import { TeamRegistrationManagement } from './TeamRegistrationManagement';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { BracketGenerator } from '@/lib/bracketGenerator';
+import { calculateTotalRounds } from '@/lib/tournamentUtils';
 
 import { useAuth } from '@/hooks/useAuth';
 import { useSystemAdminCheck } from '@/hooks/useSystemAdminCheck';
@@ -39,6 +42,8 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
   const [showManagement, setShowManagement] = useState(false);
   const [showScheduleDialog, setShowScheduleDialog] = useState(false);
   const [showRegistrationManagement, setShowRegistrationManagement] = useState(false);
+  const [showBracketSizeDialog, setShowBracketSizeDialog] = useState(false);
+  const [selectedBracketSize, setSelectedBracketSize] = useState(tournament?.max_players || 32);
   const { user } = useAuth();
   const { toast } = useToast();
   const { isSystemAdmin } = useSystemAdminCheck();
@@ -176,6 +181,57 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
     }
   };
 
+  const updateBracketSize = async (newSize: number) => {
+    if (!tournament) return;
+    
+    try {
+      // First, delete all existing matches
+      const { error: deleteMatchesError } = await supabase
+        .from('matches_new')
+        .delete()
+        .eq('tournament_id', tournament.id);
+
+      if (deleteMatchesError) throw deleteMatchesError;
+
+      // Update tournament max_players and max_rounds
+      const newMaxRounds = calculateTotalRounds(newSize);
+      const { error: updateError } = await supabase
+        .from('tournaments_new')
+        .update({ 
+          max_players: newSize,
+          max_rounds: newMaxRounds
+        })
+        .eq('id', tournament.id);
+
+      if (updateError) throw updateError;
+
+      // Regenerate bracket
+      const bracketGenerator = new BracketGenerator();
+      await bracketGenerator.generateBracket(tournament.id, {
+        ...tournament,
+        max_players: newSize,
+        max_rounds: newMaxRounds
+      });
+
+      toast({
+        title: "Tableau-Grösse angepasst",
+        description: `Das Turnier-Tableau wurde für ${newSize} Spieler neu erstellt.`,
+      });
+
+      // Refresh tournament data
+      fetchTournamentDetails();
+      setShowBracketSizeDialog(false);
+      
+    } catch (error: any) {
+      console.error('Error updating bracket size:', error);
+      toast({
+        title: "Fehler",
+        description: error.message || "Tableau-Grösse konnte nicht angepasst werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="animate-pulse">
@@ -294,14 +350,26 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
                  Rundenplan
               </Button>
               
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setShowRegistrationManagement(true)}
-              >
-                <Users className="h-4 w-4 mr-2" />
-                {tournament.type === 'singles' ? 'Anmeldungen verwalten' : 'Teams verwalten'}
-              </Button>
+               <Button 
+                 variant="outline" 
+                 size="sm"
+                 onClick={() => setShowRegistrationManagement(true)}
+               >
+                 <Users className="h-4 w-4 mr-2" />
+                 {tournament.type === 'singles' ? 'Anmeldungen verwalten' : 'Teams verwalten'}
+               </Button>
+               
+               <Button 
+                 variant="outline" 
+                 size="sm"
+                 onClick={() => {
+                   setSelectedBracketSize(tournament.max_players);
+                   setShowBracketSizeDialog(true);
+                 }}
+               >
+                 <Target className="h-4 w-4 mr-2" />
+                 Tableau-Grösse anpassen
+               </Button>
               
               <Button 
                 variant="outline" 
@@ -435,6 +503,56 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
             fetchRegistrationCount();
           }}
         />
+      )}
+
+      {/* Bracket Size Dialog */}
+      {showBracketSizeDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md mx-4">
+            <CardHeader>
+              <CardTitle>Tableau-Grösse anpassen</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Aktuelle Grösse: {tournament.max_players} Spieler
+                </p>
+                <p className="text-sm text-destructive mb-4">
+                  ⚠️ Alle bestehenden Matches werden gelöscht und das Tableau wird neu erstellt.
+                </p>
+                <Select
+                  value={selectedBracketSize.toString()}
+                  onValueChange={(value) => setSelectedBracketSize(parseInt(value))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="8">8 Spieler</SelectItem>
+                    <SelectItem value="16">16 Spieler</SelectItem>
+                    <SelectItem value="32">32 Spieler</SelectItem>
+                    <SelectItem value="64">64 Spieler</SelectItem>
+                    <SelectItem value="128">128 Spieler</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowBracketSizeDialog(false)}
+                >
+                  Abbrechen
+                </Button>
+                <Button 
+                  onClick={() => updateBracketSize(selectedBracketSize)}
+                  disabled={selectedBracketSize === tournament.max_players}
+                >
+                  Anpassen
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );
