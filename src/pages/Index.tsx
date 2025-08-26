@@ -1,9 +1,17 @@
 import { MarketingNav } from "@/components/MarketingNav";
 import { OnepagerContent } from "@/components/OnepagerContent";
+import { HeaderImageUpload } from "@/components/HeaderImageUpload";
 import { useHeaderImage } from "@/hooks/useHeaderImage";
+import { useSystemAdminCheck } from "@/hooks/useSystemAdminCheck";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Edit } from "lucide-react";
+import { useState } from "react";
 
 const Index = () => {
   const { headerImageUrl } = useHeaderImage();
+  const { isSystemAdmin } = useSystemAdminCheck();
+  const [showHeaderEdit, setShowHeaderEdit] = useState(false);
 
   return (
     <div className="min-h-screen bg-gradient-course">
@@ -17,11 +25,33 @@ const Index = () => {
         >
           <div className="absolute inset-0 bg-background/60" />
         </div>
+        
+        {/* Header Image Edit Button for System Admins */}
+        {isSystemAdmin && (
+          <Dialog open={showHeaderEdit} onOpenChange={setShowHeaderEdit}>
+            <DialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="absolute top-4 right-4 z-10"
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Header bearbeiten
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Header Image bearbeiten</DialogTitle>
+              </DialogHeader>
+              <HeaderImageUpload />
+            </DialogContent>
+          </Dialog>
+        )}
       </section>
 
       {/* Content Section */}
       <section className="bg-background">
-        <div className="container mx-auto px-4 py-16">
+        <div className="container mx-auto px-4 py-8">
           <OnepagerContent />
         </div>
       </section>
