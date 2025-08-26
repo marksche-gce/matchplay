@@ -8,6 +8,7 @@ export function MarketingNav() {
   const [isOpen, setIsOpen] = useState(false);
 
   const navItems = [
+    { title: "Turniere", icon: Trophy, href: "/tournaments" },
     { title: "Kontakt", icon: Mail, section: "contact" },
     { title: "Login", icon: User, href: "/auth" },
   ];
