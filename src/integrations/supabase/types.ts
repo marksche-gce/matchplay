@@ -342,6 +342,39 @@ export type Database = {
           },
         ]
       }
+      onepager_content: {
+        Row: {
+          content: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          order_position: number | null
+          section: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          order_position?: number | null
+          section: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          order_position?: number | null
+          section?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       players: {
         Row: {
           created_at: string

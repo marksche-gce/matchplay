@@ -1,32 +1,36 @@
-import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { Trophy, Play, Users, Calendar } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MarketingNav } from "@/components/MarketingNav";
+import { OnepagerContent } from "@/components/OnepagerContent";
+import { useHeaderImage } from "@/hooks/useHeaderImage";
 
 const Index = () => {
+  const { headerImageUrl } = useHeaderImage();
+
   return (
     <div className="min-h-screen bg-gradient-course">
+      <MarketingNav />
       
-      <div className="container mx-auto px-4 py-16">
-        <div className="text-center mb-16">
-          <Trophy className="h-16 w-16 text-primary mx-auto mb-6" />
-          <h1 className="text-4xl font-bold text-foreground mb-4">
-            Matchplay Turnier Manager
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Erstelle und verwalte Golf Matchplay Einzel- und Foursome-Turniere.
+      {/* Hero Section with Header Image */}
+      <section className="relative min-h-screen">
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: `url(${headerImageUrl})` }}
+        >
+          <div className="absolute inset-0 bg-background/60" />
+        </div>
+        
+        <div className="relative container mx-auto px-4 pt-24 pb-16">
+          <OnepagerContent />
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-muted/50 border-t py-8">
+        <div className="container mx-auto px-4 text-center">
+          <p className="text-muted-foreground">
+            © {new Date().getFullYear()} Golf Tournament Manager. Alle Rechte vorbehalten.
           </p>
         </div>
-
-        <div className="text-center mt-16">
-          <Link to="/tournaments">
-            <Button size="lg" variant="default" className="text-lg px-8 py-4">
-              <Trophy className="h-5 w-5 mr-2" />
-              Loslegen
-            </Button>
-          </Link>
-        </div>
-      </div>
+      </footer>
     </div>
   );
 };

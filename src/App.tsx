@@ -26,11 +26,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            <Route path="/auth" element={
-              <AppLayout showUserMenu={false}>
-                <Auth />
-              </AppLayout>
-            } />
+            <Route path="/auth" element={<Auth />} />
             <Route path="/tournaments/:id/embed" element={
               <AppLayout showUserMenu={false}>
                 <TournamentEmbed />
@@ -60,7 +56,12 @@ const App = () => (
                 <Help />
               </ProtectedRoute>
             } />
-            {navItems.map(({ to, page }) => (
+            <Route path="/" element={
+              <AppLayout showUserMenu={false}>
+                {navItems.find(item => item.to === '/')?.page}
+              </AppLayout>
+            } />
+            {navItems.filter(item => item.to !== '/').map(({ to, page }) => (
               <Route key={to} path={to} element={
                 <ProtectedRoute>
                   <AppLayout>
