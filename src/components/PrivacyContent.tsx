@@ -4,6 +4,7 @@ import { useSystemAdminCheck } from '@/hooks/useSystemAdminCheck';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
+import { WysiwygEditor } from '@/components/WysiwygEditor';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
@@ -239,14 +240,13 @@ export function PrivacyContent() {
                 </div>
                 <div>
                   <Label htmlFor="content">Inhalt</Label>
-                  <Textarea
-                    id="content"
+                  <WysiwygEditor
                     value={item.content || ''}
-                    onChange={(e) => setContent(prev => 
-                      prev.map(c => c.id === item.id ? { ...c, content: e.target.value } : c)
+                    onChange={(value) => setContent(prev => 
+                      prev.map(c => c.id === item.id ? { ...c, content: value } : c)
                     )}
-                    rows={6}
                     placeholder="Inhalt"
+                    height="200px"
                   />
                 </div>
               </div>
@@ -319,13 +319,11 @@ function PrivacyEditForm({ onSave, onCancel }: PrivacyEditFormProps) {
           
           <div>
             <Label htmlFor="content">Inhalt</Label>
-            <Textarea
-              id="content"
+            <WysiwygEditor
               value={formData.content}
-              onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
+              onChange={(value) => setFormData(prev => ({ ...prev, content: value }))}
               placeholder="Inhalt des Abschnitts"
-              rows={6}
-              required
+              height="200px"
             />
           </div>
           

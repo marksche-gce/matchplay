@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { WysiwygEditor } from '@/components/WysiwygEditor';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Plus } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -247,13 +248,11 @@ export default function Help() {
             
             <div className="space-y-2">
               <Label htmlFor="content">Inhalt *</Label>
-              <Textarea
-                id="content"
+              <WysiwygEditor
                 value={formData.content}
-                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                placeholder="Hilfeinhalt (Markdown wird unterstützt)"
-                rows={12}
-                required
+                onChange={(value) => setFormData({ ...formData, content: value })}
+                placeholder="Hilfeinhalt mit Formatierungen"
+                height="300px"
               />
             </div>
             
