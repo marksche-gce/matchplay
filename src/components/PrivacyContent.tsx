@@ -252,11 +252,10 @@ export function PrivacyContent() {
               </div>
             ) : (
               <div className="prose prose-sm max-w-none">
-                {item.content?.split('\n').map((paragraph, index) => (
-                  <p key={index} className="mb-4 text-muted-foreground">
-                    {paragraph}
-                  </p>
-                ))}
+                <div 
+                  className="text-muted-foreground"
+                  dangerouslySetInnerHTML={{ __html: item.content || '' }}
+                />
               </div>
             )}
           </CardContent>

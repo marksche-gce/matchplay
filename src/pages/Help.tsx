@@ -193,8 +193,11 @@ export default function Help() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="prose prose-sm max-w-none whitespace-pre-wrap">
-                    {content.content}
+                  <div className="prose prose-sm max-w-none">
+                    <div 
+                      className="whitespace-pre-wrap"
+                      dangerouslySetInnerHTML={{ __html: content.content || '' }}
+                    />
                   </div>
                 </CardContent>
               </Card>
