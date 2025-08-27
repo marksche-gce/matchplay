@@ -22,9 +22,7 @@ const Index = () => {
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${headerImageUrl})` }}
-        >
-          <div className="absolute inset-0 bg-background/60" />
-        </div>
+        />
         
         {/* Header Image Edit Button for System Admins */}
         {isSystemAdmin && (
