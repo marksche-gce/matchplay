@@ -18,7 +18,7 @@ const Index = () => {
       <MarketingNav />
       
       {/* Hero Section with Header Image */}
-      <section className="relative h-[40vh] min-h-[350px] max-h-[500px]">
+      <section className="relative h-[50vh] min-h-[438px] max-h-[625px]">
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${headerImageUrl})` }}
