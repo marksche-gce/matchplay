@@ -28,7 +28,7 @@ export function MarketingNav() {
         <div className="flex items-center space-x-2">
           <Trophy className="h-8 w-8 text-primary" />
           <span className="text-xl font-bold text-primary">
-            Golf Tournament Manager
+            Golf Matchplay Manager
           </span>
         </div>
 
