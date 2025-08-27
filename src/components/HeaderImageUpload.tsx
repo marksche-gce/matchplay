@@ -152,9 +152,11 @@ export function HeaderImageUpload() {
               disabled={uploading}
               className="flex-1"
             />
-            <Button disabled={uploading} variant="outline">
-              <Upload className="h-4 w-4 mr-2" />
-              {uploading ? "Uploading..." : "Upload"}
+            <Button disabled={uploading} variant="outline" asChild>
+              <label htmlFor="file-upload" className="cursor-pointer flex items-center">
+                <Upload className="h-4 w-4 mr-2" />
+                {uploading ? "Uploading..." : "Datei auswählen"}
+              </label>
             </Button>
           </div>
           <p className="text-sm text-muted-foreground">
