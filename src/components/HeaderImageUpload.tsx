@@ -17,6 +17,12 @@ export function HeaderImageUpload() {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    console.log('[HeaderImageUpload] Selected file:', {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+    });
+
     // Validate file type
     if (!file.type.startsWith('image/')) {
       toast({
@@ -42,6 +48,7 @@ export function HeaderImageUpload() {
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `header-${Date.now()}.${fileExt}`;
+      console.log('[HeaderImageUpload] Uploading to storage bucket header-images:', fileName);
 
       const { error: uploadError } = await supabase.storage
         .from('header-images')
@@ -61,11 +68,11 @@ export function HeaderImageUpload() {
       } else {
         throw new Error("Failed to update header image setting");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading header image:', error);
       toast({
-        title: "Upload failed",
-        description: "Failed to upload the header image. Please try again.",
+        title: "Upload fehlgeschlagen",
+        description: error?.message ? `Fehler: ${error.message}` : "Das Bild konnte nicht hochgeladen werden.",
         variant: "destructive"
       });
     } finally {
