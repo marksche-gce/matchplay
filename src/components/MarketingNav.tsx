@@ -3,14 +3,18 @@ import { Link } from "react-router-dom";
 import { Menu, X, Trophy, User, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useAuth } from "@/hooks/useAuth";
 
 export function MarketingNav() {
   const [isOpen, setIsOpen] = useState(false);
+  const { user, signOut } = useAuth();
 
   const navItems = [
     { title: "Turniere", icon: Trophy, href: "/tournaments" },
     { title: "Kontakt", icon: Mail, section: "contact" },
-    { title: "Login", icon: User, href: "/auth" },
+    user
+      ? { title: "Logout", icon: User, onClick: () => signOut() }
+      : { title: "Login", icon: User, href: "/auth" },
   ];
 
   const scrollToSection = (sectionId: string) => {
@@ -46,7 +50,10 @@ export function MarketingNav() {
               <Button
                 key={item.title}
                 variant="ghost"
-                onClick={() => item.section && scrollToSection(item.section)}
+                onClick={() => {
+                  if (item.section) scrollToSection(item.section);
+                  if ((item as any).onClick) (item as any).onClick();
+                }}
                 className="flex items-center space-x-2"
               >
                 <item.icon className="h-4 w-4" />
@@ -81,7 +88,11 @@ export function MarketingNav() {
                   <Button
                     key={item.title}
                     variant="ghost"
-                    onClick={() => item.section && scrollToSection(item.section)}
+                    onClick={() => {
+                      if (item.section) scrollToSection(item.section);
+                      if ((item as any).onClick) (item as any).onClick();
+                      setIsOpen(false);
+                    }}
                     className="w-full justify-start"
                   >
                     <item.icon className="h-4 w-4 mr-2" />
