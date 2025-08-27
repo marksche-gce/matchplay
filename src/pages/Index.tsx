@@ -57,15 +57,13 @@ const Index = () => {
       {/* Footer */}
       <footer className="bg-muted/50 border-t py-8">
         <div className="container mx-auto px-4 text-center">
-          <div className="flex flex-col items-center gap-4">
-            <div className="flex gap-4">
-              <a 
-                href="/privacy" 
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Datenschutz
-              </a>
-            </div>
+          <div className="flex items-center justify-center gap-8">
+            <a 
+              href="/privacy" 
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Datenschutz
+            </a>
             <p className="text-muted-foreground">
               © 2025 Golf Matchplay Manager
             </p>
