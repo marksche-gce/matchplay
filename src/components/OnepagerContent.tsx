@@ -213,9 +213,32 @@ export function OnepagerContent() {
             <h2 className="text-3xl font-bold text-foreground mb-6">
               {contactContent.title}
             </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              {contactContent.content}
-            </p>
+            <div className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              {contactContent.content?.split('\n').map((line, index) => {
+                // Check if the line contains an email address
+                const emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g;
+                const parts = line.split(emailRegex);
+                
+                return (
+                  <p key={index} className="mb-2 last:mb-0">
+                    {parts.map((part, partIndex) => {
+                      if (emailRegex.test(part)) {
+                        return (
+                          <a
+                            key={partIndex}
+                            href={`mailto:${part}`}
+                            className="text-primary hover:underline"
+                          >
+                            {part}
+                          </a>
+                        );
+                      }
+                      return part;
+                    })}
+                  </p>
+                );
+              })}
+            </div>
           </div>
           {isSystemAdmin && (
             <Button
