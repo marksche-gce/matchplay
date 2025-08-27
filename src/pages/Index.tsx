@@ -31,7 +31,7 @@ const Index = () => {
               <Button
                 variant="outline"
                 size="sm"
-                className="absolute top-4 right-4 z-10"
+                className="absolute top-4 right-4 z-50"
               >
                 <Edit className="h-4 w-4 mr-2" />
                 Header bearbeiten
