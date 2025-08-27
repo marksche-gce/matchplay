@@ -15,6 +15,7 @@ import TenantManagement from "./pages/TenantManagement";
 import TournamentEmbed from "./pages/TournamentEmbed";
 import TournamentParticipants from "./pages/TournamentParticipants";
 import TournamentEmbedParticipants from "./pages/TournamentEmbedParticipants";
+import Privacy from "./pages/Privacy";
 
 const queryClient = new QueryClient();
 
@@ -55,6 +56,11 @@ const App = () => (
               <ProtectedRoute>
                 <Help />
               </ProtectedRoute>
+            } />
+            <Route path="/privacy" element={
+              <AppLayout showUserMenu={false}>
+                <Privacy />
+              </AppLayout>
             } />
             <Route path="/" element={
               <AppLayout showUserMenu={false}>
