@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Edit, Save, Plus, Trash2, Image as ImageIcon } from "lucide-react";
+import { Edit, Save, Plus, Trash2, Image as ImageIcon, Video } from "lucide-react";
+import { VideoPlayer } from "@/components/VideoPlayer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,6 +17,7 @@ interface ContentItem {
   title: string | null;
   content: string | null;
   image_url: string | null;
+  video_url: string | null;
   order_position: number;
 }
 
@@ -53,15 +55,16 @@ export function OnepagerContent() {
 
   const handleSave = async (item: ContentItem) => {
     try {
-      const { error } = await supabase
-        .from('onepager_content')
-        .update({
-          title: item.title,
-          content: item.content,
-          image_url: item.image_url,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', item.id);
+        const { error } = await supabase
+          .from('onepager_content')
+          .update({
+            title: item.title,
+            content: item.content,
+            image_url: item.image_url,
+            video_url: item.video_url,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', item.id);
 
       if (error) throw error;
 
@@ -83,15 +86,16 @@ export function OnepagerContent() {
 
   const handleAdd = async (newItem: Partial<ContentItem>) => {
     try {
-      const { error } = await supabase
-        .from('onepager_content')
-        .insert({
-          section: newItem.section,
-          title: newItem.title,
-          content: newItem.content,
-          image_url: newItem.image_url,
-          order_position: newItem.order_position || 999,
-        });
+        const { error } = await supabase
+          .from('onepager_content')
+          .insert({
+            section: newItem.section,
+            title: newItem.title,
+            content: newItem.content,
+            image_url: newItem.image_url,
+            video_url: newItem.video_url,
+            order_position: newItem.order_position || 999,
+          });
 
       if (error) throw error;
 
@@ -186,11 +190,18 @@ export function OnepagerContent() {
               </p>
             </div>
             <div className="relative">
-              <img
-                src={featureContent.image_url || '/src/assets/golf-hero.jpg'}
-                alt="Golf Tournament Management"
-                className="w-full h-80 object-cover rounded-lg shadow-golf"
-              />
+              {featureContent.video_url ? (
+                <VideoPlayer 
+                  url={featureContent.video_url}
+                  className="w-full h-80 rounded-lg shadow-golf"
+                />
+              ) : (
+                <img
+                  src={featureContent.image_url || '/src/assets/golf-hero.jpg'}
+                  alt="Golf Tournament Management"
+                  className="w-full h-80 object-cover rounded-lg shadow-golf"
+                />
+              )}
             </div>
           </div>
           {isSystemAdmin && (
@@ -309,6 +320,7 @@ function ContentEditForm({ item, onSave, onCancel, onDelete }: ContentEditFormPr
     title: item?.title || '',
     content: item?.content || '',
     image_url: item?.image_url || '',
+    video_url: item?.video_url || '',
     order_position: item?.order_position || 0,
   });
 
@@ -356,6 +368,15 @@ function ContentEditForm({ item, onSave, onCancel, onDelete }: ContentEditFormPr
           value={formData.image_url}
           onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
           placeholder="https://example.com/image.jpg"
+        />
+      </div>
+      <div>
+        <Label htmlFor="video_url">Video URL (MP4, YouTube, Vimeo)</Label>
+        <Input
+          id="video_url"
+          value={formData.video_url}
+          onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
+          placeholder="https://youtube.com/watch?v=... oder https://example.com/video.mp4"
         />
       </div>
       <div>

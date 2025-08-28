@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Upload, Image, Trash2, Save } from "lucide-react";
+import { Upload, Image, Trash2, Save, Video } from "lucide-react";
+import { VideoPlayer } from "@/components/VideoPlayer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,9 +10,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useHeaderImage } from "@/hooks/useHeaderImage";
 
 export function HeaderImageUpload() {
-  const { headerImageUrl, updateHeaderImage, refetch } = useHeaderImage();
+  const { headerImageUrl, headerVideoUrl, updateHeaderImage, updateHeaderVideo, refetch } = useHeaderImage();
   const [uploading, setUploading] = useState(false);
   const [externalUrl, setExternalUrl] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -108,19 +110,48 @@ export function HeaderImageUpload() {
     }
   };
 
-  const resetToDefault = async () => {
-    const success = await updateHeaderImage('/src/assets/golf-hero.jpg');
+  const handleVideoUrl = async () => {
+    if (!videoUrl.trim()) {
+      toast({
+        title: "Invalid URL",
+        description: "Please enter a valid video URL.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const success = await updateHeaderVideo(videoUrl);
     
     if (success) {
       toast({
-        title: "Header image reset",
-        description: "The header image has been reset to default.",
+        title: "Header video updated",
+        description: "The header video has been successfully updated.",
+      });
+      setVideoUrl("");
+      await refetch();
+    } else {
+      toast({
+        title: "Update failed",
+        description: "Failed to update the header video. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const resetToDefault = async () => {
+    const imageSuccess = await updateHeaderImage('/src/assets/golf-hero.jpg');
+    const videoSuccess = await updateHeaderVideo('');
+    
+    if (imageSuccess && videoSuccess) {
+      toast({
+        title: "Header reset",
+        description: "The header has been reset to default.",
       });
       await refetch();
     } else {
       toast({
         title: "Reset failed",
-        description: "Failed to reset the header image. Please try again.",
+        description: "Failed to reset the header. Please try again.",
         variant: "destructive"
       });
     }
@@ -131,19 +162,28 @@ export function HeaderImageUpload() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Image className="h-5 w-5" />
-          Header Image Settings
+          Header Media Settings
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Current Image Preview */}
+        {/* Current Media Preview */}
         <div className="space-y-2">
-          <Label>Current Header Image</Label>
+          <Label>Current Header Media</Label>
           <div className="relative h-32 w-full rounded-lg overflow-hidden border">
-            <img 
-              src={headerImageUrl} 
-              alt="Current header" 
-              className="w-full h-full object-cover"
-            />
+            {headerVideoUrl ? (
+              <VideoPlayer 
+                url={headerVideoUrl}
+                className="w-full h-full"
+                autoplay={true}
+                muted={true}
+              />
+            ) : (
+              <img 
+                src={headerImageUrl} 
+                alt="Current header" 
+                className="w-full h-full object-cover"
+              />
+            )}
           </div>
         </div>
 
@@ -171,7 +211,7 @@ export function HeaderImageUpload() {
           </p>
         </div>
 
-        {/* External URL */}
+        {/* External Image URL */}
         <div className="space-y-2">
           <Label htmlFor="external-url">Or use external image URL</Label>
           <div className="flex items-center gap-2">
@@ -190,6 +230,28 @@ export function HeaderImageUpload() {
           </div>
         </div>
 
+        {/* Video URL */}
+        <div className="space-y-2">
+          <Label htmlFor="video-url">Header Video (MP4, YouTube, Vimeo)</Label>
+          <div className="flex items-center gap-2">
+            <Input
+              id="video-url"
+              type="url"
+              placeholder="https://youtube.com/watch?v=... oder https://example.com/video.mp4"
+              value={videoUrl}
+              onChange={(e) => setVideoUrl(e.target.value)}
+              className="flex-1"
+            />
+            <Button onClick={handleVideoUrl} variant="outline">
+              <Video className="h-4 w-4 mr-2" />
+              Save
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Videos will play automatically and replace the header image when set.
+          </p>
+        </div>
+
         {/* Reset to Default */}
         <div className="pt-4 border-t">
           <Button 
@@ -198,7 +260,7 @@ export function HeaderImageUpload() {
             className="w-full"
           >
             <Trash2 className="h-4 w-4 mr-2" />
-            Reset to Default Image
+            Reset to Default (Remove Video)
           </Button>
         </div>
       </CardContent>

@@ -1,6 +1,7 @@
 import { MarketingNav } from "@/components/MarketingNav";
 import { OnepagerContent } from "@/components/OnepagerContent";
 import { HeaderImageUpload } from "@/components/HeaderImageUpload";
+import { VideoPlayer } from "@/components/VideoPlayer";
 import { useHeaderImage } from "@/hooks/useHeaderImage";
 import { useSystemAdminCheck } from "@/hooks/useSystemAdminCheck";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import { Edit } from "lucide-react";
 import { useState } from "react";
 
 const Index = () => {
-  const { headerImageUrl } = useHeaderImage();
+  const { headerImageUrl, headerVideoUrl } = useHeaderImage();
   const { isSystemAdmin } = useSystemAdminCheck();
   const [showHeaderEdit, setShowHeaderEdit] = useState(false);
 
@@ -17,12 +18,22 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-course">
       <MarketingNav />
       
-      {/* Hero Section with Header Image */}
+      {/* Hero Section with Header Media */}
       <section className="relative h-[50vh] min-h-[438px] max-h-[625px]">
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${headerImageUrl})` }}
-        />
+        {headerVideoUrl ? (
+          <VideoPlayer 
+            url={headerVideoUrl}
+            className="absolute inset-0 w-full h-full object-cover"
+            autoplay={true}
+            muted={true}
+            controls={false}
+          />
+        ) : (
+          <div 
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: `url(${headerImageUrl})` }}
+          />
+        )}
         
         {/* Header Image Edit Button for System Admins */}
         {isSystemAdmin && (
@@ -39,7 +50,7 @@ const Index = () => {
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Header Image bearbeiten</DialogTitle>
+                <DialogTitle>Header Media bearbeiten</DialogTitle>
               </DialogHeader>
               <HeaderImageUpload />
             </DialogContent>
