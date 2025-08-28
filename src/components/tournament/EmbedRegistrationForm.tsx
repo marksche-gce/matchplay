@@ -447,7 +447,7 @@ export function EmbedRegistrationForm({ tournament, registrationCount, onRegistr
                  <div className="bg-muted/50 p-4 rounded-lg">
                    <p className="text-sm text-muted-foreground">
                      <strong>Turnierdetails:</strong><br />
-                     • Format: {tournament.type === 'singles' ? 'Einzel Matchplay' : 'Vierer Matchplay'}<br />
+                     • Format: {tournament.type === 'singles' ? 'Einzel Matchplay' : 'Foursome Matchplay'}<br />
                      • Tableau-Größe: {tournament.max_players} {tournament.type === 'singles' ? 'Spieler' : 'Teams'}<br />
                      • Aktuelle Anmeldungen: {registrationCount}
                      {registrationCount > tournament.max_players && (

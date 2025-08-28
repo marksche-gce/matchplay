@@ -205,7 +205,7 @@ export function TournamentDialog({ open, onOpenChange, onSuccess }: TournamentDi
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="singles">Einzel Matchplay</SelectItem>
-                <SelectItem value="foursome">Vierer Matchplay</SelectItem>
+                <SelectItem value="foursome">Foursome Matchplay</SelectItem>
               </SelectContent>
             </Select>
           </div>
