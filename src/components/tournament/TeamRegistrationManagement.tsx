@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Users, Trash2, UserPlus, Save, X, Mail } from 'lucide-react';
+import { Users, Trash2, UserPlus, Save, X, Mail, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -58,6 +58,16 @@ export function TeamRegistrationManagement({
     player2Handicap: 0,
   });
   const [saving, setSaving] = useState(false);
+  const [editingTeam, setEditingTeam] = useState<Team | null>(null);
+  const [editTeam, setEditTeam] = useState({
+    teamName: '',
+    player1Name: '',
+    player1Email: '',
+    player1Handicap: 0,
+    player2Name: '',
+    player2Email: '',
+    player2Handicap: 0,
+  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -276,6 +286,94 @@ export function TeamRegistrationManagement({
     }
   };
 
+  const handleEditTeam = (team: Team) => {
+    setEditingTeam(team);
+    setEditTeam({
+      teamName: team.name,
+      player1Name: team.player1.name,
+      player1Email: team.player1.email || '',
+      player1Handicap: team.player1.handicap,
+      player2Name: team.player2.name,
+      player2Email: team.player2.email || '',
+      player2Handicap: team.player2.handicap,
+    });
+  };
+
+  const handleUpdateTeam = async () => {
+    if (!editingTeam || !editTeam.teamName.trim() || !editTeam.player1Name.trim() || !editTeam.player2Name.trim()) {
+      toast({
+        title: "Ungültige Eingabe",
+        description: "Teamname und beide Spielernamen sind erforderlich.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // Update team name
+      const { error: teamError } = await supabase
+        .from('teams')
+        .update({
+          name: editTeam.teamName.trim()
+        })
+        .eq('id', editingTeam.id);
+
+      if (teamError) throw teamError;
+
+      // Update player 1
+      const { error: player1Error } = await supabase
+        .from('players_new')
+        .update({
+          name: editTeam.player1Name.trim(),
+          email: editTeam.player1Email.trim() || null,
+          handicap: editTeam.player1Handicap
+        })
+        .eq('id', editingTeam.player1.id);
+
+      if (player1Error) throw player1Error;
+
+      // Update player 2
+      const { error: player2Error } = await supabase
+        .from('players_new')
+        .update({
+          name: editTeam.player2Name.trim(),
+          email: editTeam.player2Email.trim() || null,
+          handicap: editTeam.player2Handicap
+        })
+        .eq('id', editingTeam.player2.id);
+
+      if (player2Error) throw player2Error;
+
+      toast({
+        title: "Team aktualisiert",
+        description: `Team "${editTeam.teamName}" wurde erfolgreich aktualisiert.`,
+      });
+
+      setEditingTeam(null);
+      setEditTeam({
+        teamName: '',
+        player1Name: '',
+        player1Email: '',
+        player1Handicap: 0,
+        player2Name: '',
+        player2Email: '',
+        player2Handicap: 0,
+      });
+      fetchTeams();
+      onUpdate?.();
+    } catch (error: any) {
+      console.error('Error updating team:', error);
+      toast({
+        title: "Aktualisierung fehlgeschlagen",
+        description: error.message || "Fehler beim Aktualisieren des Teams.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('de-DE', {
       day: '2-digit',
@@ -466,6 +564,113 @@ export function TeamRegistrationManagement({
             </Card>
           )}
 
+          {/* Team bearbeiten Form */}
+          {editingTeam && (
+            <Card className="border-primary/20">
+              <CardHeader>
+                <CardTitle className="text-base">Team bearbeiten</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="editTeamName">Teamname *</Label>
+                  <Input
+                    id="editTeamName"
+                    value={editTeam.teamName}
+                    onChange={(e) => setEditTeam({ ...editTeam, teamName: e.target.value })}
+                    placeholder="Teamname"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Spieler 1 */}
+                  <div className="space-y-3">
+                    <h4 className="font-medium">Spieler 1</h4>
+                    <div className="space-y-2">
+                      <div>
+                        <Label htmlFor="editPlayer1Name">Name *</Label>
+                        <Input
+                          id="editPlayer1Name"
+                          value={editTeam.player1Name}
+                          onChange={(e) => setEditTeam({ ...editTeam, player1Name: e.target.value })}
+                          placeholder="Spielername"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="editPlayer1Email">E-Mail</Label>
+                        <Input
+                          id="editPlayer1Email"
+                          type="email"
+                          value={editTeam.player1Email}
+                          onChange={(e) => setEditTeam({ ...editTeam, player1Email: e.target.value })}
+                          placeholder="E-Mail (optional)"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="editPlayer1Handicap">Handicap</Label>
+                        <Input
+                          id="editPlayer1Handicap"
+                          type="number"
+                          step="0.1"
+                          value={editTeam.player1Handicap}
+                          onChange={(e) => setEditTeam({ ...editTeam, player1Handicap: parseFloat(e.target.value) || 0 })}
+                          placeholder="0.0"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Spieler 2 */}
+                  <div className="space-y-3">
+                    <h4 className="font-medium">Spieler 2</h4>
+                    <div className="space-y-2">
+                      <div>
+                        <Label htmlFor="editPlayer2Name">Name *</Label>
+                        <Input
+                          id="editPlayer2Name"
+                          value={editTeam.player2Name}
+                          onChange={(e) => setEditTeam({ ...editTeam, player2Name: e.target.value })}
+                          placeholder="Spielername"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="editPlayer2Email">E-Mail</Label>
+                        <Input
+                          id="editPlayer2Email"
+                          type="email"
+                          value={editTeam.player2Email}
+                          onChange={(e) => setEditTeam({ ...editTeam, player2Email: e.target.value })}
+                          placeholder="E-Mail (optional)"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="editPlayer2Handicap">Handicap</Label>
+                        <Input
+                          id="editPlayer2Handicap"
+                          type="number"
+                          step="0.1"
+                          value={editTeam.player2Handicap}
+                          onChange={(e) => setEditTeam({ ...editTeam, player2Handicap: parseFloat(e.target.value) || 0 })}
+                          placeholder="0.0"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex gap-2 pt-4">
+                  <Button onClick={handleUpdateTeam} disabled={saving}>
+                    <Save className="h-4 w-4 mr-2" />
+                    {saving ? 'Speichern...' : 'Änderungen speichern'}
+                  </Button>
+                  <Button variant="outline" onClick={() => setEditingTeam(null)}>
+                    <X className="h-4 w-4 mr-2" />
+                    Abbrechen
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Teamliste */}
           {loading ? (
             <div className="space-y-3">
@@ -545,14 +750,24 @@ export function TeamRegistrationManagement({
                         {formatDate(team.registered_at)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteTeam(team.id, team.name)}
-                          className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-2 justify-end">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditTeam(team)}
+                            className="text-primary hover:text-primary border-primary/30 hover:bg-primary/10"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteTeam(team.id, team.name)}
+                            className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Users, Trash2, UserPlus, Save, X } from 'lucide-react';
+import { Users, Trash2, UserPlus, Save, X, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -54,6 +54,12 @@ export function RegistrationManagement({
     handicap: 0
   });
   const [saving, setSaving] = useState(false);
+  const [editingPlayer, setEditingPlayer] = useState<Registration | null>(null);
+  const [editPlayer, setEditPlayer] = useState({
+    name: '',
+    email: '',
+    handicap: 0
+  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -180,6 +186,59 @@ export function RegistrationManagement({
       toast({
         title: "Hinzufügen fehlgeschlagen",
         description: error.message || "Fehler beim Hinzufügen des Spielers.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEditPlayer = (registration: Registration) => {
+    setEditingPlayer(registration);
+    setEditPlayer({
+      name: registration.player?.name || '',
+      email: registration.player?.email || '',
+      handicap: registration.player?.handicap || 0
+    });
+  };
+
+  const handleUpdatePlayer = async () => {
+    if (!editingPlayer || !editPlayer.name.trim()) {
+      toast({
+        title: "Ungültige Eingabe",
+        description: "Spielername ist erforderlich.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('players_new')
+        .update({
+          name: editPlayer.name.trim(),
+          email: editPlayer.email.trim() || null,
+          handicap: editPlayer.handicap
+        })
+        .eq('id', editingPlayer.player_id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Spieler aktualisiert",
+        description: `${editPlayer.name} wurde erfolgreich aktualisiert.`,
+      });
+
+      setEditingPlayer(null);
+      setEditPlayer({ name: '', email: '', handicap: 0 });
+      fetchRegistrations();
+      onUpdate?.();
+    } catch (error: any) {
+      console.error('Error updating player:', error);
+      toast({
+        title: "Aktualisierung fehlgeschlagen",
+        description: error.message || "Fehler beim Aktualisieren des Spielers.",
         variant: "destructive",
       });
     } finally {
@@ -314,6 +373,59 @@ export function RegistrationManagement({
             </Card>
           )}
 
+          {/* Spieler bearbeiten Form */}
+          {editingPlayer && (
+            <Card className="border-primary/20">
+              <CardHeader>
+                <CardTitle className="text-base">Spieler bearbeiten</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="editPlayerName">Name *</Label>
+                    <Input
+                      id="editPlayerName"
+                      value={editPlayer.name}
+                      onChange={(e) => setEditPlayer({ ...editPlayer, name: e.target.value })}
+                      placeholder="Spielername"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="editPlayerEmail">E-Mail</Label>
+                    <Input
+                      id="editPlayerEmail"
+                      type="email"
+                      value={editPlayer.email}
+                      onChange={(e) => setEditPlayer({ ...editPlayer, email: e.target.value })}
+                      placeholder="E-Mail (optional)"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="editPlayerHandicap">Handicap</Label>
+                    <Input
+                      id="editPlayerHandicap"
+                      type="number"
+                      step="0.1"
+                      value={editPlayer.handicap}
+                      onChange={(e) => setEditPlayer({ ...editPlayer, handicap: parseFloat(e.target.value) || 0 })}
+                      placeholder="0.0"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={handleUpdatePlayer} disabled={saving}>
+                    <Save className="h-4 w-4 mr-2" />
+                    {saving ? 'Speichern...' : 'Änderungen speichern'}
+                  </Button>
+                  <Button variant="outline" onClick={() => setEditingPlayer(null)}>
+                    <X className="h-4 w-4 mr-2" />
+                    Abbrechen
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Spielerliste */}
           {loading ? (
             <div className="space-y-3">
@@ -367,14 +479,24 @@ export function RegistrationManagement({
                         {formatDate(registration.registered_at)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteRegistration(registration.id, registration.player?.name || 'Unbekannt')}
-                          className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-2 justify-end">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditPlayer(registration)}
+                            className="text-primary hover:text-primary border-primary/30 hover:bg-primary/10"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteRegistration(registration.id, registration.player?.name || 'Unbekannt')}
+                            className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
