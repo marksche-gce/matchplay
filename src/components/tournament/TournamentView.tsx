@@ -238,6 +238,37 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
     }
   };
 
+  const handleClearAllMatches = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('clear-match-participants', {
+        body: { tournamentId: tournament.id }
+      });
+
+      if (error) {
+        console.error('Error clearing matches:', error);
+        toast({
+          title: "Fehler",
+          description: "Matches konnten nicht gelöscht werden.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Matches gelöscht",
+        description: `Alle ${data.matchesCleared || 0} Matches wurden erfolgreich zurückgesetzt.`,
+      });
+      
+    } catch (error) {
+      console.error('Error clearing matches:', error);
+      toast({
+        title: "Fehler",
+        description: "Ein unerwarteter Fehler ist aufgetreten.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="animate-pulse">
@@ -376,40 +407,55 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
                    setShowBracketSizeDialog(true);
                  }}
                >
-                 <Target className="h-4 w-4 mr-2" />
-                 Tableau-Grösse anpassen
-               </Button>
-              
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={async () => {
-                  if (!tournament) return;
-                  
-                  if (!confirm(`Sind Sie sicher, dass Sie "${tournament.name}" löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.`)) {
-                    return;
-                  }
-
-                  try {
-                    if (isSystemAdmin) {
-                      const { error } = await supabase.functions.invoke('delete-tournament', {
-                        body: { tournamentId: tournament.id }
-                      });
-                      if (error) throw error;
-                    } else {
-                      const { error } = await supabase
-                        .from('tournaments_new')
-                        .delete()
-                        .eq('id', tournament.id);
-                      if (error) throw error;
+                  <Target className="h-4 w-4 mr-2" />
+                  Tableau-Grösse anpassen
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    if (!confirm('Sind Sie sicher, dass Sie alle zugewiesenen Spieler aus den Matches entfernen möchten? Diese Aktion kann nicht rückgängig gemacht werden.')) {
+                      return;
                     }
+                    handleClearAllMatches();
+                  }}
+                  className="text-warning hover:text-warning border-warning/30 hover:bg-warning/10"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Alle Matches löschen
+                </Button>
+               
+               <Button 
+                 variant="outline" 
+                 size="sm"
+                 onClick={async () => {
+                   if (!tournament) return;
+                   
+                   if (!confirm(`Sind Sie sicher, dass Sie "${tournament.name}" löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.`)) {
+                     return;
+                   }
 
-                    toast({
-                       title: "Turnier gelöscht",
-                       description: `"${tournament.name}" wurde erfolgreich gelöscht.`,
-                    });
+                   try {
+                     if (isSystemAdmin) {
+                       const { error } = await supabase.functions.invoke('delete-tournament', {
+                         body: { tournamentId: tournament.id }
+                       });
+                       if (error) throw error;
+                     } else {
+                       const { error } = await supabase
+                         .from('tournaments_new')
+                         .delete()
+                         .eq('id', tournament.id);
+                       if (error) throw error;
+                     }
 
-                    onBack(); // Go back to tournament list
+                     toast({
+                        title: "Turnier gelöscht",
+                        description: `"${tournament.name}" wurde erfolgreich gelöscht.`,
+                     });
+
+                     onBack(); // Go back to tournament list
                   } catch (error: any) {
                     console.error('Error deleting tournament:', error);
                     toast({
