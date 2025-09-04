@@ -26,6 +26,7 @@ import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { CreateMatchDialog } from "./CreateMatchDialog";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Tournament {
   id: string;
@@ -127,6 +128,40 @@ export function TournamentManagement({
       id: (Date.now()).toString()
     };
     onMatchUpdate([...matches, newMatch]);
+  };
+
+  const handleClearAllMatches = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('clear-match-participants', {
+        body: { tournamentId: tournament.id }
+      });
+
+      if (error) {
+        console.error('Error clearing matches:', error);
+        toast({
+          title: "Fehler",
+          description: "Matches konnten nicht gelöscht werden.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Matches gelöscht",
+        description: `Alle ${data.matchesCleared || 0} Matches wurden erfolgreich zurückgesetzt.`,
+      });
+
+      // Refresh matches data if needed
+      // This assumes the parent component will refresh the data
+      
+    } catch (error) {
+      console.error('Error clearing matches:', error);
+      toast({
+        title: "Fehler",
+        description: "Ein unerwarteter Fehler ist aufgetreten.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getPlayerStats = (player: Player) => {
@@ -438,11 +473,36 @@ export function TournamentManagement({
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Turnierspiele</CardTitle>
-                  <CreateMatchDialog
-                    tournamentId={tournament.id}
-                    availablePlayers={tournamentPlayers}
-                    onMatchCreate={handleCreateMatch}
-                  />
+                  <div className="flex gap-2">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="sm">
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Alle Matches löschen
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Alle Matches löschen</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Sind Sie sicher, dass Sie alle zugewiesenen Spieler aus den Matches entfernen möchten? 
+                            Diese Aktion setzt alle Matches zurück und kann nicht rückgängig gemacht werden.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleClearAllMatches}>
+                            Alle löschen
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                    <CreateMatchDialog
+                      tournamentId={tournament.id}
+                      availablePlayers={tournamentPlayers}
+                      onMatchCreate={handleCreateMatch}
+                    />
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
