@@ -271,10 +271,11 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
           </p>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" onClick={onBack}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Zurück
+            <span className="hidden sm:inline">Zurück</span>
+            <span className="sm:hidden">Back</span>
           </Button>
           {tournament.registration_status === 'open' && (
             <Button 
@@ -282,7 +283,8 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
               variant="default"
             >
               <UserPlus className="h-4 w-4 mr-2" />
-              Registrieren
+              <span className="hidden sm:inline">Registrieren</span>
+              <span className="sm:hidden">Register</span>
             </Button>
           )}
           {user && (isSystemAdmin || isOrganizer) && (
@@ -291,7 +293,8 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
               onClick={() => setShowManagement(!showManagement)}
             >
               <Settings className="h-4 w-4 mr-2" />
-              Verwalten
+              <span className="hidden sm:inline">Verwalten</span>
+              <span className="sm:hidden">Manage</span>
             </Button>
           )}
         </div>

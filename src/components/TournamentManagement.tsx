@@ -273,6 +273,50 @@ export function TournamentManagement({
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Quick Actions Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="h-5 w-5" />
+                    Schnelle Aktionen
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {tournamentMatches.length > 0 && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" className="w-full justify-start">
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Alle Matches zurücksetzen
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Alle Matches löschen</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Sind Sie sicher, dass Sie alle zugewiesenen Spieler aus den Matches entfernen möchten? 
+                            Diese Aktion setzt alle Matches zurück und kann nicht rückgängig gemacht werden.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleClearAllMatches}>
+                            Alle löschen
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                  <Button variant="outline" className="w-full justify-start">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Neues Match erstellen
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Verwenden Sie die Tabs oben für detaillierte Verwaltung
+                  </p>
+                </CardContent>
+              </Card>
             </div>
 
             <Card>
