@@ -299,10 +299,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "matches_new_player1_id_fkey"
+            columns: ["player1_id"]
+            isOneToOne: false
+            referencedRelation: "players_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "matches_new_player2_id_fkey"
             columns: ["player2_id"]
             isOneToOne: false
             referencedRelation: "players_new"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_new_player2_id_fkey"
+            columns: ["player2_id"]
+            isOneToOne: false
+            referencedRelation: "players_public"
             referencedColumns: ["id"]
           },
           {
@@ -331,6 +345,13 @@ export type Database = {
             columns: ["winner_player_id"]
             isOneToOne: false
             referencedRelation: "players_new"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_new_winner_player_id_fkey"
+            columns: ["winner_player_id"]
+            isOneToOne: false
+            referencedRelation: "players_public"
             referencedColumns: ["id"]
           },
           {
@@ -563,10 +584,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "teams_player1_id_fkey"
+            columns: ["player1_id"]
+            isOneToOne: false
+            referencedRelation: "players_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "teams_player2_id_fkey"
             columns: ["player2_id"]
             isOneToOne: false
             referencedRelation: "players_new"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_player2_id_fkey"
+            columns: ["player2_id"]
+            isOneToOne: false
+            referencedRelation: "players_public"
             referencedColumns: ["id"]
           },
           {
@@ -717,6 +752,13 @@ export type Database = {
             columns: ["player_id"]
             isOneToOne: false
             referencedRelation: "players_new"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tournament_registrations_new_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players_public"
             referencedColumns: ["id"]
           },
           {
@@ -887,6 +929,30 @@ export type Database = {
       }
     }
     Views: {
+      players_public: {
+        Row: {
+          created_at: string | null
+          handicap: number | null
+          id: string | null
+          name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          handicap?: number | null
+          id?: string | null
+          name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          handicap?: number | null
+          id?: string | null
+          name?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       players_secure: {
         Row: {
           created_at: string | null
