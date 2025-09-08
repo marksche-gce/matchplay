@@ -125,8 +125,8 @@ export function AssignParticipantsDialog({
     } catch (error) {
       console.error('Error fetching participants:', error);
       toast({
-        title: "Error",
-        description: "Failed to fetch available participants.",
+        title: "Fehler",
+        description: "Verfügbare Teilnehmer konnten nicht geladen werden.",
         variant: "destructive",
       });
     }
@@ -138,8 +138,8 @@ export function AssignParticipantsDialog({
     
     if (!hasParticipant1 && !hasParticipant2) {
       toast({
-        title: "No Assignment",
-        description: "Please select at least one participant.",
+        title: "Keine Zuweisung",
+        description: "Bitte wählen Sie mindestens einen Teilnehmer aus.",
         variant: "destructive",
       });
       return;
@@ -220,11 +220,11 @@ export function AssignParticipantsDialog({
       }
 
       const message = updateData.status === 'completed' 
-        ? `Participant assigned and automatically advanced to next round (bye).`
-        : `Match participants have been assigned successfully.`;
+        ? `Teilnehmer zugewiesen und automatisch in die nächste Runde weitergeleitet (Freilos).`
+        : `Spielteilnehmer wurden erfolgreich zugewiesen.`;
 
       toast({
-        title: "Participants Assigned",
+        title: "Teilnehmer zugewiesen",
         description: message,
       });
 
@@ -234,8 +234,8 @@ export function AssignParticipantsDialog({
     } catch (error) {
       console.error('Error assigning participants:', error);
       toast({
-        title: "Error",
-        description: "Failed to assign participants. Please try again.",
+        title: "Fehler",
+        description: "Teilnehmer konnten nicht zugewiesen werden. Bitte versuchen Sie es erneut.",
         variant: "destructive",
       });
     } finally {
@@ -271,24 +271,24 @@ export function AssignParticipantsDialog({
             ) : (
               <Users className="h-5 w-5" />
             )}
-            Assign {tournament.type === 'singles' ? 'Players' : 'Teams'}
+            {tournament.type === 'singles' ? 'Spieler zuweisen' : 'Teams zuweisen'}
           </DialogTitle>
           <p className="text-sm text-muted-foreground">
-            Assign participants to Match {match.match_number} in Round {match.round_number}
+            Teilnehmer zu Spiel {match.match_number} in Runde {match.round_number} zuweisen
           </p>
         </DialogHeader>
         
         <div className="space-y-4">
           <div>
             <Label htmlFor="participant1">
-              {tournament.type === 'singles' ? 'Player 1' : 'Team 1'}
+              {tournament.type === 'singles' ? 'Spieler 1' : 'Team 1'}
             </Label>
             <Select value={participant1Id} onValueChange={setParticipant1Id}>
               <SelectTrigger className="mt-1">
-                <SelectValue placeholder={`Select ${tournament.type === 'singles' ? 'player' : 'team'} 1`} />
+                <SelectValue placeholder={`${tournament.type === 'singles' ? 'Spieler' : 'Team'} 1 auswählen`} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">No assignment</SelectItem>
+                <SelectItem value="none">Keine Zuweisung</SelectItem>
                 {getAvailableOptions(participant2Id).map(participant => (
                   <SelectItem key={participant.id} value={participant.id}>
                     {getParticipantName(participant)}
@@ -300,14 +300,14 @@ export function AssignParticipantsDialog({
 
           <div>
             <Label htmlFor="participant2">
-              {tournament.type === 'singles' ? 'Player 2' : 'Team 2'}
+              {tournament.type === 'singles' ? 'Spieler 2' : 'Team 2'}
             </Label>
             <Select value={participant2Id} onValueChange={setParticipant2Id}>
               <SelectTrigger className="mt-1">
-                <SelectValue placeholder={`Select ${tournament.type === 'singles' ? 'player' : 'team'} 2`} />
+                <SelectValue placeholder={`${tournament.type === 'singles' ? 'Spieler' : 'Team'} 2 auswählen`} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">No assignment</SelectItem>
+                <SelectItem value="none">Keine Zuweisung</SelectItem>
                 {getAvailableOptions(participant1Id).map(participant => (
                   <SelectItem key={participant.id} value={participant.id}>
                     {getParticipantName(participant)}
@@ -320,7 +320,7 @@ export function AssignParticipantsDialog({
           {availableParticipants.length === 0 && (
             <div className="text-center p-4 bg-warning/10 rounded-lg border border-warning/30">
               <p className="text-sm text-warning">
-                No {tournament.type === 'singles' ? 'players' : 'teams'} are registered for this tournament.
+                Keine {tournament.type === 'singles' ? 'Spieler' : 'Teams'} sind für dieses Turnier registriert.
               </p>
             </div>
           )}
@@ -328,13 +328,13 @@ export function AssignParticipantsDialog({
         
         <div className="flex justify-end gap-2 pt-4">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            Abbrechen
           </Button>
           <Button 
             onClick={handleAssign} 
             disabled={loading || availableParticipants.length === 0}
           >
-            {loading ? 'Assigning...' : 'Assign Participants'}
+            {loading ? 'Wird zugewiesen...' : 'Teilnehmer zuweisen'}
           </Button>
         </div>
       </DialogContent>
