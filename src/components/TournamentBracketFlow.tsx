@@ -57,8 +57,8 @@ const MatchNode = ({ data }: { data: any }) => {
     }
   };
 
-  const player1Name = match.player1?.name || 'TBD';
-  const player2Name = match.player2?.name || 'TBD';
+  const player1Name = match.player1?.name || 'Unbekannt';
+  const player2Name = match.player2?.name || 'Unbekannt';
   const isPlaceholder = player1Name.includes('no-opponent') || player2Name.includes('no-opponent');
 
   return (
@@ -77,14 +77,14 @@ const MatchNode = ({ data }: { data: any }) => {
           {player1Name}
           {match.player1?.handicap && ` (${match.player1.handicap})`}
         </div>
-        <div className="text-xs text-center text-muted-foreground">vs</div>
+        <div className="text-xs text-center text-muted-foreground">gegen</div>
         <div className={`text-sm p-1 rounded ${match.winner === player2Name ? 'bg-success/20 font-bold' : ''}`}>
           {player2Name}
           {match.player2?.handicap && ` (${match.player2.handicap})`}
         </div>
         {match.winner && (
           <div className="text-xs text-center text-success font-semibold mt-1">
-            Winner: {match.winner}
+            Gewinner: {match.winner}
           </div>
         )}
       </CardContent>
@@ -118,7 +118,7 @@ export const TournamentBracketFlow: React.FC<TournamentBracketFlowProps> = ({
   }, [matches]);
 
   // Define round order for proper layout - use standard numbering
-  const roundOrder = ['Round 1', 'Round 2', 'Round 3', 'Round 4'];
+  const roundOrder = ['Runde 1', 'Runde 2', 'Runde 3', 'Runde 4'];
 
   useEffect(() => {
     // Create nodes for matches

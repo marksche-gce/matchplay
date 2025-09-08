@@ -339,7 +339,7 @@ export function MatchCard({ match, tournament, onMatchUpdate, embedded = false }
                 <div className="flex items-center justify-between">
                   <div>
                     <p className={`font-medium text-foreground ${embedded ? 'text-sm' : ''}`}>
-                      {player1?.name || 'TBD'}
+                      {player1?.name || 'Unbekannt'}
                       {match.winner_player_id === player1?.id && (
                         <Crown className={`${embedded ? 'h-3 w-3' : 'h-4 w-4'} inline ml-2 text-success`} />
                       )}
@@ -351,7 +351,7 @@ export function MatchCard({ match, tournament, onMatchUpdate, embedded = false }
                 </div>
               </div>
 
-              <div className={`text-center text-xs text-muted-foreground ${embedded ? 'py-0' : ''}`}>vs</div>
+              <div className={`text-center text-xs text-muted-foreground ${embedded ? 'py-0' : ''}`}>gegen</div>
 
               {/* Player 2 */}
               <div className={`${embedded ? 'p-2' : 'p-3'} rounded-lg border ${
@@ -360,7 +360,7 @@ export function MatchCard({ match, tournament, onMatchUpdate, embedded = false }
                 <div className="flex items-center justify-between">
                   <div>
                     <p className={`font-medium text-foreground ${embedded ? 'text-sm' : ''}`}>
-                      {player2?.name || 'TBD'}
+                      {player2?.name || 'Unbekannt'}
                       {match.winner_player_id === player2?.id && (
                         <Crown className={`${embedded ? 'h-3 w-3' : 'h-4 w-4'} inline ml-2 text-success`} />
                       )}
@@ -382,7 +382,7 @@ export function MatchCard({ match, tournament, onMatchUpdate, embedded = false }
                   <div>
                     <p className={`font-medium text-foreground flex items-center gap-2 ${embedded ? 'text-sm' : ''}`}>
                       <Users className={`${embedded ? 'h-3 w-3' : 'h-4 w-4'}`} />
-                      {team1?.name || 'TBD'}
+                      {team1?.name || 'Unbekannt'}
                       {match.winner_team_id === team1?.id && (
                         <Crown className={`${embedded ? 'h-3 w-3' : 'h-4 w-4'} text-success`} />
                       )}
@@ -396,7 +396,7 @@ export function MatchCard({ match, tournament, onMatchUpdate, embedded = false }
                 </div>
               </div>
 
-              <div className={`text-center text-xs text-muted-foreground ${embedded ? 'py-0' : ''}`}>vs</div>
+              <div className={`text-center text-xs text-muted-foreground ${embedded ? 'py-0' : ''}`}>gegen</div>
 
               {/* Team 2 */}
               <div className={`${embedded ? 'p-2' : 'p-3'} rounded-lg border ${
@@ -406,7 +406,7 @@ export function MatchCard({ match, tournament, onMatchUpdate, embedded = false }
                   <div>
                     <p className={`font-medium text-foreground flex items-center gap-2 ${embedded ? 'text-sm' : ''}`}>
                       <Users className={`${embedded ? 'h-3 w-3' : 'h-4 w-4'}`} />
-                      {team2?.name || 'TBD'}
+                      {team2?.name || 'Unbekannt'}
                       {match.winner_team_id === team2?.id && (
                         <Crown className={`${embedded ? 'h-3 w-3' : 'h-4 w-4'} text-success`} />
                       )}

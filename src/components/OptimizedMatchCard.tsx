@@ -53,7 +53,7 @@ export const OptimizedMatchCard = ({ match, matchIndex, onMatchClick }: Optimize
               </Badge>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Clock className="h-3 w-3" />
-                {match.time || "TBD"}
+                {match.time || "Unbekannt"}
                 {match.tee && (
                   <>
                     <Users className="h-3 w-3 ml-2" />
@@ -78,7 +78,7 @@ export const OptimizedMatchCard = ({ match, matchIndex, onMatchClick }: Optimize
                   </div>
                 ) : (
                   <div className="text-sm text-muted-foreground italic">
-                    No player assigned
+                    Kein Spieler zugewiesen
                   </div>
                 )}
               </div>
@@ -96,12 +96,12 @@ export const OptimizedMatchCard = ({ match, matchIndex, onMatchClick }: Optimize
                   </div>
                 ) : (
                   <div className="text-sm text-muted-foreground italic">
-                    No opponent assigned
+                    Kein Gegner zugewiesen
                   </div>
                 )}
                 {(match.player2?.name?.startsWith("no-opponent") || (match.player1?.name && !match.player2)) && (
                   <div className="text-xs text-muted-foreground italic">
-                    (Free Pass)
+                    (Freilos)
                   </div>
                 )}
               </div>
@@ -111,7 +111,7 @@ export const OptimizedMatchCard = ({ match, matchIndex, onMatchClick }: Optimize
             {match.winner && (
               <div className="text-center">
                 <Badge variant="default" className="text-xs">
-                  Winner: {match.winner}
+                  Gewinner: {match.winner}
                 </Badge>
               </div>
             )}
