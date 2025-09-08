@@ -256,18 +256,18 @@ export function ManualMatchSetup({
       onMatchesCreated();
 
       toast({
-        title: "Match Saved",
-        description: "Match updated successfully.",
+        title: "Match gespeichert",
+        description: "Match erfolgreich aktualisiert.",
         variant: "default"
       });
 
     } catch (error: any) {
       console.error('💥 Auto-save error:', error);
       toast({
-        title: "Save Error",
+        title: "Speicherfehler",
         description: error.message?.includes('NetworkError') 
-          ? "Network connection failed. Please check your internet connection and try again."
-          : "Failed to save match updates. Please try again.",
+          ? "Netzwerkverbindung fehlgeschlagen. Bitte prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut."
+          : "Speichern der Match-Änderungen fehlgeschlagen. Bitte erneut versuchen.",
         variant: "destructive"
       });
     }
@@ -567,16 +567,16 @@ export function ManualMatchSetup({
       initializeMatches();
 
       toast({
-        title: "All Matches Deleted",
-        description: "All tournament matches and settings have been removed.",
+        title: "Alle Matches gelöscht",
+        description: "Alle Turnier-Matches und Einstellungen wurden entfernt.",
       });
 
       onMatchesCreated();
     } catch (error) {
       console.error('Error deleting matches:', error);
       toast({
-        title: "Error",
-        description: "Failed to delete matches.",
+        title: "Fehler",
+        description: "Löschen der Matches fehlgeschlagen.",
         variant: "destructive"
       });
     }
@@ -586,12 +586,12 @@ export function ManualMatchSetup({
   const getMatchStatusText = (match: MatchSetup) => {
     if (match.isCompleted) {
       const winner = getPlayerName(match.winnerId);
-      return `Winner: ${winner} (automatically advanced)`;
+      return `Gewinner: ${winner} (automatisch weitergeleitet)`;
     }
     if (match.player1Id && match.player2Id) {
-      return "Ready for play";
+      return "Bereit zum Spielen";
     }
-    return "Waiting for player assignment";
+    return "Warte auf Spielerzuweisung";
   };
 
   return (
@@ -599,10 +599,10 @@ export function ManualMatchSetup({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Users className="h-5 w-5" />
-          Tournament Setup - Assign Players
+          Turnier-Setup – Spieler zuweisen
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Select players for each match. Winners will automatically advance to the next round.
+          Wählen Sie die Spieler für jedes Match. Sieger werden automatisch in die nächste Runde weitergeleitet.
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -612,7 +612,7 @@ export function ManualMatchSetup({
             onClick={deleteAllMatches}
           >
             <Trash2 className="h-4 w-4 mr-2" />
-            Reset Tournament
+            Turnier zurücksetzen
           </Button>
         </div>
 
@@ -626,26 +626,26 @@ export function ManualMatchSetup({
               return (
                 <Card key={match.matchNumber} className="p-4">
                   <div className="flex items-center justify-between mb-3">
-                    <Label className="font-semibold">Match {match.matchNumber}</Label>
+                    <Label className="font-semibold">Spiel {match.matchNumber}</Label>
                     {match.isCompleted && (
                       <div className="text-sm text-muted-foreground bg-green-100 dark:bg-green-900 px-2 py-1 rounded">
-                        ✓ Winner: {getPlayerName(match.winnerId)}
+                        ✓ Gewinner: {getPlayerName(match.winnerId)}
                       </div>
                     )}
                   </div>
                   
                   <div className="grid grid-cols-2 gap-3 mb-3">
                     <div className="space-y-2">
-                      <Label>Player 1</Label>
+                      <Label>Spieler 1</Label>
                       <Select 
                         value={match.player1Id || "no-player"} 
                         onValueChange={(value) => updateMatch(match.matchNumber, 'player1Id', value === "no-player" ? undefined : value)}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select Player 1" />
+                          <SelectValue placeholder="Spieler 1 auswählen" />
                         </SelectTrigger>
                         <SelectContent className="bg-background border z-50">
-                          <SelectItem value="no-player">No Player</SelectItem>
+                          <SelectItem value="no-player">Kein Spieler</SelectItem>
                           {getAvailablePlayersForMatch(match.matchNumber)
                             .filter(player => player.id !== match.player2Id)
                             .slice()
@@ -660,16 +660,16 @@ export function ManualMatchSetup({
                     </div>
                     
                     <div className="space-y-2">
-                      <Label>Player 2 / Opponent</Label>
+                      <Label>Spieler 2 / Gegner</Label>
                       <Select 
                         value={match.player2Id || "no-opponent"} 
                         onValueChange={(value) => updateMatch(match.matchNumber, 'player2Id', value === "no-opponent" ? undefined : value)}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select Player 2" />
+                          <SelectValue placeholder="Spieler 2 auswählen" />
                         </SelectTrigger>
                         <SelectContent className="bg-background border z-50">
-                          <SelectItem value="no-opponent">No Opponent</SelectItem>
+                          <SelectItem value="no-opponent">Kein Gegner</SelectItem>
                           {getAvailablePlayersForMatch(match.matchNumber)
                             .filter(player => player.id !== match.player1Id)
                             .slice()
