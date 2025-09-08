@@ -95,7 +95,7 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString('de-DE', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',

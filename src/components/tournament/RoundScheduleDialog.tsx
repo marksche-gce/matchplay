@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { getRoundDisplayName, calculateTotalRounds } from '@/lib/tournamentUtils';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { de } from 'date-fns/locale';
 // Helpers to handle date-only values
 const toDate = (iso?: string | null) => {
   if (!iso) return undefined;
@@ -273,7 +274,7 @@ const handleDeadlineChange = (roundNumber: number, date?: Date) => {
                             id={`round-${deadline.round_number}`}
                           >
                             {deadline.closing_date ? (
-                              format(deadline.closing_date, "dd.MM.yyyy")
+                              format(deadline.closing_date, "dd. MMM yyyy", { locale: de })
                             ) : (
                               <span>Datum wählen</span>
                             )}

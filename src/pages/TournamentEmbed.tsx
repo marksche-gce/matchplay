@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, Users, Trophy, Clock } from 'lucide-react';
 import { format } from 'date-fns';
+import { de } from 'date-fns/locale';
 import { getRoundDisplayName, calculateTotalRounds } from '@/lib/tournamentUtils';
 
 interface Tournament {
@@ -157,7 +158,7 @@ export default function TournamentEmbed() {
             <div className="flex flex-wrap items-center gap-3 md:gap-4 text-xs md:text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Calendar className="h-3 w-3 md:h-4 md:w-4" />
-                <span className="whitespace-nowrap">{format(new Date(tournament.start_date), 'MMM dd')} - {format(new Date(tournament.end_date), 'MMM dd, yyyy')}</span>
+                <span className="whitespace-nowrap">{format(new Date(tournament.start_date), 'dd. MMM', { locale: de })} - {format(new Date(tournament.end_date), 'dd. MMM yyyy', { locale: de })}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Users className="h-3 w-3 md:h-4 md:w-4" />

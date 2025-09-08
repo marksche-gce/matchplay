@@ -8,6 +8,7 @@ import { BracketGenerator } from '@/lib/bracketGenerator';
 import { getRoundDisplayName, calculateTotalRounds } from '@/lib/tournamentUtils';
 import { MatchCard } from './MatchCard';
 import { format } from 'date-fns';
+import { de } from 'date-fns/locale';
 
 interface Tournament {
   id: string;
@@ -213,7 +214,7 @@ export function BracketView({ tournamentId, tournament, embedded = false }: Brac
                           {roundDeadlines[roundNumber] && (
                             <Badge variant="destructive" className="mt-1 text-[10px] md:text-xs flex items-center gap-1">
                               <Clock className="h-3 w-3" />
-                              <span>Deadline: {format(new Date(roundDeadlines[roundNumber]), 'dd.MM.yyyy')}</span>
+                              <span>Frist: {format(new Date(roundDeadlines[roundNumber]), 'dd. MMM yyyy', { locale: de })}</span>
                             </Badge>
                           )}
                         </div>
@@ -291,7 +292,7 @@ export function BracketView({ tournamentId, tournament, embedded = false }: Brac
                       {roundDeadlines[roundNumber] && (
                         <Badge variant="destructive" className="mt-1 text-[10px] md:text-xs flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          <span>Deadline: {format(new Date(roundDeadlines[roundNumber]), 'dd.MM.yyyy')}</span>
+                          <span>Frist: {format(new Date(roundDeadlines[roundNumber]), 'dd. MMM yyyy', { locale: de })}</span>
                         </Badge>
                       )}
                     </div>
