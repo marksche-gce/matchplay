@@ -307,18 +307,28 @@ export function RegistrationManagement({
   const saveOrder = async () => {
     try {
       setSaving(true);
+      console.log('Saving order for registrations:', sortedRegistrations.map(r => r.id));
+      
       const updates = sortedRegistrations.map((registration, index) => ({
         id: registration.id,
         position: index + 1
       }));
 
+      console.log('Updates to apply:', updates);
+
       for (const update of updates) {
-        const { error } = await supabase
+        console.log(`Updating registration ${update.id} to position ${update.position}`);
+        const { data, error } = await supabase
           .from('tournament_registrations_new')
           .update({ position: update.position })
-          .eq('id', update.id);
+          .eq('id', update.id)
+          .select();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error updating registration:', error);
+          throw error;
+        }
+        console.log('Update result:', data);
       }
 
       toast({

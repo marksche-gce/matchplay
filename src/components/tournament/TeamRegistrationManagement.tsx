@@ -449,19 +449,29 @@ export function TeamRegistrationManagement({
   const saveOrder = async () => {
     try {
       setSaving(true);
+      console.log('Saving order for teams:', sortedTeams.map(t => t.id));
+      
       const updates = sortedTeams.map((team, index) => ({
         team_id: team.id,
         position: index + 1
       }));
 
+      console.log('Updates to apply:', updates);
+
       for (const update of updates) {
-        const { error } = await supabase
+        console.log(`Updating team ${update.team_id} to position ${update.position}`);
+        const { data, error } = await supabase
           .from('tournament_registrations_new')
           .update({ position: update.position })
           .eq('tournament_id', tournament.id)
-          .eq('team_id', update.team_id);
+          .eq('team_id', update.team_id)
+          .select();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error updating team registration:', error);
+          throw error;
+        }
+        console.log('Update result:', data);
       }
 
       toast({
