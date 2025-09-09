@@ -62,6 +62,7 @@ export function RegistrationManagement({
     handicap: 0
   });
   const [sortBy, setSortBy] = useState<'handicap' | 'name' | 'date'>('handicap');
+  const [manualOrder, setManualOrder] = useState<string[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -95,6 +96,7 @@ export function RegistrationManagement({
         .filter(reg => reg.player); // Filter out registrations without player data
 
       setRegistrations(filteredRegistrations as Registration[]);
+      setManualOrder([]); // Reset manual order when data is refreshed
     } catch (error) {
       console.error('Error fetching registrations:', error);
       toast({
@@ -256,27 +258,42 @@ export function RegistrationManagement({
     });
   };
 
-  const sortedRegistrations = [...registrations].sort((a, b) => {
-    switch (sortBy) {
-      case 'handicap':
-        return (a.player?.handicap || 0) - (b.player?.handicap || 0);
-      case 'name':
-        return (a.player?.name || '').localeCompare(b.player?.name || '');
-      case 'date':
-        return new Date(a.registered_at).getTime() - new Date(b.registered_at).getTime();
-      default:
-        return 0;
+  const sortedRegistrations = (() => {
+    if (manualOrder.length > 0) {
+      // Use manual order if available
+      const orderedRegs = manualOrder.map(id => registrations.find(reg => reg.id === id)).filter(Boolean) as Registration[];
+      const unorderedRegs = registrations.filter(reg => !manualOrder.includes(reg.id));
+      return [...orderedRegs, ...unorderedRegs];
     }
-  });
+    
+    // Use automatic sorting
+    return [...registrations].sort((a, b) => {
+      switch (sortBy) {
+        case 'handicap':
+          return (a.player?.handicap || 0) - (b.player?.handicap || 0);
+        case 'name':
+          return (a.player?.name || '').localeCompare(b.player?.name || '');
+        case 'date':
+          return new Date(a.registered_at).getTime() - new Date(b.registered_at).getTime();
+        default:
+          return 0;
+      }
+    });
+  })();
 
   const movePlayer = (index: number, direction: 'up' | 'down') => {
-    const newRegistrations = [...sortedRegistrations];
+    const currentOrder = sortedRegistrations.map(reg => reg.id);
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     
-    if (targetIndex >= 0 && targetIndex < newRegistrations.length) {
-      [newRegistrations[index], newRegistrations[targetIndex]] = [newRegistrations[targetIndex], newRegistrations[index]];
-      setRegistrations(newRegistrations);
+    if (targetIndex >= 0 && targetIndex < currentOrder.length) {
+      [currentOrder[index], currentOrder[targetIndex]] = [currentOrder[targetIndex], currentOrder[index]];
+      setManualOrder(currentOrder);
     }
+  };
+
+  const handleSortChange = (newSortBy: 'handicap' | 'name' | 'date') => {
+    setSortBy(newSortBy);
+    setManualOrder([]); // Reset manual order when changing sort
   };
 
   return (
@@ -336,7 +353,7 @@ export function RegistrationManagement({
             <div className="flex gap-2 items-center">
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4" />
-                <Select value={sortBy} onValueChange={(value: 'handicap' | 'name' | 'date') => setSortBy(value)}>
+                <Select value={sortBy} onValueChange={handleSortChange}>
                   <SelectTrigger className="w-[200px]">
                     <SelectValue placeholder="Sortierung wählen" />
                   </SelectTrigger>

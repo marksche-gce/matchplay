@@ -70,6 +70,7 @@ export function TeamRegistrationManagement({
     player2Handicap: 0,
   });
   const [sortBy, setSortBy] = useState<'handicap' | 'name' | 'date'>('handicap');
+  const [manualOrder, setManualOrder] = useState<string[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -118,6 +119,7 @@ export function TeamRegistrationManagement({
         }));
 
       setTeams(formattedTeams as Team[]);
+      setManualOrder([]); // Reset manual order when data is refreshed
     } catch (error) {
       console.error('Error fetching teams:', error);
       toast({
@@ -393,29 +395,44 @@ export function TeamRegistrationManagement({
     return (total / teams.length).toFixed(1);
   };
 
-  const sortedTeams = [...teams].sort((a, b) => {
-    switch (sortBy) {
-      case 'handicap':
-        const avgA = (a.player1.handicap + a.player2.handicap) / 2;
-        const avgB = (b.player1.handicap + b.player2.handicap) / 2;
-        return avgA - avgB;
-      case 'name':
-        return a.name.localeCompare(b.name);
-      case 'date':
-        return new Date(a.registered_at).getTime() - new Date(b.registered_at).getTime();
-      default:
-        return 0;
+  const sortedTeams = (() => {
+    if (manualOrder.length > 0) {
+      // Use manual order if available
+      const orderedTeams = manualOrder.map(id => teams.find(team => team.id === id)).filter(Boolean) as Team[];
+      const unorderedTeams = teams.filter(team => !manualOrder.includes(team.id));
+      return [...orderedTeams, ...unorderedTeams];
     }
-  });
+    
+    // Use automatic sorting
+    return [...teams].sort((a, b) => {
+      switch (sortBy) {
+        case 'handicap':
+          const avgA = (a.player1.handicap + a.player2.handicap) / 2;
+          const avgB = (b.player1.handicap + b.player2.handicap) / 2;
+          return avgA - avgB;
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'date':
+          return new Date(a.registered_at).getTime() - new Date(b.registered_at).getTime();
+        default:
+          return 0;
+      }
+    });
+  })();
 
   const moveTeam = (index: number, direction: 'up' | 'down') => {
-    const newTeams = [...sortedTeams];
+    const currentOrder = sortedTeams.map(team => team.id);
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
     
-    if (targetIndex >= 0 && targetIndex < newTeams.length) {
-      [newTeams[index], newTeams[targetIndex]] = [newTeams[targetIndex], newTeams[index]];
-      setTeams(newTeams);
+    if (targetIndex >= 0 && targetIndex < currentOrder.length) {
+      [currentOrder[index], currentOrder[targetIndex]] = [currentOrder[targetIndex], currentOrder[index]];
+      setManualOrder(currentOrder);
     }
+  };
+
+  const handleSortChange = (newSortBy: 'handicap' | 'name' | 'date') => {
+    setSortBy(newSortBy);
+    setManualOrder([]); // Reset manual order when changing sort
   };
 
   return (
@@ -472,7 +489,7 @@ export function TeamRegistrationManagement({
             <div className="flex gap-2 items-center">
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4" />
-                <Select value={sortBy} onValueChange={(value: 'handicap' | 'name' | 'date') => setSortBy(value)}>
+                <Select value={sortBy} onValueChange={handleSortChange}>
                   <SelectTrigger className="w-[200px]">
                     <SelectValue placeholder="Sortierung wählen" />
                   </SelectTrigger>
