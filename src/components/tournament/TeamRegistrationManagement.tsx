@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Users, Trash2, UserPlus, Save, X, Mail, Edit } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Users, Trash2, UserPlus, Save, X, Mail, Edit, ArrowUp, ArrowDown, Filter } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -68,6 +69,7 @@ export function TeamRegistrationManagement({
     player2Email: '',
     player2Handicap: 0,
   });
+  const [sortBy, setSortBy] = useState<'handicap' | 'name' | 'date'>('handicap');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -113,12 +115,7 @@ export function TeamRegistrationManagement({
           player1: reg.teams.player1,
           player2: reg.teams.player2,
           registered_at: reg.registered_at,
-        }))
-        .sort((a, b) => {
-          const avgA = (a.player1.handicap + a.player2.handicap) / 2;
-          const avgB = (b.player1.handicap + b.player2.handicap) / 2;
-          return avgA - avgB;
-        });
+        }));
 
       setTeams(formattedTeams as Team[]);
     } catch (error) {
@@ -396,6 +393,31 @@ export function TeamRegistrationManagement({
     return (total / teams.length).toFixed(1);
   };
 
+  const sortedTeams = [...teams].sort((a, b) => {
+    switch (sortBy) {
+      case 'handicap':
+        const avgA = (a.player1.handicap + a.player2.handicap) / 2;
+        const avgB = (b.player1.handicap + b.player2.handicap) / 2;
+        return avgA - avgB;
+      case 'name':
+        return a.name.localeCompare(b.name);
+      case 'date':
+        return new Date(a.registered_at).getTime() - new Date(b.registered_at).getTime();
+      default:
+        return 0;
+    }
+  });
+
+  const moveTeam = (index: number, direction: 'up' | 'down') => {
+    const newTeams = [...sortedTeams];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    
+    if (targetIndex >= 0 && targetIndex < newTeams.length) {
+      [newTeams[index], newTeams[targetIndex]] = [newTeams[targetIndex], newTeams[index]];
+      setTeams(newTeams);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
@@ -447,14 +469,29 @@ export function TeamRegistrationManagement({
           {/* Aktionen */}
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold">Angemeldete Teams</h3>
-            <Button
-              onClick={() => setShowAddForm(true)}
-              disabled={teams.length >= tournament.max_players}
-              className="bg-success hover:bg-success/90"
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Team hinzufügen
-            </Button>
+            <div className="flex gap-2 items-center">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4" />
+                <Select value={sortBy} onValueChange={(value: 'handicap' | 'name' | 'date') => setSortBy(value)}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Sortierung wählen" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="handicap">Nach Ø Handicap</SelectItem>
+                    <SelectItem value="name">Alphabetisch</SelectItem>
+                    <SelectItem value="date">Nach Anmeldedatum</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                onClick={() => setShowAddForm(true)}
+                disabled={teams.length >= tournament.max_players}
+                className="bg-success hover:bg-success/90"
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Team hinzufügen
+              </Button>
+            </div>
           </div>
 
           {/* Team hinzufügen Form */}
@@ -705,10 +742,32 @@ export function TeamRegistrationManagement({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {teams.map((team, index) => (
+                  {sortedTeams.map((team, index) => (
                     <TableRow key={team.id}>
                       <TableCell>
-                        <Badge variant="outline">#{index + 1}</Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">#{index + 1}</Badge>
+                          <div className="flex flex-col gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => moveTeam(index, 'up')}
+                              disabled={index === 0}
+                              className="h-6 w-6 p-0"
+                            >
+                              <ArrowUp className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => moveTeam(index, 'down')}
+                              disabled={index === sortedTeams.length - 1}
+                              className="h-6 w-6 p-0"
+                            >
+                              <ArrowDown className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell className="font-medium">
                         {team.name}

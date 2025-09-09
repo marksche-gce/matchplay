@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Users, Trash2, UserPlus, Save, X, Edit } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Users, Trash2, UserPlus, Save, X, Edit, ArrowUp, ArrowDown, Filter } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -60,6 +61,7 @@ export function RegistrationManagement({
     email: '',
     handicap: 0
   });
+  const [sortBy, setSortBy] = useState<'handicap' | 'name' | 'date'>('handicap');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -89,12 +91,10 @@ export function RegistrationManagement({
 
       if (error) throw error;
 
-      // Sortiere nach Handicap (niedrig zu hoch)
-      const sortedRegistrations = (data || [])
-        .filter(reg => reg.player) // Filter out registrations without player data
-        .sort((a, b) => (a.player?.handicap || 0) - (b.player?.handicap || 0));
+      const filteredRegistrations = (data || [])
+        .filter(reg => reg.player); // Filter out registrations without player data
 
-      setRegistrations(sortedRegistrations as Registration[]);
+      setRegistrations(filteredRegistrations as Registration[]);
     } catch (error) {
       console.error('Error fetching registrations:', error);
       toast({
@@ -256,6 +256,29 @@ export function RegistrationManagement({
     });
   };
 
+  const sortedRegistrations = [...registrations].sort((a, b) => {
+    switch (sortBy) {
+      case 'handicap':
+        return (a.player?.handicap || 0) - (b.player?.handicap || 0);
+      case 'name':
+        return (a.player?.name || '').localeCompare(b.player?.name || '');
+      case 'date':
+        return new Date(a.registered_at).getTime() - new Date(b.registered_at).getTime();
+      default:
+        return 0;
+    }
+  });
+
+  const movePlayer = (index: number, direction: 'up' | 'down') => {
+    const newRegistrations = [...sortedRegistrations];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    
+    if (targetIndex >= 0 && targetIndex < newRegistrations.length) {
+      [newRegistrations[index], newRegistrations[targetIndex]] = [newRegistrations[targetIndex], newRegistrations[index]];
+      setRegistrations(newRegistrations);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -310,14 +333,29 @@ export function RegistrationManagement({
           {/* Aktionen */}
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold">Angemeldete Spieler</h3>
-            <Button
-              onClick={() => setShowAddForm(true)}
-              disabled={registrations.length >= tournament.max_players}
-              className="bg-success hover:bg-success/90"
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Spieler hinzufügen
-            </Button>
+            <div className="flex gap-2 items-center">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4" />
+                <Select value={sortBy} onValueChange={(value: 'handicap' | 'name' | 'date') => setSortBy(value)}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Sortierung wählen" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="handicap">Nach Handicap</SelectItem>
+                    <SelectItem value="name">Alphabetisch</SelectItem>
+                    <SelectItem value="date">Nach Anmeldedatum</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                onClick={() => setShowAddForm(true)}
+                disabled={registrations.length >= tournament.max_players}
+                className="bg-success hover:bg-success/90"
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Spieler hinzufügen
+              </Button>
+            </div>
           </div>
 
           {/* Spieler hinzufügen Form */}
@@ -459,10 +497,32 @@ export function RegistrationManagement({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {registrations.map((registration, index) => (
+                  {sortedRegistrations.map((registration, index) => (
                     <TableRow key={registration.id}>
                       <TableCell>
-                        <Badge variant="outline">#{index + 1}</Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">#{index + 1}</Badge>
+                          <div className="flex flex-col gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => movePlayer(index, 'up')}
+                              disabled={index === 0}
+                              className="h-6 w-6 p-0"
+                            >
+                              <ArrowUp className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => movePlayer(index, 'down')}
+                              disabled={index === sortedRegistrations.length - 1}
+                              className="h-6 w-6 p-0"
+                            >
+                              <ArrowDown className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell className="font-medium">
                         {registration.player?.name || 'Unbekannt'}
