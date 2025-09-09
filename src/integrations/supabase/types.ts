@@ -728,6 +728,7 @@ export type Database = {
         Row: {
           id: string
           player_id: string | null
+          position: number | null
           registered_at: string | null
           team_id: string | null
           tournament_id: string | null
@@ -735,6 +736,7 @@ export type Database = {
         Insert: {
           id?: string
           player_id?: string | null
+          position?: number | null
           registered_at?: string | null
           team_id?: string | null
           tournament_id?: string | null
@@ -742,6 +744,7 @@ export type Database = {
         Update: {
           id?: string
           player_id?: string | null
+          position?: number | null
           registered_at?: string | null
           team_id?: string | null
           tournament_id?: string | null

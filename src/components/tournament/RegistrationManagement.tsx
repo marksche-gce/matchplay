@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, Trash2, UserPlus, Save, X, Edit, ArrowUp, ArrowDown, Filter } from 'lucide-react';
+import { Users, Trash2, UserPlus, Save, X, Edit, ArrowUp, ArrowDown, Filter, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -80,6 +80,7 @@ export function RegistrationManagement({
           id,
           player_id,
           registered_at,
+          position,
           player:players_new (
             id,
             name,
@@ -93,7 +94,14 @@ export function RegistrationManagement({
       if (error) throw error;
 
       const filteredRegistrations = (data || [])
-        .filter(reg => reg.player); // Filter out registrations without player data
+        .filter(reg => reg.player) // Filter out registrations without player data
+        .sort((a, b) => {
+          // Sort by position if available, otherwise by handicap
+          if (a.position && b.position) return a.position - b.position;
+          if (a.position && !b.position) return -1;
+          if (!a.position && b.position) return 1;
+          return (a.player?.handicap || 0) - (b.player?.handicap || 0);
+        });
 
       setRegistrations(filteredRegistrations as Registration[]);
       setManualOrder([]); // Reset manual order when data is refreshed
@@ -296,6 +304,41 @@ export function RegistrationManagement({
     setManualOrder([]); // Reset manual order when changing sort
   };
 
+  const saveOrder = async () => {
+    try {
+      setSaving(true);
+      const updates = sortedRegistrations.map((registration, index) => ({
+        id: registration.id,
+        position: index + 1
+      }));
+
+      for (const update of updates) {
+        const { error } = await supabase
+          .from('tournament_registrations_new')
+          .update({ position: update.position })
+          .eq('id', update.id);
+
+        if (error) throw error;
+      }
+
+      toast({
+        title: "Reihenfolge gespeichert",
+        description: "Die Spielerreihenfolge wurde erfolgreich gespeichert.",
+      });
+
+      fetchRegistrations(); // Reload to show saved positions
+    } catch (error: any) {
+      console.error('Error saving order:', error);
+      toast({
+        title: "Speichern fehlgeschlagen",
+        description: error.message || "Fehler beim Speichern der Reihenfolge.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -351,7 +394,7 @@ export function RegistrationManagement({
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold">Angemeldete Spieler</h3>
             <div className="flex gap-2 items-center">
-              <div className="flex items-center gap-2">
+              <div className="flex gap-2 items-center">
                 <Filter className="h-4 w-4" />
                 <Select value={sortBy} onValueChange={handleSortChange}>
                   <SelectTrigger className="w-[200px]">
@@ -363,6 +406,15 @@ export function RegistrationManagement({
                     <SelectItem value="date">Nach Anmeldedatum</SelectItem>
                   </SelectContent>
                 </Select>
+                <Button
+                  onClick={saveOrder}
+                  disabled={saving || manualOrder.length === 0}
+                  variant="outline"
+                  className="border-primary/30 text-primary hover:bg-primary/10"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  {saving ? 'Speichern...' : 'Reihenfolge speichern'}
+                </Button>
               </div>
               <Button
                 onClick={() => setShowAddForm(true)}

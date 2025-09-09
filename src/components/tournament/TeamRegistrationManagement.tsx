@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, Trash2, UserPlus, Save, X, Mail, Edit, ArrowUp, ArrowDown, Filter } from 'lucide-react';
+import { Users, Trash2, UserPlus, Save, X, Mail, Edit, ArrowUp, ArrowDown, Filter, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -86,6 +86,7 @@ export function TeamRegistrationManagement({
         .from('tournament_registrations_new')
         .select(`
           registered_at,
+          position,
           teams (
             id,
             name,
@@ -116,7 +117,17 @@ export function TeamRegistrationManagement({
           player1: reg.teams.player1,
           player2: reg.teams.player2,
           registered_at: reg.registered_at,
-        }));
+          position: reg.position,
+        }))
+        .sort((a, b) => {
+          // Sort by position if available, otherwise by average handicap
+          if (a.position && b.position) return a.position - b.position;
+          if (a.position && !b.position) return -1;
+          if (!a.position && b.position) return 1;
+          const avgA = (a.player1.handicap + a.player2.handicap) / 2;
+          const avgB = (b.player1.handicap + b.player2.handicap) / 2;
+          return avgA - avgB;
+        });
 
       setTeams(formattedTeams as Team[]);
       setManualOrder([]); // Reset manual order when data is refreshed
@@ -435,6 +446,42 @@ export function TeamRegistrationManagement({
     setManualOrder([]); // Reset manual order when changing sort
   };
 
+  const saveOrder = async () => {
+    try {
+      setSaving(true);
+      const updates = sortedTeams.map((team, index) => ({
+        team_id: team.id,
+        position: index + 1
+      }));
+
+      for (const update of updates) {
+        const { error } = await supabase
+          .from('tournament_registrations_new')
+          .update({ position: update.position })
+          .eq('tournament_id', tournament.id)
+          .eq('team_id', update.team_id);
+
+        if (error) throw error;
+      }
+
+      toast({
+        title: "Reihenfolge gespeichert",
+        description: "Die Teamreihenfolge wurde erfolgreich gespeichert.",
+      });
+
+      fetchTeams(); // Reload to show saved positions
+    } catch (error: any) {
+      console.error('Error saving order:', error);
+      toast({
+        title: "Speichern fehlgeschlagen",
+        description: error.message || "Fehler beim Speichern der Reihenfolge.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
@@ -487,7 +534,7 @@ export function TeamRegistrationManagement({
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold">Angemeldete Teams</h3>
             <div className="flex gap-2 items-center">
-              <div className="flex items-center gap-2">
+              <div className="flex gap-2 items-center">
                 <Filter className="h-4 w-4" />
                 <Select value={sortBy} onValueChange={handleSortChange}>
                   <SelectTrigger className="w-[200px]">
@@ -499,6 +546,15 @@ export function TeamRegistrationManagement({
                     <SelectItem value="date">Nach Anmeldedatum</SelectItem>
                   </SelectContent>
                 </Select>
+                <Button
+                  onClick={saveOrder}
+                  disabled={saving || manualOrder.length === 0}
+                  variant="outline"
+                  className="border-primary/30 text-primary hover:bg-primary/10"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  {saving ? 'Speichern...' : 'Reihenfolge speichern'}
+                </Button>
               </div>
               <Button
                 onClick={() => setShowAddForm(true)}
