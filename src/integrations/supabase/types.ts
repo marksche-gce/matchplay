@@ -114,20 +114,6 @@ export type Database = {
             referencedRelation: "players"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "match_participants_player_id_fkey"
-            columns: ["player_id"]
-            isOneToOne: false
-            referencedRelation: "players_secure"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "match_participants_player_id_fkey"
-            columns: ["player_id"]
-            isOneToOne: false
-            referencedRelation: "players_simple"
-            referencedColumns: ["id"]
-          },
         ]
       }
       matches: {
@@ -215,20 +201,6 @@ export type Database = {
             referencedRelation: "players"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "matches_winner_id_fkey"
-            columns: ["winner_id"]
-            isOneToOne: false
-            referencedRelation: "players_secure"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "matches_winner_id_fkey"
-            columns: ["winner_id"]
-            isOneToOne: false
-            referencedRelation: "players_simple"
-            referencedColumns: ["id"]
-          },
         ]
       }
       matches_new: {
@@ -299,24 +271,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "matches_new_player1_id_fkey"
-            columns: ["player1_id"]
-            isOneToOne: false
-            referencedRelation: "players_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "matches_new_player2_id_fkey"
             columns: ["player2_id"]
             isOneToOne: false
             referencedRelation: "players_new"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "matches_new_player2_id_fkey"
-            columns: ["player2_id"]
-            isOneToOne: false
-            referencedRelation: "players_public"
             referencedColumns: ["id"]
           },
           {
@@ -345,13 +303,6 @@ export type Database = {
             columns: ["winner_player_id"]
             isOneToOne: false
             referencedRelation: "players_new"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "matches_new_winner_player_id_fkey"
-            columns: ["winner_player_id"]
-            isOneToOne: false
-            referencedRelation: "players_public"
             referencedColumns: ["id"]
           },
           {
@@ -584,24 +535,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "teams_player1_id_fkey"
-            columns: ["player1_id"]
-            isOneToOne: false
-            referencedRelation: "players_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "teams_player2_id_fkey"
             columns: ["player2_id"]
             isOneToOne: false
             referencedRelation: "players_new"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "teams_player2_id_fkey"
-            columns: ["player2_id"]
-            isOneToOne: false
-            referencedRelation: "players_public"
             referencedColumns: ["id"]
           },
           {
@@ -702,20 +639,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "tournament_registrations_player_id_fkey"
-            columns: ["player_id"]
-            isOneToOne: false
-            referencedRelation: "players_secure"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tournament_registrations_player_id_fkey"
-            columns: ["player_id"]
-            isOneToOne: false
-            referencedRelation: "players_simple"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "tournament_registrations_tournament_id_fkey"
             columns: ["tournament_id"]
             isOneToOne: false
@@ -755,13 +678,6 @@ export type Database = {
             columns: ["player_id"]
             isOneToOne: false
             referencedRelation: "players_new"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tournament_registrations_new_player_id_fkey"
-            columns: ["player_id"]
-            isOneToOne: false
-            referencedRelation: "players_public"
             referencedColumns: ["id"]
           },
           {
@@ -932,102 +848,7 @@ export type Database = {
       }
     }
     Views: {
-      players_public: {
-        Row: {
-          created_at: string | null
-          handicap: number | null
-          id: string | null
-          name: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          handicap?: number | null
-          id?: string | null
-          name?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          handicap?: number | null
-          id?: string | null
-          name?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      players_secure: {
-        Row: {
-          created_at: string | null
-          email: string | null
-          emergency_contact: string | null
-          handicap: number | null
-          id: string | null
-          name: string | null
-          phone: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          email?: never
-          emergency_contact?: never
-          handicap?: number | null
-          id?: string | null
-          name?: string | null
-          phone?: never
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          email?: never
-          emergency_contact?: never
-          handicap?: number | null
-          id?: string | null
-          name?: string | null
-          phone?: never
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      players_simple: {
-        Row: {
-          created_at: string | null
-          email: string | null
-          emergency_contact: string | null
-          handicap: number | null
-          id: string | null
-          name: string | null
-          phone: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          email?: never
-          emergency_contact?: never
-          handicap?: number | null
-          id?: string | null
-          name?: string | null
-          phone?: never
-          updated_at?: string | null
-          user_id?: never
-        }
-        Update: {
-          created_at?: string | null
-          email?: never
-          emergency_contact?: never
-          handicap?: number | null
-          id?: string | null
-          name?: string | null
-          phone?: never
-          updated_at?: string | null
-          user_id?: never
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       create_admin_user: {
@@ -1054,6 +875,44 @@ export type Database = {
       get_current_user_tenant_role: {
         Args: { _tenant_id: string }
         Returns: Database["public"]["Enums"]["tenant_role"]
+      }
+      get_players_public: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          handicap: number
+          id: string
+          name: string
+          updated_at: string
+        }[]
+      }
+      get_players_secure: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          email: string
+          emergency_contact: string
+          handicap: number
+          id: string
+          name: string
+          phone: string
+          updated_at: string
+          user_id: string
+        }[]
+      }
+      get_players_simple: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          email: string
+          emergency_contact: string
+          handicap: number
+          id: string
+          name: string
+          phone: string
+          updated_at: string
+          user_id: string
+        }[]
       }
       get_user_tenants: {
         Args: { _user_id: string }
