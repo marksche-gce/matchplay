@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { BracketGenerator } from '@/lib/bracketGenerator';
 import { getRoundDisplayName, calculateTotalRounds } from '@/lib/tournamentUtils';
 import { MatchCard } from './MatchCard';
+import { AutoBracketSetup } from './AutoBracketSetup';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 
@@ -251,13 +252,15 @@ export function BracketView({ tournamentId, tournament, embedded = false }: Brac
               Aktuelle Anmeldungen: {registrationCount} / {tournament.max_players}
             </p>
             {!embedded && (
-              <Button 
-                onClick={generateBracket}
-                variant="default"
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Tableau generieren
-              </Button>
+              <div className="space-y-3">
+                <Button 
+                  onClick={generateBracket}
+                  variant="default"
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  Tableau generieren
+                </Button>
+              </div>
             )}
           </div>
         </CardContent>
@@ -273,9 +276,17 @@ export function BracketView({ tournamentId, tournament, embedded = false }: Brac
       <CardHeader className={embedded ? 'p-3 md:p-4' : 'p-6'}>
         <CardTitle className={`flex items-center justify-between ${embedded ? 'text-lg md:text-xl' : 'text-2xl'}`}>
           Turnier-Tableau
-          <Badge className="bg-success/10 text-success border-success/30 text-xs">
-            Aktiv
-          </Badge>
+          <div className="flex items-center gap-2">
+            {!embedded && (
+              <AutoBracketSetup 
+                tournament={tournament} 
+                onSetupComplete={fetchMatches}
+              />
+            )}
+            <Badge className="bg-success/10 text-success border-success/30 text-xs">
+              Aktiv
+            </Badge>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className={embedded ? 'p-2 md:p-4' : 'p-6'}>
