@@ -166,33 +166,42 @@ export function AutoBracketSetup({ tournament, onSetupComplete }: AutoBracketSet
   };
 
   const setupNormalBracket = async () => {
-    // Standard Tournament Seeding:
-    // 1 vs 2 (letztes Spiel), 3 vs 4 (erstes Spiel), usw.
-    // Spiegelbildlich aufbauen
-    
-    const sortedParticipants = [...registrations].sort((a, b) => (a.position || 999) - (b.position || 999));
-    const matchUpdates = [];
+    // Sortiere nach Handicap für korrektes Seeding (beste zuerst)
+    const sortedByHandicap = [...registrations].sort((a, b) => {
+      const handicapA = tournament.type === 'singles' 
+        ? (a.player?.handicap || 999)
+        : ((a.team?.player1?.handicap || 0) + (a.team?.player2?.handicap || 0)) / 2;
+      const handicapB = tournament.type === 'singles'
+        ? (b.player?.handicap || 999) 
+        : ((b.team?.player1?.handicap || 0) + (b.team?.player2?.handicap || 0)) / 2;
+      return handicapA - handicapB;
+    });
 
-    for (let i = 0; i < firstRoundMatches.length; i++) {
+    const matchUpdates = [];
+    const totalMatches = firstRoundMatches.length;
+
+    for (let i = 0; i < totalMatches; i++) {
       const match = firstRoundMatches[i];
-      const isLastMatch = i === firstRoundMatches.length - 1;
-      const isFirstMatch = i === 0;
-      
       let participant1, participant2;
       
-      if (isFirstMatch) {
-        // Erstes Spiel: Position 1 vs Position 3
-        participant1 = sortedParticipants[0]; // Rang 1
-        participant2 = sortedParticipants[2]; // Rang 3
-      } else if (isLastMatch) {
-        // Letztes Spiel: Position 2 vs Position 4  
-        participant1 = sortedParticipants[3]; // Rang 4
-        participant2 = sortedParticipants[1]; // Rang 2
+      if (i % 2 === 0) {
+        // Gerade Match-Nummern (0, 2, 4, ...): 
+        // Spieler aus der oberen Hälfte der Seeding-Liste
+        const seedIndex = i / 2;
+        participant1 = sortedByHandicap[seedIndex];
+        
+        // Gegner aus der gespiegelten Position
+        const mirrorIndex = sortedByHandicap.length - 1 - seedIndex;
+        participant2 = sortedByHandicap[mirrorIndex];
       } else {
-        // Mittlere Spiele: Nach Standard-Seeding
-        const baseIndex = i * 2;
-        participant1 = sortedParticipants[baseIndex + 4]; // Weitere Ränge
-        participant2 = sortedParticipants[baseIndex + 5];
+        // Ungerade Match-Nummern (1, 3, 5, ...):
+        // Gespiegelte Anordnung von hinten
+        const pairIndex = Math.floor(i / 2);
+        const mirrorMatch = totalMatches - 1 - pairIndex;
+        const seedIndex = pairIndex + 1;
+        
+        participant1 = sortedByHandicap[sortedByHandicap.length - 1 - seedIndex];
+        participant2 = sortedByHandicap[seedIndex];
       }
 
       const updateData: any = { status: 'scheduled' };
