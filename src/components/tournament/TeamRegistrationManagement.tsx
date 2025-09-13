@@ -69,7 +69,7 @@ export function TeamRegistrationManagement({
     player2Email: '',
     player2Handicap: 0,
   });
-  const [sortBy, setSortBy] = useState<'handicap' | 'name' | 'date'>('handicap');
+  const [sortBy, setSortBy] = useState<'position' | 'handicap' | 'name' | 'date'>('position');
   const [manualOrder, setManualOrder] = useState<string[]>([]);
   const { toast } = useToast();
 
@@ -413,6 +413,10 @@ export function TeamRegistrationManagement({
       const unorderedTeams = teams.filter(team => !manualOrder.includes(team.id));
       return [...orderedTeams, ...unorderedTeams];
     }
+    // Respect saved/manual order coming from DB
+    if (sortBy === 'position') {
+      return teams;
+    }
     
     // Use automatic sorting
     return [...teams].sort((a, b) => {
@@ -441,7 +445,7 @@ export function TeamRegistrationManagement({
     }
   };
 
-  const handleSortChange = (newSortBy: 'handicap' | 'name' | 'date') => {
+  const handleSortChange = (newSortBy: 'position' | 'handicap' | 'name' | 'date') => {
     setSortBy(newSortBy);
     setManualOrder([]); // Reset manual order when changing sort
   };
@@ -479,6 +483,8 @@ export function TeamRegistrationManagement({
         description: "Die Teamreihenfolge wurde erfolgreich gespeichert.",
       });
 
+      setSortBy('position');
+      setManualOrder([]);
       fetchTeams(); // Reload to show saved positions
     } catch (error: any) {
       console.error('Error saving order:', error);
@@ -551,6 +557,7 @@ export function TeamRegistrationManagement({
                     <SelectValue placeholder="Sortierung wählen" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="position">Nach Rang (manuell)</SelectItem>
                     <SelectItem value="handicap">Nach Ø Handicap</SelectItem>
                     <SelectItem value="name">Alphabetisch</SelectItem>
                     <SelectItem value="date">Nach Anmeldedatum</SelectItem>

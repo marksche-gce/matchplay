@@ -61,7 +61,7 @@ export function RegistrationManagement({
     email: '',
     handicap: 0
   });
-  const [sortBy, setSortBy] = useState<'handicap' | 'name' | 'date'>('handicap');
+  const [sortBy, setSortBy] = useState<'position' | 'handicap' | 'name' | 'date'>('position');
   const [manualOrder, setManualOrder] = useState<string[]>([]);
   const { toast } = useToast();
 
@@ -273,7 +273,10 @@ export function RegistrationManagement({
       const unorderedRegs = registrations.filter(reg => !manualOrder.includes(reg.id));
       return [...orderedRegs, ...unorderedRegs];
     }
-    
+    // Respect saved/manual order coming from DB
+    if (sortBy === 'position') {
+      return registrations;
+    }
     // Use automatic sorting
     return [...registrations].sort((a, b) => {
       switch (sortBy) {
@@ -299,7 +302,7 @@ export function RegistrationManagement({
     }
   };
 
-  const handleSortChange = (newSortBy: 'handicap' | 'name' | 'date') => {
+  const handleSortChange = (newSortBy: 'position' | 'handicap' | 'name' | 'date') => {
     setSortBy(newSortBy);
     setManualOrder([]); // Reset manual order when changing sort
   };
@@ -336,6 +339,8 @@ export function RegistrationManagement({
         description: "Die Spielerreihenfolge wurde erfolgreich gespeichert.",
       });
 
+      setSortBy('position');
+      setManualOrder([]);
       fetchRegistrations(); // Reload to show saved positions
     } catch (error: any) {
       console.error('Error saving order:', error);
@@ -411,6 +416,7 @@ export function RegistrationManagement({
                     <SelectValue placeholder="Sortierung wählen" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="position">Nach Rang (manuell)</SelectItem>
                     <SelectItem value="handicap">Nach Handicap</SelectItem>
                     <SelectItem value="name">Alphabetisch</SelectItem>
                     <SelectItem value="date">Nach Anmeldedatum</SelectItem>
