@@ -186,11 +186,11 @@ export function MatchCard({ match, tournament, onMatchUpdate, embedded = false }
       // If match has winner, only admins or system admins can change it (regardless of status)
       return isAdmin || isSystemAdmin;
     } else {
-      // If no winner, allow setting for scheduled matches with participants
+      // If no winner, allow setting when both participants are present and match not completed
       if (tournament.type === 'singles') {
-        return match.status === 'scheduled' && player1 && player2;
+        return match.status !== 'completed' && player1 && player2;
       } else {
-        return match.status === 'scheduled' && team1 && team2;
+        return match.status !== 'completed' && team1 && team2;
       }
     }
   };
