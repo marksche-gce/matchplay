@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Users, ArrowLeft } from 'lucide-react';
+import { Users, ArrowLeft, Mail, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface Tournament {
@@ -58,75 +58,109 @@ export default function TournamentEmbedParticipants() {
 
       // Fetch participants based on tournament type
       if (tournamentData.type === 'singles') {
-        const { data: participantsData, error: participantsError } = await supabase
+        const { data: registrationsData, error: registrationsError } = await supabase
           .from('tournament_registrations_new')
           .select(`
             id,
             registered_at,
-            player_id,
-            players_new (
-              id,
-              name,
-              email,
-              handicap
-            )
+            player_id
           `)
           .eq('tournament_id', id)
           .order('registered_at');
 
-        if (participantsError) {
-          console.error('Error fetching participants:', participantsError);
+        if (registrationsError) {
+          console.error('Error fetching registrations:', registrationsError);
         } else {
-          const formattedParticipants = participantsData.map((reg: any) => ({
-            id: reg.player_id,
-            name: reg.players_new?.name || 'Unknown Player',
-            email: reg.players_new?.email,
-            handicap: reg.players_new?.handicap,
-            registered_at: reg.registered_at
-          }));
-          setParticipants(formattedParticipants);
+          // Fetch detailed player information for each registration
+          const participantsWithDetails: any[] = [];
+          
+          for (const registration of registrationsData || []) {
+            if (registration.player_id) {
+              const { data: playerData } = await supabase
+                .from('players_new')
+                .select('id, name, email, handicap')
+                .eq('id', registration.player_id)
+                .single();
+
+              if (playerData) {
+                participantsWithDetails.push({
+                  id: registration.id,
+                  player: playerData,
+                  registered_at: registration.registered_at
+                });
+              }
+            }
+          }
+          
+          setParticipants(participantsWithDetails);
         }
       } else {
         // For foursome tournaments, fetch teams and their players
-        const { data: teamsData, error: teamsError } = await supabase
+        const { data: registrationsData, error: registrationsError } = await supabase
           .from('tournament_registrations_new')
           .select(`
             id,
             registered_at,
-            team_id,
-            teams (
-              id,
-              name,
-              player1_id,
-              player2_id,
-              player1:players_new!teams_player1_id_fkey (
-                id,
-                name,
-                email,
-                handicap
-              ),
-              player2:players_new!teams_player2_id_fkey (
-                id,
-                name,
-                email,
-                handicap
-              )
-            )
+            team_id
           `)
           .eq('tournament_id', id)
           .order('registered_at');
 
-        if (teamsError) {
-          console.error('Error fetching teams:', teamsError);
+        if (registrationsError) {
+          console.error('Error fetching registrations:', registrationsError);
         } else {
-          const formattedTeams = teamsData.map((reg: any) => ({
-            id: reg.team_id,
-            name: reg.teams?.name || 'Unknown Team',
-            player1: reg.teams?.player1,
-            player2: reg.teams?.player2,
-            registered_at: reg.registered_at
-          }));
-          setParticipants(formattedTeams as any);
+          // Fetch detailed team and player information for each registration
+          const teamsWithDetails: any[] = [];
+          
+          for (const registration of registrationsData || []) {
+            if (registration.team_id) {
+              const { data: teamData } = await supabase
+                .from('teams')
+                .select(`
+                  id,
+                  name,
+                  player1_id,
+                  player2_id
+                `)
+                .eq('id', registration.team_id)
+                .single();
+
+              if (teamData) {
+                const team: any = {
+                  id: teamData.id,
+                  name: teamData.name
+                };
+
+                // Fetch player1 details
+                if (teamData.player1_id) {
+                  const { data: player1Data } = await supabase
+                    .from('players_new')
+                    .select('id, name, email, handicap')
+                    .eq('id', teamData.player1_id)
+                    .single();
+                  if (player1Data) team.player1 = player1Data;
+                }
+
+                // Fetch player2 details
+                if (teamData.player2_id) {
+                  const { data: player2Data } = await supabase
+                    .from('players_new')
+                    .select('id, name, email, handicap')
+                    .eq('id', teamData.player2_id)
+                    .single();
+                  if (player2Data) team.player2 = player2Data;
+                }
+
+                teamsWithDetails.push({
+                  id: registration.id,
+                  team,
+                  registered_at: registration.registered_at
+                });
+              }
+            }
+          }
+          
+          setParticipants(teamsWithDetails);
         }
       }
     } catch (error) {
@@ -186,10 +220,10 @@ export default function TournamentEmbedParticipants() {
           <div className="space-y-2">
             <h1 className="text-xl md:text-2xl font-bold text-foreground">{tournament.name}</h1>
             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Users className="h-4 w-4" />
-                <span>{participants.length}/{tournament.max_players} {tournament.type === 'singles' ? 'Spieler' : 'Teams'}</span>
-              </div>
+            <div className="flex items-center gap-1">
+              <Users className="h-4 w-4" />
+              <span>{participants.length}/{tournament.max_players} Teilnehmer</span>
+            </div>
               <Badge className={`${getRegistrationStatusColor(tournament.registration_status)} text-xs`}>
                 {tournament.registration_status === 'open' ? 'Anmeldung offen' : 
                  tournament.registration_status === 'closed' ? 'Anmeldung geschlossen' : 
@@ -204,78 +238,80 @@ export default function TournamentEmbedParticipants() {
       <div className="max-w-4xl mx-auto p-4">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              {tournament.type === 'singles' ? 'Teilnehmerliste' : 'Teamliste'}
-            </CardTitle>
+            <CardTitle>Angemeldete Teilnehmer</CardTitle>
           </CardHeader>
           <CardContent>
             {participants.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Noch keine {tournament.type === 'singles' ? 'Spieler' : 'Teams'} registriert</p>
+                Noch keine Anmeldungen vorhanden
               </div>
             ) : (
               <div className="space-y-4">
-                {tournament.type === 'singles' ? (
-                  participants.map((participant, index) => (
-                    <div key={participant.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                      <div className="flex items-center gap-4">
-                        <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-sm font-medium">
-                          {index + 1}
+                {participants.map((registration: any) => (
+                  <div key={registration.id} className="border rounded-lg p-4">
+                    {registration.player && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-lg font-semibold">{registration.player.name}</h3>
+                          <Badge variant="outline">Einzelspieler</Badge>
                         </div>
-                        <div>
-                          <h3 className="font-medium text-foreground">{participant.name}</h3>
-                          {participant.email && (
-                            <p className="text-sm text-muted-foreground">{participant.email}</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                          <div className="flex items-center gap-2">
+                            <Mail className="h-4 w-4 text-muted-foreground" />
+                            <span>{registration.player.email || 'Keine E-Mail'}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Trophy className="h-4 w-4 text-muted-foreground" />
+                            <span>Handicap: {registration.player.handicap}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {registration.team && (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-lg font-semibold">{registration.team.name}</h3>
+                          <Badge variant="outline">Team</Badge>
+                        </div>
+                        
+                        <div className="space-y-3">
+                          {registration.team.player1 && (
+                            <div className="bg-muted/50 rounded-lg p-3">
+                              <h4 className="font-medium mb-2">Spieler 1: {registration.team.player1.name}</h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                <div className="flex items-center gap-2">
+                                  <Mail className="h-4 w-4 text-muted-foreground" />
+                                  <span>{registration.team.player1.email || 'Keine E-Mail'}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Trophy className="h-4 w-4 text-muted-foreground" />
+                                  <span>Handicap: {registration.team.player1.handicap}</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {registration.team.player2 && (
+                            <div className="bg-muted/50 rounded-lg p-3">
+                              <h4 className="font-medium mb-2">Spieler 2: {registration.team.player2.name}</h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                <div className="flex items-center gap-2">
+                                  <Mail className="h-4 w-4 text-muted-foreground" />
+                                  <span>{registration.team.player2.email || 'Keine E-Mail'}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Trophy className="h-4 w-4 text-muted-foreground" />
+                                  <span>Handicap: {registration.team.player2.handicap}</span>
+                                </div>
+                              </div>
+                            </div>
                           )}
                         </div>
                       </div>
-                      <div className="text-right">
-                        {participant.handicap !== null && participant.handicap !== undefined && (
-                          <div className="text-sm text-muted-foreground">
-                            HCP: {participant.handicap}
-                          </div>
-                        )}
-                        <div className="text-xs text-muted-foreground">
-                          {new Date(participant.registered_at).toLocaleDateString('de-DE')}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  participants.map((team: any, index) => (
-                    <div key={team.id} className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                      <div className="flex items-center gap-4 mb-2">
-                        <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-sm font-medium">
-                          {index + 1}
-                        </div>
-                        <h3 className="font-medium text-foreground">{team.name}</h3>
-                      </div>
-                      <div className="ml-12 space-y-2">
-                        {team.player1 && (
-                          <div className="flex justify-between items-center text-sm">
-                            <span>{team.player1.name}</span>
-                            {team.player1.handicap !== null && (
-                              <span className="text-muted-foreground">HCP: {team.player1.handicap}</span>
-                            )}
-                          </div>
-                        )}
-                        {team.player2 && (
-                          <div className="flex justify-between items-center text-sm">
-                            <span>{team.player2.name}</span>
-                            {team.player2.handicap !== null && (
-                              <span className="text-muted-foreground">HCP: {team.player2.handicap}</span>
-                            )}
-                          </div>
-                        )}
-                        <div className="text-xs text-muted-foreground">
-                          Angemeldet: {new Date(team.registered_at).toLocaleDateString('de-DE')}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>

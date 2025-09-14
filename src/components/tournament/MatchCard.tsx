@@ -173,11 +173,11 @@ export function MatchCard({ match, tournament, onMatchUpdate, embedded = false }
     // If embedded view: can only set winner once, cannot change existing winners
     if (embedded) {
       if (hasWinner) return false; // Cannot change existing winners in embedded view
-      // In embedded view, allow setting winner for scheduled matches with participants
+      // In embedded view, allow setting winner for all matches with both participants (including pending and scheduled)
       if (tournament.type === 'singles') {
-        return match.status === 'scheduled' && player1 && player2;
+        return player1 && player2;
       } else {
-        return match.status === 'scheduled' && team1 && team2;
+        return team1 && team2;
       }
     }
     
