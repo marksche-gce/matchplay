@@ -10,7 +10,7 @@ import { Edit } from "lucide-react";
 import { useState } from "react";
 
 const Index = () => {
-  const { headerImageUrl, headerVideoUrl } = useHeaderImage();
+  const { headerImageUrl, headerVideoUrl, loading } = useHeaderImage();
   const { isSystemAdmin } = useSystemAdminCheck();
   const [showHeaderEdit, setShowHeaderEdit] = useState(false);
 
@@ -20,19 +20,23 @@ const Index = () => {
       
       {/* Hero Section with Header Media */}
       <section className="relative h-[50vh] min-h-[438px] max-h-[625px]">
-        {headerVideoUrl ? (
-          <VideoPlayer 
-            url={headerVideoUrl}
-            className="absolute inset-0 w-full h-full object-cover"
-            autoplay={true}
-            muted={true}
-            controls={false}
-          />
-        ) : (
-          <div 
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-            style={{ backgroundImage: `url(${headerImageUrl})` }}
-          />
+        {!loading && (
+          <>
+            {headerVideoUrl ? (
+              <VideoPlayer 
+                url={headerVideoUrl}
+                className="absolute inset-0 w-full h-full object-cover"
+                autoplay={true}
+                muted={true}
+                controls={false}
+              />
+            ) : (
+              <div 
+                className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                style={{ backgroundImage: `url(${headerImageUrl})` }}
+              />
+            )}
+          </>
         )}
         
         {/* Header Image Edit Button for System Admins */}

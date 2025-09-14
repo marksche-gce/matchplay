@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import heroImage from "@/assets/golf-hero.jpg";
 
 export function useHeaderImage() {
-  const [headerImageUrl, setHeaderImageUrl] = useState<string>(heroImage);
+  const [headerImageUrl, setHeaderImageUrl] = useState<string>('');
   const [headerVideoUrl, setHeaderVideoUrl] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
@@ -35,6 +35,9 @@ export function useHeaderImage() {
           // Use the setting value as-is (for default image or external URLs)
           setHeaderImageUrl(imageResult.data.setting_value.startsWith('/') ? heroImage : imageResult.data.setting_value);
         }
+      } else {
+        // No setting found, use default hero image
+        setHeaderImageUrl(heroImage);
       }
 
       // Handle video URL
