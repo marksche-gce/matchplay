@@ -56,113 +56,95 @@ export default function TournamentEmbedParticipants() {
 
       setTournament(tournamentData);
 
-      // Fetch participants based on tournament type
-      if (tournamentData.type === 'singles') {
-        const { data: registrationsData, error: registrationsError } = await supabase
-          .from('tournament_registrations_new')
-          .select(`
-            id,
-            registered_at,
-            player_id
-          `)
-          .eq('tournament_id', id)
-          .order('registered_at');
+      // Fetch participants ordered by position (manual ordering) first, then by registration time
+      const { data: registrationsData, error: registrationsError } = await supabase
+        .from('tournament_registrations_new')
+        .select(`
+          id,
+          registered_at,
+          player_id,
+          team_id,
+          position
+        `)
+        .eq('tournament_id', id)
+        .order('position', { nullsFirst: false })
+        .order('registered_at');
 
-        if (registrationsError) {
-          console.error('Error fetching registrations:', registrationsError);
-        } else {
-          // Fetch detailed player information for each registration
-          const participantsWithDetails: any[] = [];
-          
-          for (const registration of registrationsData || []) {
-            if (registration.player_id) {
-              const { data: playerData } = await supabase
+      if (registrationsError) {
+        console.error('Error fetching registrations:', registrationsError);
+        setParticipants([]);
+        return;
+      }
+
+      const participantsWithDetails: any[] = [];
+      
+      for (const registration of registrationsData || []) {
+        if (tournamentData.type === 'singles' && registration.player_id) {
+          // Fetch player details
+          const { data: playerData } = await supabase
+            .from('players_new')
+            .select('id, name, email, handicap')
+            .eq('id', registration.player_id)
+            .single();
+
+          if (playerData) {
+            participantsWithDetails.push({
+              id: registration.id,
+              player: playerData,
+              registered_at: registration.registered_at,
+              position: registration.position
+            });
+          }
+        } else if (tournamentData.type === 'foursome' && registration.team_id) {
+          // Fetch team details
+          const { data: teamData } = await supabase
+            .from('teams')
+            .select(`
+              id,
+              name,
+              player1_id,
+              player2_id
+            `)
+            .eq('id', registration.team_id)
+            .single();
+
+          if (teamData) {
+            const team: any = {
+              id: teamData.id,
+              name: teamData.name
+            };
+
+            // Fetch player1 details
+            if (teamData.player1_id) {
+              const { data: player1Data } = await supabase
                 .from('players_new')
                 .select('id, name, email, handicap')
-                .eq('id', registration.player_id)
+                .eq('id', teamData.player1_id)
                 .single();
-
-              if (playerData) {
-                participantsWithDetails.push({
-                  id: registration.id,
-                  player: playerData,
-                  registered_at: registration.registered_at
-                });
-              }
+              if (player1Data) team.player1 = player1Data;
             }
-          }
-          
-          setParticipants(participantsWithDetails);
-        }
-      } else {
-        // For foursome tournaments, fetch teams and their players
-        const { data: registrationsData, error: registrationsError } = await supabase
-          .from('tournament_registrations_new')
-          .select(`
-            id,
-            registered_at,
-            team_id
-          `)
-          .eq('tournament_id', id)
-          .order('registered_at');
 
-        if (registrationsError) {
-          console.error('Error fetching registrations:', registrationsError);
-        } else {
-          // Fetch detailed team and player information for each registration
-          const teamsWithDetails: any[] = [];
-          
-          for (const registration of registrationsData || []) {
-            if (registration.team_id) {
-              const { data: teamData } = await supabase
-                .from('teams')
-                .select(`
-                  id,
-                  name,
-                  player1_id,
-                  player2_id
-                `)
-                .eq('id', registration.team_id)
+            // Fetch player2 details
+            if (teamData.player2_id) {
+              const { data: player2Data } = await supabase
+                .from('players_new')
+                .select('id, name, email, handicap')
+                .eq('id', teamData.player2_id)
                 .single();
-
-              if (teamData) {
-                const team: any = {
-                  id: teamData.id,
-                  name: teamData.name
-                };
-
-                // Fetch player1 details
-                if (teamData.player1_id) {
-                  const { data: player1Data } = await supabase
-                    .from('players_new')
-                    .select('id, name, email, handicap')
-                    .eq('id', teamData.player1_id)
-                    .single();
-                  if (player1Data) team.player1 = player1Data;
-                }
-
-                // Fetch player2 details
-                if (teamData.player2_id) {
-                  const { data: player2Data } = await supabase
-                    .from('players_new')
-                    .select('id, name, email, handicap')
-                    .eq('id', teamData.player2_id)
-                    .single();
-                  if (player2Data) team.player2 = player2Data;
-                }
-
-                teamsWithDetails.push({
-                  id: registration.id,
-                  team,
-                  registered_at: registration.registered_at
-                });
-              }
+              if (player2Data) team.player2 = player2Data;
             }
+
+            participantsWithDetails.push({
+              id: registration.id,
+              team,
+              registered_at: registration.registered_at,
+              position: registration.position
+            });
           }
-          
-          setParticipants(teamsWithDetails);
         }
       }
+      
+      setParticipants(participantsWithDetails);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {

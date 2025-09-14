@@ -171,8 +171,6 @@ export default function TournamentEmbed() {
               <Button asChild variant="outline" size="sm" className="touch-manipulation min-h-[44px] md:min-h-auto">
                 <a 
                   href={`/embed/${id}/participants`}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="flex items-center gap-1"
                 >
                   <Users className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0" />
