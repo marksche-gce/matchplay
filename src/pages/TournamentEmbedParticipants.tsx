@@ -36,6 +36,8 @@ export default function TournamentEmbedParticipants() {
 
   const fetchTournamentAndParticipants = async () => {
     try {
+      console.log('Fetching tournament and participants for ID:', id);
+      
       // Fetch tournament info
       const { data, error } = await supabase.functions.invoke('get-embed-tournament', {
         body: { tournamentId: id },
@@ -48,6 +50,8 @@ export default function TournamentEmbedParticipants() {
       }
 
       const tournamentData = (data as any)?.tournament || null;
+      console.log('Tournament data received:', tournamentData);
+      
       if (!tournamentData) {
         console.warn('No tournament returned from edge function');
         setTournament(null);
@@ -56,29 +60,55 @@ export default function TournamentEmbedParticipants() {
 
       setTournament(tournamentData);
 
-      // Fetch participants ordered by position (manual ordering) first, then by registration time
-      const { data: registrationsData, error: registrationsError } = await supabase
-        .from('tournament_registrations_new')
-        .select(`
-          id,
-          registered_at,
-          player_id,
-          team_id,
-          position
-        `)
-        .eq('tournament_id', id)
-        .order('position', { nullsFirst: false })
-        .order('registered_at');
+      // Try to get participants from the get-embed-bracket function first
+      const { data: bracketData, error: bracketError } = await supabase.functions.invoke('get-embed-bracket', {
+        body: { tournamentId: id },
+      });
 
-      if (registrationsError) {
-        console.error('Error fetching registrations:', registrationsError);
-        setParticipants([]);
-        return;
+      if (bracketError) {
+        console.error('Error fetching bracket data:', bracketError);
+      }
+
+      const registrations = (bracketData as any)?.participants || [];
+      console.log('Participants from bracket function:', registrations.length);
+      
+      if (registrations.length === 0) {
+        console.log('No participants from bracket function, trying direct database query');
+        
+        // Fallback to direct database query
+        const { data: directRegistrations, error: directError } = await supabase
+          .from('tournament_registrations_new')
+          .select(`
+            id,
+            registered_at,
+            player_id,
+            team_id,
+            position
+          `)
+          .eq('tournament_id', id)
+          .order('position', { nullsFirst: false })
+          .order('registered_at');
+
+        if (directError) {
+          console.error('Error with direct registration query:', directError);
+          setParticipants([]);
+          return;
+        }
+
+        console.log('Direct registrations found:', directRegistrations?.length || 0);
+        
+        if (!directRegistrations || directRegistrations.length === 0) {
+          setParticipants([]);
+          return;
+        }
+
+        // Use the direct registrations
+        registrations.push(...directRegistrations);
       }
 
       const participantsWithDetails: any[] = [];
       
-      for (const registration of registrationsData || []) {
+      for (const registration of registrations) {
         if (tournamentData.type === 'singles' && registration.player_id) {
           // Fetch player details
           const { data: playerData } = await supabase
@@ -144,6 +174,7 @@ export default function TournamentEmbedParticipants() {
         }
       }
       
+      console.log('Final participants with details:', participantsWithDetails.length);
       setParticipants(participantsWithDetails);
     } catch (error) {
       console.error('Error fetching data:', error);
