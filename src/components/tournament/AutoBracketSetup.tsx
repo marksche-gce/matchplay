@@ -165,173 +165,131 @@ export function AutoBracketSetup({ tournament, onSetupComplete }: AutoBracketSet
     }
   };
 
-  const setupNormalBracket = async () => {
-    // Sortiere nach Handicap für korrektes Seeding (beste zuerst)
+  // Serpentine-Seeding: 1 oben, 2 unten, 3 oben, 4 unten, ...
+  // Erzeugt die Reihenfolge der Seeds von oben nach unten für die erste Runde (adjazente Slots ergeben Matches)
+  const generateSeedOrder = (size: number): number[] => {
+    if (size <= 2) return [1, 2].slice(0, size);
+    let order = [1, 2];
+    let currentSize = 2;
+    while (currentSize < size) {
+      const nextSize = currentSize * 2;
+      const newOrder: number[] = [];
+      for (let i = 0; i < order.length; i += 2) {
+        const a = order[i];
+        const b = order[i + 1];
+        newOrder.push(a, nextSize + 1 - a, nextSize + 1 - b, b);
+      }
+      order = newOrder;
+      currentSize = nextSize;
+    }
+    return order;
+  };
+
+  // Wendet die Serpentine-Seeding-Order an, berücksichtigt Freilose und setzt Gewinner automatisch in Runde 2
+  const applySerpentineSeeding = async () => {
+    // Teilnehmer nach Handicap sortieren (beste zuerst)
     const sortedByHandicap = [...registrations].sort((a, b) => {
-      const handicapA = tournament.type === 'singles' 
-        ? (a.player?.handicap || 999)
-        : ((a.team?.player1?.handicap || 0) + (a.team?.player2?.handicap || 0)) / 2;
+      const handicapA = tournament.type === 'singles'
+        ? (a.player?.handicap ?? 999)
+        : (((a.team?.player1?.handicap ?? 0) + (a.team?.player2?.handicap ?? 0)) / 2);
       const handicapB = tournament.type === 'singles'
-        ? (b.player?.handicap || 999) 
-        : ((b.team?.player1?.handicap || 0) + (b.team?.player2?.handicap || 0)) / 2;
+        ? (b.player?.handicap ?? 999)
+        : (((b.team?.player1?.handicap ?? 0) + (b.team?.player2?.handicap ?? 0)) / 2);
       return handicapA - handicapB;
     });
 
-    const matchUpdates = [];
-    const totalMatches = firstRoundMatches.length;
+    const N = tournament.max_players; // Bracket-Größe
+    const seedOrder = generateSeedOrder(N); // Länge N, adjazente Einträge sind ein Match
+
+    // Mappe Linien (oben->unten) auf Teilnehmer oder Freilos (null)
+    const lineAssignments: (Registration | null)[] = new Array(N).fill(null);
+    for (let line = 0; line < N; line++) {
+      const seedNumber = seedOrder[line]; // 1-basierter Seed
+      const participant = sortedByHandicap[seedNumber - 1] ?? null; // Freilos, falls > registriert
+      lineAssignments[line] = participant ?? null;
+    }
+
+    const matchUpdates: Array<{
+      matchId: string;
+      updateData: any;
+      advanceWinner?: boolean;
+      winnerId?: string | null;
+    }> = [];
+
+    const totalMatches = firstRoundMatches.length; // sollte N/2 sein
 
     for (let i = 0; i < totalMatches; i++) {
       const match = firstRoundMatches[i];
-      let participant1, participant2;
-      
-      if (i % 2 === 0) {
-        // Gerade Match-Nummern (0, 2, 4, ...): 
-        // Spieler aus der oberen Hälfte der Seeding-Liste
-        const seedIndex = i / 2;
-        participant1 = sortedByHandicap[seedIndex];
-        
-        // Gegner aus der gespiegelten Position
-        const mirrorIndex = sortedByHandicap.length - 1 - seedIndex;
-        participant2 = sortedByHandicap[mirrorIndex];
-      } else {
-        // Ungerade Match-Nummern (1, 3, 5, ...):
-        // Gespiegelte Anordnung von hinten
-        const pairIndex = Math.floor(i / 2);
-        const mirrorMatch = totalMatches - 1 - pairIndex;
-        const seedIndex = pairIndex + 1;
-        
-        participant1 = sortedByHandicap[sortedByHandicap.length - 1 - seedIndex];
-        participant2 = sortedByHandicap[seedIndex];
-      }
+      const lineA = i * 2;      // Slot 1 in Match i
+      const lineB = i * 2 + 1;  // Slot 2 in Match i
 
-      const updateData: any = { status: 'scheduled' };
-      
-      if (participant1) {
-        if (tournament.type === 'singles') {
-          updateData.player1_id = participant1.player_id;
-        } else {
-          updateData.team1_id = participant1.team_id;
-        }
-      }
-      
-      if (participant2) {
-        if (tournament.type === 'singles') {
-          updateData.player2_id = participant2.player_id;
-        } else {
-          updateData.team2_id = participant2.team_id;
-        }
-      }
+      const pA = lineAssignments[lineA];
+      const pB = lineAssignments[lineB];
 
-      matchUpdates.push({
-        matchId: match.id,
-        updateData
-      });
-    }
+      const updateData: any = {};
 
-    // Apply all updates
-    for (const update of matchUpdates) {
-      await supabase
-        .from('matches_new')
-        .update(update.updateData)
-        .eq('id', update.matchId);
-    }
-  };
-
-  const setupBracketWithByes = async (byeCount: number) => {
-    // Sortiere nach Handicap für Freilose (beste zuerst)
-    const sortedByHandicap = [...registrations].sort((a, b) => {
-      const handicapA = tournament.type === 'singles' 
-        ? (a.player?.handicap || 999)
-        : ((a.team?.player1?.handicap || 0) + (a.team?.player2?.handicap || 0)) / 2;
-      const handicapB = tournament.type === 'singles'
-        ? (b.player?.handicap || 999) 
-        : ((b.team?.player1?.handicap || 0) + (b.team?.player2?.handicap || 0)) / 2;
-      return handicapA - handicapB;
-    });
-
-    // Beste Handicapper bekommen Freilose
-    const playersWithByes = sortedByHandicap.slice(0, byeCount);
-    const playersToPlay = sortedByHandicap.slice(byeCount);
-
-    // Spiegelbildlicher Aufbau: Bester vs Schlechtester
-    const reversedPlayers = [...playersToPlay].reverse();
-    const pairedPlayers = [];
-    
-    for (let i = 0; i < Math.floor(playersToPlay.length / 2); i++) {
-      pairedPlayers.push({
-        player1: playersToPlay[i],
-        player2: reversedPlayers[i]
-      });
-    }
-
-    const matchUpdates = [];
-    
-    // Setup Freilose (erste Matches für beste Handicapper)
-    for (let i = 0; i < playersWithByes.length && i < firstRoundMatches.length; i++) {
-      const match = firstRoundMatches[i];
-      const participant = playersWithByes[i];
-      
-      const updateData: any = {
-        status: 'completed'
-      };
-      
+      // Setze Spieler/Teams in Slots
       if (tournament.type === 'singles') {
-        updateData.player1_id = participant.player_id;
-        updateData.winner_player_id = participant.player_id;
+        updateData.player1_id = pA?.player_id ?? null;
+        updateData.player2_id = pB?.player_id ?? null;
       } else {
-        updateData.team1_id = participant.team_id;
-        updateData.winner_team_id = participant.team_id;
+        updateData.team1_id = pA?.team_id ?? null;
+        updateData.team2_id = pB?.team_id ?? null;
       }
 
-      matchUpdates.push({
-        matchId: match.id,
-        updateData,
-        advanceWinner: true,
-        winnerId: tournament.type === 'singles' ? participant.player_id : participant.team_id
-      });
-    }
-
-    // Setup reguläre Matches
-    const startIndex = playersWithByes.length;
-    for (let i = 0; i < pairedPlayers.length && (startIndex + i) < firstRoundMatches.length; i++) {
-      const match = firstRoundMatches[startIndex + i];
-      const pair = pairedPlayers[i];
-      
-      const updateData: any = { status: 'scheduled' };
-      
-      if (tournament.type === 'singles') {
-        updateData.player1_id = pair.player1.player_id;
-        updateData.player2_id = pair.player2.player_id;
+      // Status und ggf. Gewinner bei Freilos
+      if (pA && !pB) {
+        updateData.status = 'completed';
+        if (tournament.type === 'singles') {
+          updateData.winner_player_id = pA.player_id;
+        } else {
+          updateData.winner_team_id = pA.team_id;
+        }
+        matchUpdates.push({
+          matchId: match.id,
+          updateData,
+          advanceWinner: true,
+          winnerId: tournament.type === 'singles' ? pA.player_id : pA.team_id,
+        });
+      } else if (!pA && pB) {
+        updateData.status = 'completed';
+        if (tournament.type === 'singles') {
+          updateData.winner_player_id = pB.player_id;
+        } else {
+          updateData.winner_team_id = pB.team_id;
+        }
+        matchUpdates.push({
+          matchId: match.id,
+          updateData,
+          advanceWinner: true,
+          winnerId: tournament.type === 'singles' ? pB.player_id : pB.team_id,
+        });
+      } else if (pA && pB) {
+        updateData.status = 'scheduled';
+        matchUpdates.push({ matchId: match.id, updateData });
       } else {
-        updateData.team1_id = pair.player1.team_id;
-        updateData.team2_id = pair.player2.team_id;
+        // Beide Slots leer (sollte nicht vorkommen) -> Pending
+        updateData.status = 'pending';
+        matchUpdates.push({ matchId: match.id, updateData });
       }
-
-      matchUpdates.push({
-        matchId: match.id,
-        updateData
-      });
     }
 
-    // Apply all updates and advance bye winners
+    // Updates anwenden und Bye-Gewinner in die nächste Runde setzen
     for (const update of matchUpdates) {
       await supabase
         .from('matches_new')
         .update(update.updateData)
         .eq('id', update.matchId);
 
-      // Advance bye winner to next round
       if (update.advanceWinner && update.winnerId) {
         const match = firstRoundMatches.find(m => m.id === update.matchId);
         if (match?.feeds_to_match_id && match.feeds_to_position) {
           const nextRoundUpdate: any = {};
-          
           if (tournament.type === 'singles') {
             nextRoundUpdate[`player${match.feeds_to_position}_id`] = update.winnerId;
           } else {
             nextRoundUpdate[`team${match.feeds_to_position}_id`] = update.winnerId;
           }
-          
           await supabase
             .from('matches_new')
             .update(nextRoundUpdate)
@@ -340,6 +298,16 @@ export function AutoBracketSetup({ tournament, onSetupComplete }: AutoBracketSet
       }
     }
   };
+
+  const setupNormalBracket = async () => {
+    await applySerpentineSeeding();
+  };
+
+  const setupBracketWithByes = async (byeCount: number) => {
+    // byeCount wird implizit durch lineAssignments berücksichtigt
+    await applySerpentineSeeding();
+  };
+
 
   const byeCount = calculateByes();
   const canAutoSetup = registrations.length > 0 && firstRoundMatches.length > 0;
