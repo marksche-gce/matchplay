@@ -151,8 +151,8 @@ export function TournamentManagement({
         description: `Alle ${data.matchesCleared || 0} Matches wurden erfolgreich zurückgesetzt.`,
       });
 
-      // Refresh matches data if needed
-      // This assumes the parent component will refresh the data
+      // Reload the page to refresh all data
+      window.location.reload();
       
     } catch (error) {
       console.error('Error clearing matches:', error);

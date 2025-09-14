@@ -258,7 +258,9 @@ export function TournamentView({ tournamentId, onBack }: TournamentViewProps) {
         title: "Matches gelöscht",
         description: `Alle ${data.matchesCleared || 0} Matches wurden erfolgreich zurückgesetzt.`,
       });
-      
+
+      // Reload the page to refresh all data
+      window.location.reload();
     } catch (error) {
       console.error('Error clearing matches:', error);
       toast({
