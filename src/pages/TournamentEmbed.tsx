@@ -192,19 +192,20 @@ export default function TournamentEmbed() {
       <div className="max-w-full mx-auto p-2 md:p-4">
         <div className="bg-card rounded-lg border shadow-sm p-2 md:p-4">
           {tournament && (
-            tournament.registration_status === 'open' ? (
-              <EmbedRegistrationForm 
-                tournament={tournament}
-                registrationCount={registrationCount}
-                onRegistrationComplete={fetchRegistrationCount}
-              />
-            ) : (
+            <>
+              {tournament.registration_status === 'open' && (
+                <EmbedRegistrationForm 
+                  tournament={tournament}
+                  registrationCount={registrationCount}
+                  onRegistrationComplete={fetchRegistrationCount}
+                />
+              )}
               <BracketView 
                 tournamentId={tournament.id} 
                 tournament={tournament}
                 embedded={true}
               />
-            )
+            </>
           )}
         </div>
       </div>

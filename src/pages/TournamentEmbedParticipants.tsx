@@ -60,7 +60,7 @@ export default function TournamentEmbedParticipants() {
 
       setTournament(tournamentData);
 
-      // Try to get participants from the get-embed-bracket function first
+      // Get enriched participants from the bracket edge function (service role bypasses RLS)
       const { data: bracketData, error: bracketError } = await supabase.functions.invoke('get-embed-bracket', {
         body: { tournamentId: id },
       });
@@ -69,22 +69,24 @@ export default function TournamentEmbedParticipants() {
         console.error('Error fetching bracket data:', bracketError);
       }
 
-      const registrations = (bracketData as any)?.participants || [];
-      console.log('Participants from bracket function:', registrations.length);
+      const enriched = (bracketData as any)?.participantsDetailed as any[] | undefined;
+      const regs = (bracketData as any)?.participants as any[] | undefined;
+
+      if (enriched && enriched.length > 0) {
+        console.log('Using enriched participants from edge function:', enriched.length);
+        setParticipants(enriched);
+        return;
+      }
+
+      console.log('No enriched participants returned, building details via client as fallback');
       
+      // Fallback: Client-side enrichment (may be limited by RLS if unauthenticated)
+      const registrations = regs && regs.length ? regs : [];
       if (registrations.length === 0) {
-        console.log('No participants from bracket function, trying direct database query');
-        
-        // Fallback to direct database query
+        // Final fallback to direct DB query
         const { data: directRegistrations, error: directError } = await supabase
           .from('tournament_registrations_new')
-          .select(`
-            id,
-            registered_at,
-            player_id,
-            team_id,
-            position
-          `)
+          .select('id, registered_at, player_id, team_id, position')
           .eq('tournament_id', id)
           .order('position', { nullsFirst: false })
           .order('registered_at');
@@ -94,29 +96,17 @@ export default function TournamentEmbedParticipants() {
           setParticipants([]);
           return;
         }
-
-        console.log('Direct registrations found:', directRegistrations?.length || 0);
-        
-        if (!directRegistrations || directRegistrations.length === 0) {
-          setParticipants([]);
-          return;
-        }
-
-        // Use the direct registrations
-        registrations.push(...directRegistrations);
+        registrations.push(...(directRegistrations || []));
       }
 
       const participantsWithDetails: any[] = [];
-      
       for (const registration of registrations) {
         if (tournamentData.type === 'singles' && registration.player_id) {
-          // Fetch player details
           const { data: playerData } = await supabase
             .from('players_new')
             .select('id, name, email, handicap')
             .eq('id', registration.player_id)
-            .single();
-
+            .maybeSingle();
           if (playerData) {
             participantsWithDetails.push({
               id: registration.id,
@@ -126,41 +116,30 @@ export default function TournamentEmbedParticipants() {
             });
           }
         } else if (tournamentData.type === 'foursome' && registration.team_id) {
-          // Fetch team details
           const { data: teamData } = await supabase
             .from('teams')
-            .select(`
-              id,
-              name,
-              player1_id,
-              player2_id
-            `)
+            .select('id, name, player1_id, player2_id')
             .eq('id', registration.team_id)
-            .single();
+            .maybeSingle();
 
           if (teamData) {
-            const team: any = {
-              id: teamData.id,
-              name: teamData.name
-            };
+            const team: any = { id: teamData.id, name: teamData.name };
 
-            // Fetch player1 details
             if (teamData.player1_id) {
               const { data: player1Data } = await supabase
                 .from('players_new')
                 .select('id, name, email, handicap')
                 .eq('id', teamData.player1_id)
-                .single();
+                .maybeSingle();
               if (player1Data) team.player1 = player1Data;
             }
 
-            // Fetch player2 details
             if (teamData.player2_id) {
               const { data: player2Data } = await supabase
                 .from('players_new')
                 .select('id, name, email, handicap')
                 .eq('id', teamData.player2_id)
-                .single();
+                .maybeSingle();
               if (player2Data) team.player2 = player2Data;
             }
 
@@ -173,8 +152,7 @@ export default function TournamentEmbedParticipants() {
           }
         }
       }
-      
-      console.log('Final participants with details:', participantsWithDetails.length);
+
       setParticipants(participantsWithDetails);
     } catch (error) {
       console.error('Error fetching data:', error);
